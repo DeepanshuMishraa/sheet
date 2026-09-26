@@ -10,7 +10,6 @@ import {
   type RefObject,
   type SetStateAction,
 } from 'react'
-import { Link } from '@tanstack/react-router'
 import {
   BracesIcon,
   CodeXmlIcon,
@@ -30,25 +29,29 @@ import {
   Undo2Icon,
   ZoomInIcon,
   ZoomOutIcon,
-} from '@loora/ui/icons'
+} from '@sheet/ui/icons'
 import {
   CopyIcon,
+  CropIcon,
   DownloadIcon,
   EllipsisIcon,
-  EyeIcon,
   FrameIcon,
   HandIcon,
   LayersIcon,
   MaximizeIcon,
+  PenTool01Icon,
+  PlusCircleIcon,
   PlusIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
-} from '@loora/ui/icons'
+  SquareIcon,
+} from '@sheet/ui/icons'
 import {
   CanvasProvider,
   CanvasSurface,
   type CanvasCamera,
   type CanvasDropPlacement,
+  type CanvasPenStroke,
   type CanvasSurfaceControls,
   useCanvasDocument,
   useCanvasHistory,
@@ -56,7 +59,7 @@ import {
   useCanvasSelection,
   useCanvasSession,
   useCanvasTransaction,
-} from '@loora/canvas/react'
+} from '@sheet/canvas/react'
 import {
   canvasId,
   createComponentNode,
@@ -76,7 +79,7 @@ import {
   type NodeRef,
   type ShapeNode,
   type VectorNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import type {
   CanvasAgentActivity,
   CanvasPeer,
@@ -88,7 +91,7 @@ import type {
   CanvasEngine,
   CanvasOperation,
   CanvasTransaction,
-} from '@loora/canvas/engine'
+} from '@sheet/canvas/engine'
 import { CanvasLayersPanel } from './layers-panel'
 import { CanvasPropertiesPanel } from './properties-panel'
 import { CanvasTokensPanel } from './tokens-panel'
@@ -100,6 +103,7 @@ import {
 import { CanvasAgentAvatar, CanvasAgentOverlay } from './agent-presence'
 import { CanvasExport } from './export-panel'
 import { CanvasHistory } from './history'
+import { DocumentTabBar } from './tab-bar'
 import { HtmlImportDialog } from './html-import-dialog'
 import { IconPickerDialog } from './icon-picker-dialog'
 import { ProductTour } from './product-tour'
@@ -125,14 +129,14 @@ import {
   EditorCommandMenu,
   type EditorCommandGroup,
 } from './editor-command-menu'
-import { Button } from '@loora/ui/button'
+import { Button } from '@sheet/ui/button'
 import {
   Tooltip,
   TooltipPopup,
   TooltipProvider,
   TooltipTrigger,
-} from '@loora/ui/tooltip'
-import { orpc } from '@loora/rpc/client'
+} from '@sheet/ui/tooltip'
+import { orpc } from '@sheet/rpc/client'
 import { compileCanvasCode, type CanvasCodeFormat } from '../lib/canvas-code-copy'
 import { copyText } from '../lib/copy-text'
 import {
@@ -153,9 +157,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@loora/ui/dropdown-menu'
-import { Drawer, DrawerPopup } from '@loora/ui/drawer'
-import { useIsMobile } from '@loora/ui/hooks/use-media-query'
+} from '@sheet/ui/dropdown-menu'
+import { Drawer, DrawerPopup } from '@sheet/ui/drawer'
+import { useIsMobile } from '@sheet/ui/hooks/use-media-query'
 import {
   cacheShortcuts,
   formatBuiltInChord,
@@ -166,7 +170,7 @@ import {
   type BuiltInShortcutId,
   type ShortcutConfig,
 } from '../lib/shortcuts'
-import { Dialog, DialogPopup } from '@loora/ui/dialog'
+import { Dialog, DialogPopup } from '@sheet/ui/dialog'
 
 const INSPECTOR_MIN_WIDTH = 220
 const INSPECTOR_MAX_WIDTH = 420
@@ -311,8 +315,8 @@ export function CanvasEditor({
 
 function cameraStorageKey(target: CanvasSyncTarget | undefined) {
   return target
-    ? `loora:canvas:camera:${target.designId}:${target.draftId ?? 'main'}`
-    : 'loora:canvas:camera:preview'
+    ? `sheet:canvas:camera:${target.designId}:${target.draftId ?? 'main'}`
+    : 'sheet:canvas:camera:preview'
 }
 
 function loadCamera(key: string): Partial<CanvasCamera> {
@@ -342,7 +346,7 @@ function requestedPreviewWidth(fallback: number) {
 function CanvasShell({
   controller,
   name,
-  topBar,
+  topBar: _topBar,
   topBarEnd,
   readOnly,
   renderSettings,
@@ -368,8 +372,8 @@ function CanvasShell({
   const [exportOpen, setExportOpen] = useState(false)
   const [htmlImportOpen, setHtmlImportOpen] = useState(false)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
-  const [designPanelOpen, setDesignPanelOpen] = useState(() => panelVisible('loora:design-panel-open'))
-  const [layersPanelOpen, setLayersPanelOpen] = useState(() => panelVisible('loora:layers-panel-open'))
+  const [designPanelOpen, setDesignPanelOpen] = useState(() => panelVisible('sheet:design-panel-open'))
+  const [layersPanelOpen, setLayersPanelOpen] = useState(() => panelVisible('sheet:layers-panel-open'))
   const [tourOpen, setTourOpen] = useState(false)
   // A reload part way through picks up where it left off; asking for the tour
   // again from the command menu deliberately starts it over.
@@ -377,7 +381,7 @@ function CanvasShell({
   const [commandMenuOpen, setCommandMenuOpen] = useState(false)
   const [pasteNotice, setPasteNotice] = useState<string | null>(null)
   const pasteNoticeTimer = useRef<number | null>(null)
-  const [interactionMode, setInteractionMode] = useState<'select' | 'pan'>(
+  const [interactionMode, setInteractionMode] = useState<'select' | 'pan' | 'pen'>(
     'select',
   )
 
@@ -477,12 +481,12 @@ function CanvasShell({
     openLayers: () => {
       if (isMobile) return
       setLayersPanelOpen(true)
-      window.localStorage.setItem('loora:layers-panel-open', 'true')
+      window.localStorage.setItem('sheet:layers-panel-open', 'true')
     },
     openDesign: () => {
       if (isMobile) return
       setDesignPanelOpen(true)
-      window.localStorage.setItem('loora:design-panel-open', 'true')
+      window.localStorage.setItem('sheet:design-panel-open', 'true')
     },
     nodeCount: () => Object.keys(controller.engine.document.nodes).length,
   })
@@ -569,9 +573,9 @@ function CanvasShell({
         if (hit === 'toggleAssets') {
           setAssetsOpen((open) => !open)
         } else if (hit === 'toggleDesignPanel') {
-          togglePanel('loora:design-panel-open', setDesignPanelOpen)
+          togglePanel('sheet:design-panel-open', setDesignPanelOpen)
         } else if (hit === 'toggleLayersPanel') {
-          togglePanel('loora:layers-panel-open', setLayersPanelOpen)
+          togglePanel('sheet:layers-panel-open', setLayersPanelOpen)
         }         else if (hit === 'openCommandMenu') setCommandMenuOpen(true)
         else if (hit === 'openSettings') setSettingsOpen(true)
         else if (hit === 'zoomIn') controlsRef.current?.zoomIn()
@@ -816,14 +820,14 @@ function CanvasShell({
                 label: 'Toggle layers panel',
                 icon: LayersIcon,
                 shortcut: shortcutLabel('toggleLayersPanel'),
-                run: () => togglePanel('loora:layers-panel-open', setLayersPanelOpen),
+                run: () => togglePanel('sheet:layers-panel-open', setLayersPanelOpen),
               },
               {
                 id: 'toggle-design-panel',
                 label: 'Toggle design panel',
                 icon: SlidersHorizontalIcon,
                 shortcut: shortcutLabel('toggleDesignPanel'),
-                run: () => togglePanel('loora:design-panel-open', setDesignPanelOpen),
+                run: () => togglePanel('sheet:design-panel-open', setDesignPanelOpen),
               },
             ]),
         {
@@ -869,13 +873,26 @@ function CanvasShell({
   ]
 
   const layersPanel = (
-    <CanvasLayersPanel
-      onReorder={actions.reorderSelection}
-      canReorder={actions.canReorder}
-      onAddPage={addPageAndFocus}
-      position="left"
-      onClose={isMobile ? () => setMobileInspector(null) : undefined}
-    />
+    <CanvasContextMenu
+      actions={actions}
+      shortcutLabel={shortcutLabel}
+      onZoomToSelection={() => controlsRef.current?.zoomToSelection()}
+      onInsertIcon={() => setIconPickerOpen(true)}
+    >
+      <CanvasLayersPanel
+        documentName={name}
+        onReorder={actions.reorderSelection}
+        canReorder={actions.canReorder}
+        onAddPage={addPageAndFocus}
+        position="left"
+        onClose={
+          isMobile
+            ? () => setMobileInspector(null)
+            : () => setLayersPanelOpen((prev) => !prev)
+        }
+        onTokensOpen={() => setTokensOpen(true)}
+      />
+    </CanvasContextMenu>
   )
   const propertiesPanel = (
     <CanvasPropertiesPanel
@@ -918,6 +935,7 @@ function CanvasShell({
               }
               void uploadDroppedImages([...event.dataTransfer.files], placement)
             }}
+            onPenStroke={actions.addVector}
             onCameraChange={(next) => {
               setZoom(next.zoom)
               setCamera(next)
@@ -1046,51 +1064,53 @@ function CanvasShell({
       </main>
 
       <div className="pointer-events-none absolute inset-0 z-20 flex flex-col">
-        <header className="pointer-events-auto flex h-9 shrink-0 items-center gap-1.5 border-b border-line bg-surface px-2">
-          <Link
-            to="/app"
-            className="flex items-center gap-1.5"
-            aria-label="Back to dashboard"
-          >
-            <img
-              src="/logo192.png"
-              alt=""
-              width={16}
-              height={16}
-              className="size-4 shrink-0 rounded-sm"
-            />
-            <span className="shrink-0 text-xs font-semibold tracking-tight">
-              loora
-            </span>
-          </Link>
-          <span className="text-muted-foreground/35 max-sm:hidden">/</span>
-          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden max-sm:max-w-40">
-            {typeof topBar === 'function'
-              ? topBar({
-                  openAssets: () => setAssetsOpen(true),
-                  openHistory: () => setHistoryOpen(true),
-                })
-              : topBar ?? (
-                  <span className="max-w-48 truncate text-xs text-muted-foreground">
-                    {name}
-                  </span>
-                )}
-          </div>
-          <span className="text-muted-foreground/35 max-sm:hidden">/</span>
-          <div className="max-sm:hidden">
-            {readOnly ? (
-              <span className="text-xs text-muted-foreground">Read-only</span>
-            ) : (
-              <CanvasSyncIndicator controller={controller} />
-            )}
-          </div>
-          {/* The right cluster: the agent sits with the human collaborators,
-              because to everyone in the document it is one of them. */}
+        <header
+          data-tauri-drag-region
+          className="pointer-events-auto flex h-10 shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20"
+        >
+          <DocumentTabBar activeDocument={{ id: controller.target?.designId ?? '', name }} />
+
+          <div data-tauri-drag-region className="h-full min-w-4 flex-1" />
+
+          {/* Right cluster */}
           <div
             data-tour="share"
-            className="ms-auto flex min-w-0 shrink-0 items-center gap-2"
+            className="flex min-w-0 shrink-0 items-center gap-2"
           >
             <CanvasAgentAvatar controller={controller} />
+
+            {/* Zoom Button */}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="Reset zoom"
+                    className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-2 tabular-nums"
+                    onClick={() => controlsRef.current?.zoomReset()}
+                  >
+                    <span>{Math.round(zoom * 100)}%</span>
+                  </button>
+                }
+              />
+              <TooltipPopup side="bottom" sideOffset={6}>
+                <span className="flex items-center gap-2 whitespace-nowrap">
+                  Reset zoom
+                  <span className="text-muted-foreground">{shortcutLabel('zoomReset')}</span>
+                </span>
+              </TooltipPopup>
+            </Tooltip>
+
+            {/* Share button */}
+            <Button
+              size="xs"
+              variant="default"
+              className="h-7 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+              onClick={() => setExportOpen(true)}
+            >
+              Share
+            </Button>
+
             {topBarEnd}
             {!isMobile ? (
               <Button
@@ -1113,7 +1133,7 @@ function CanvasShell({
                 title={`Design panel · ${shortcutLabel('toggleDesignPanel')}`}
                 className={designPanelOpen ? undefined : 'text-muted-foreground'}
                 onClick={() =>
-                  togglePanel('loora:design-panel-open', setDesignPanelOpen)
+                  togglePanel('sheet:design-panel-open', setDesignPanelOpen)
                 }
               >
                 <PanelRightIcon />
@@ -1127,7 +1147,7 @@ function CanvasShell({
             <CanvasDockedPanel
               side="left"
               title="Layers"
-              storageKey="loora:layers-width"
+              storageKey="sheet:layers-width"
               tourId="layers"
             >
               {layersPanel}
@@ -1169,7 +1189,7 @@ function CanvasShell({
             <CanvasDockedPanel
               side="right"
               title="Properties"
-              storageKey="loora:properties-width"
+              storageKey="sheet:properties-width"
               tourId="design"
             >
               {propertiesPanel}
@@ -1207,7 +1227,7 @@ export interface CanvasEditorController {
   ) => Promise<void>
 }
 
-function CanvasSyncIndicator({ controller }: { controller: CanvasEditorController }) {
+export function CanvasSyncIndicator({ controller }: { controller: CanvasEditorController }) {
   useSyncExternalStore(controller.subscribe, () => `${controller.status}:${controller.pendingCount}`)
   const label =
     controller.status === 'syncing'
@@ -1257,6 +1277,7 @@ export interface CanvasEditorActions {
   addPage: () => void
   addFrame: () => void
   addText: () => void
+  addVector: (stroke: CanvasPenStroke) => void
   editText: (ref: NodeRef) => void
   canCopy: boolean
   canCopyCode: boolean
@@ -1492,6 +1513,36 @@ function useCanvasEditorActions(
       }),
     })
     insert(frameAsShape(frame))
+  }
+
+  const addVector = (stroke: CanvasPenStroke) => {
+    if (readOnly || stroke.points.length < 2) return
+    const target = document.nodes[stroke.parentId]
+    if (!target || target.layout.mode !== 'absolute') return
+    const xs = stroke.points.map((point) => point.x)
+    const ys = stroke.points.map((point) => point.y)
+    const left = Math.min(...xs)
+    const top = Math.min(...ys)
+    const width = Math.max(1, Math.max(...xs) - left) + 4
+    const height = Math.max(1, Math.max(...ys) - top) + 4
+    const path = stroke.points
+      .map((point, index) =>
+        `${index === 0 ? 'M' : 'L'} ${Math.round((point.x - left + 2) * 100) / 100} ${Math.round((point.y - top + 2) * 100) / 100}`,
+      )
+      .join(' ')
+    const children = orderedChildren(document, target.id)
+    insert(createVectorNode('Vector', {
+      parentId: target.id,
+      order: (children.at(-1)?.order ?? 0) + 1024,
+      layout: defaultLayout(width, height, {
+        position: 'absolute',
+        x: left - 2,
+        y: top - 2,
+      }),
+      style: defaultStyle({ fills: [] }),
+      viewBox: `0 0 ${width} ${height}`,
+      paths: [{ d: path, stroke: '#0d99ff', strokeWidth: 2, fill: 'none' }],
+    }))
   }
 
   const insertVectorDescriptor = (
@@ -2230,6 +2281,7 @@ function useCanvasEditorActions(
     pasteFromText,
     pasteFromHtml,
     addShape,
+    addVector,
     addComponent,
     insertIcon,
     insertDocument,
@@ -2249,6 +2301,7 @@ function CanvasToolButton({
   shortcut,
   active = false,
   disabled = false,
+  side = 'right',
   onClick,
 }: {
   icon: ElementType
@@ -2257,6 +2310,7 @@ function CanvasToolButton({
   shortcut?: string
   active?: boolean
   disabled?: boolean
+  side?: 'top' | 'right' | 'bottom' | 'left'
   onClick: () => void
 }) {
   return (
@@ -2277,7 +2331,7 @@ function CanvasToolButton({
           </Button>
         }
       />
-      <TooltipPopup side="top" sideOffset={8}>
+      <TooltipPopup side={side} sideOffset={8}>
         <span className="flex items-center gap-2 whitespace-nowrap">
           {label}
           {shortcut ? (
@@ -2322,8 +2376,8 @@ function CanvasMobileStrip({
   shortcutLabel,
 }: {
   actions: CanvasEditorActions
-  interactionMode: 'select' | 'pan'
-  onInteractionModeChange: (mode: 'select' | 'pan') => void
+  interactionMode: 'select' | 'pan' | 'pen'
+  onInteractionModeChange: (mode: 'select' | 'pan' | 'pen') => void
   onAddPage: () => void
   onAssetsOpen: () => void
   onOpenIconPicker: () => void
@@ -2431,7 +2485,7 @@ function CanvasToolStrip({
   actions,
   interactionMode,
   onInteractionModeChange,
-  onPreview,
+  onPreview: _onPreview,
   onAddPage,
   onAssetsOpen,
   onOpenIconPicker,
@@ -2443,8 +2497,8 @@ function CanvasToolStrip({
   isMobile,
 }: {
   actions: CanvasEditorActions
-  interactionMode: 'select' | 'pan'
-  onInteractionModeChange: (mode: 'select' | 'pan') => void
+  interactionMode: 'select' | 'pan' | 'pen'
+  onInteractionModeChange: (mode: 'select' | 'pan' | 'pen') => void
   onPreview: () => void
   onAddPage: () => void
   onAssetsOpen: () => void
@@ -2477,9 +2531,9 @@ function CanvasToolStrip({
       <div
         role="toolbar"
         aria-label="Tools"
-        aria-orientation="horizontal"
+        aria-orientation="vertical"
         data-tour="tools"
-        className="pointer-events-auto absolute bottom-3 left-1/2 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-lg bg-surface p-0.5 shadow-panel-lg"
+        className="pointer-events-auto absolute top-3 left-3 z-20 flex flex-col items-center gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-panel-lg"
       >
         <CanvasToolButton
           icon={MousePointer2Icon}
@@ -2496,21 +2550,6 @@ function CanvasToolStrip({
           onClick={() => onInteractionModeChange('pan')}
         />
         <CanvasToolButton
-          icon={EyeIcon}
-          label="Preview interactions"
-          onClick={onPreview}
-        />
-        <CanvasToolDivider />
-        <CanvasToolButton
-          icon={PanelsTopLeftIcon}
-          label="New page"
-          disabled={actions.readOnly}
-          onClick={() => {
-            onAddPage()
-            onInteractionModeChange('select')
-          }}
-        />
-        <CanvasToolButton
           icon={FrameIcon}
           label="Frame"
           disabled={actions.readOnly || !actions.parent}
@@ -2518,6 +2557,23 @@ function CanvasToolStrip({
             actions.addFrame()
             onInteractionModeChange('select')
           }}
+        />
+        <CanvasToolButton
+          icon={SquareIcon}
+          label="Rectangle"
+          shortcut={shortcutLabel('tool.box')}
+          disabled={actions.readOnly || !actions.parent}
+          onClick={() => {
+            actions.addShape()
+            onInteractionModeChange('select')
+          }}
+        />
+        <CanvasToolButton
+          icon={PenTool01Icon}
+          label="Pen"
+          active={interactionMode === 'pen'}
+          disabled={actions.readOnly}
+          onClick={() => onInteractionModeChange('pen')}
         />
         <CanvasToolButton
           icon={TypeIcon}
@@ -2530,18 +2586,14 @@ function CanvasToolStrip({
           }}
         />
         <CanvasToolButton
-          icon={RectangleHorizontalIcon}
-          label="Rectangle"
-          shortcut={shortcutLabel('tool.box')}
-          disabled={actions.readOnly || !actions.parent}
-          onClick={() => {
-            actions.addShape()
-            onInteractionModeChange('select')
-          }}
+          icon={PlusCircleIcon}
+          label="Insert"
+          disabled={actions.readOnly}
+          onClick={onOpenCommands}
         />
         <CanvasToolButton
           icon={ShapesIcon}
-          label="Icon"
+          label="Icons"
           disabled={actions.readOnly || !actions.parent}
           onClick={onOpenIconPicker}
         />
@@ -2553,6 +2605,12 @@ function CanvasToolStrip({
           onClick={onAssetsOpen}
         />
         <CanvasToolButton
+          icon={CropIcon}
+          label="Crop"
+          disabled={actions.readOnly || selectionCount === 0}
+          onClick={() => {}}
+        />
+        <CanvasToolButton
           icon={ComponentIcon}
           label="Component"
           disabled={actions.readOnly || !actions.parent}
@@ -2561,27 +2619,13 @@ function CanvasToolStrip({
             onInteractionModeChange('select')
           }}
         />
-        <CanvasToolDivider />
-        <CanvasToolButton
-          icon={Undo2Icon}
-          label="Undo"
-          shortcut={shortcutLabel('undo')}
-          disabled={actions.readOnly || !actions.history.canUndo}
-          onClick={() => actions.history.undo()}
-        />
-        <CanvasToolButton
-          icon={Redo2Icon}
-          label="Redo"
-          shortcut={shortcutLabel('redo')}
-          disabled={actions.readOnly || !actions.history.canRedo}
-          onClick={() => actions.history.redo()}
-        />
       </div>
 
-      <div className="pointer-events-auto absolute bottom-3 end-3 flex items-center gap-0.5 rounded-lg bg-surface p-0.5 shadow-panel-lg max-md:hidden">
+      <div className="pointer-events-auto absolute bottom-3 end-3 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 shadow-panel-lg max-md:hidden">
         <CanvasToolButton
           icon={ZoomOutIcon}
           label="Zoom out"
+          side="top"
           onClick={() => controls.current?.zoomOut()}
         />
         <Tooltip>
@@ -2608,11 +2652,13 @@ function CanvasToolStrip({
         <CanvasToolButton
           icon={ZoomInIcon}
           label="Zoom in"
+          side="top"
           onClick={() => controls.current?.zoomIn()}
         />
         <CanvasToolButton
           icon={MaximizeIcon}
           label={selectionCount > 0 ? 'Zoom to selection' : 'Zoom to fit'}
+          side="top"
           onClick={() =>
             selectionCount > 0
               ? controls.current?.zoomToSelection()

@@ -6,10 +6,10 @@ import {
   type CanvasDocument,
   type CanvasNode,
   type NodeId,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 /** Marks our payload so a paste from anywhere else falls through to plain text. */
-export const CLIPBOARD_KIND = 'loora/canvas'
+export const CLIPBOARD_KIND = 'sheet/canvas'
 
 export interface CanvasClipboardPayload {
   kind: typeof CLIPBOARD_KIND

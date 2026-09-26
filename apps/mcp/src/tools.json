@@ -11,7 +11,7 @@
   },
   {
     "name": "listDesigns",
-    "description": "Start here. List the local Loora designs and canonical editor URLs.",
+    "description": "Start here. List the local Sheet designs and canonical editor URLs.",
     "inputSchema": {
       "type": "object"
     },
@@ -7948,7 +7948,7 @@
   },
   {
     "name": "viewNode",
-    "description": "Return a canonical open-in-Loora URL and semantic details for one node. Use getScreenshot when image pixels are needed.",
+    "description": "Return a canonical open-in-Sheet URL and semantic details for one node. Use getScreenshot when image pixels are needed.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -8016,7 +8016,7 @@
   },
   {
     "name": "viewPage",
-    "description": "Return a canonical open-in-Loora URL and semantic tree for one Page. Use getScreenshot when image pixels are needed.",
+    "description": "Return a canonical open-in-Sheet URL and semantic tree for one Page. Use getScreenshot when image pixels are needed.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -8059,7 +8059,7 @@
   },
   {
     "name": "viewCanvas",
-    "description": "Return a canonical open-in-Loora URL and Page summary. Use getScreenshot to inspect pixels.",
+    "description": "Return a canonical open-in-Sheet URL and Page summary. Use getScreenshot to inspect pixels.",
     "inputSchema": {
       "type": "object",
       "properties": {

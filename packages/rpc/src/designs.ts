@@ -8,8 +8,8 @@ import {
   isNull,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
-import { design } from '@loora/db/schema'
+import { db } from '@sheet/db'
+import { design } from '@sheet/db/schema'
 import {
   localProcedure,
   pageSchema,

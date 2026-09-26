@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Loora local server image: the same Bun process the desktop app spawns,
+# Sheet local server image: the same Bun process the desktop app spawns,
 # serving the editor API and the MCP endpoint over SQLite. No accounts,
 # no external services — mount a volume at /data to keep the database.
 
@@ -28,8 +28,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV LOORA_MCP_PORT=4100
-ENV LOORA_SQLITE_PATH=/data/loora.db
+ENV SHEET_MCP_PORT=4100
+ENV SHEET_SQLITE_PATH=/data/sheet.db
 
 USER root
 RUN apt-get update \
@@ -53,7 +53,7 @@ COPY --from=deps /app/packages/editor/node_modules ./packages/editor/node_module
 COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 COPY package.json bun.lock bunfig.toml ./
 COPY apps/mcp ./apps/mcp
-# Full sources: the server executes @loora/rpc + @loora/db TypeScript
+# Full sources: the server executes @sheet/rpc + @sheet/db TypeScript
 # directly on Bun (no bundling step), so the whole backend import chain ships.
 COPY packages/db ./packages/db
 COPY packages/rpc ./packages/rpc

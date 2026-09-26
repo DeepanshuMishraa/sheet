@@ -12,7 +12,7 @@ import {
   saveCustomTheme,
 } from './custom-themes'
 
-const STORAGE_KEY = 'loora:custom-themes'
+const STORAGE_KEY = 'sheet:custom-themes'
 
 afterEach(() => {
   window.localStorage.removeItem(STORAGE_KEY)

@@ -13,14 +13,14 @@
  * left untouched — they are the audit trail of what was actually saved.
  */
 import { and, eq } from 'drizzle-orm'
-import { db } from '@loora/db'
-import { design, designDraft } from '@loora/db/schema'
-import { repairStackedLayout } from '@loora/agent/repair-layout'
+import { db } from '@sheet/db'
+import { design, designDraft } from '@sheet/db/schema'
+import { repairStackedLayout } from '@sheet/agent/repair-layout'
 import {
   CANVAS_SCHEMA_VERSION,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 function flag(name: string) {
   const index = process.argv.indexOf(`--${name}`)

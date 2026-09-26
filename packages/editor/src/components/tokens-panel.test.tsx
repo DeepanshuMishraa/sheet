@@ -1,14 +1,14 @@
 import { cleanup, fireEvent, render, within } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { CanvasProvider } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { CanvasProvider } from '@sheet/canvas/react'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
   defaultLayout,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { CanvasTokensPanel } from './tokens-panel'
 
 function fixture() {

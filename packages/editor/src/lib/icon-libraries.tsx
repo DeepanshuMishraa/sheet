@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { CanvasColor } from '@loora/canvas/model'
+import type { CanvasColor } from '@sheet/canvas/model'
 import * as HugeIconsData from '@hugeicons/core-free-icons'
 import * as LucideData from 'lucide'
 import type { VectorDescriptor } from './svg-to-vector'

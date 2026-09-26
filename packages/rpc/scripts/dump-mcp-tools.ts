@@ -8,7 +8,7 @@
  */
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
-import { createLooraServer } from '../src/mcp-server'
+import { createSheetServer } from '../src/mcp-server'
 
 const usage = {
   metric: 'mcp_tool_calls' as const,
@@ -25,11 +25,11 @@ const target = new URL(
   import.meta.url,
 )
 
-const server = createLooraServer(
+const server = createSheetServer(
   'user-manifest',
   { current: async () => usage, reserve: async () => usage },
 )
-const client = new Client({ name: 'loora-manifest', version: '1.0.0' })
+const client = new Client({ name: 'sheet-manifest', version: '1.0.0' })
 const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
 await server.connect(serverTransport)
 await client.connect(clientTransport)

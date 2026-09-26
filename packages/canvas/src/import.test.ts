@@ -268,7 +268,7 @@ describe('HTML snapshot import', () => {
             rect: { x: 40, y: 554, width: 400, height: 42 },
             children: [{
               tag: 'a',
-              attributes: { href: 'https://loora.design/app' },
+              attributes: { href: 'https://sheet.design/app' },
               style: {
                 display: 'inline-block',
                 whiteSpace: 'nowrap',
@@ -392,7 +392,7 @@ describe('HTML snapshot import', () => {
         rect: { x: 0, y: 0, width: 160, height: 80 },
         children: [{
           tag: 'a',
-          attributes: { href: 'https://loora.design/app' },
+          attributes: { href: 'https://sheet.design/app' },
           style: {
             display: 'inline-block',
             whiteSpace: 'nowrap',

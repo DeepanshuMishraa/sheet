@@ -14,7 +14,7 @@ export type Config = {
 export type EnvValues = Record<string, string | undefined>
 
 export function configFrom(get: (key: string) => string | undefined): Config {
-  const port = parsePort(get('PORT') ?? get('LOORA_MCP_PORT') ?? '4100')
+  const port = parsePort(get('PORT') ?? get('SHEET_MCP_PORT') ?? '4100')
   const publicUrl = cleanUrl(
     'MCP_PUBLIC_URL',
     get('MCP_PUBLIC_URL') ?? `http://localhost:${port}`,

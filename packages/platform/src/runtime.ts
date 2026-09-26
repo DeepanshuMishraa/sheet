@@ -1,5 +1,5 @@
 /**
- * Where the client is running, and how it reaches Loora.
+ * Where the client is running, and how it reaches Sheet.
  *
  * Defaults use the document's own origin. The desktop app is served by a
  * loopback server in its own process that proxies `/api/*` with the session
@@ -7,13 +7,13 @@
  * browser point at the public app instead of `http://127.0.0.1:<port>`.
  *
  * Nothing in here imports anything: it is the one module every layer
- * (`@loora/rpc/client`, `@loora/auth/client`, the editor) may depend on.
+ * (`@sheet/rpc/client`, `@sheet/auth/client`, the editor) may depend on.
  */
 
-export type LooraPlatform = 'web' | 'desktop'
+export type SheetPlatform = 'web' | 'desktop'
 
-export interface LooraRuntime {
-  platform: LooraPlatform
+export interface SheetRuntime {
+  platform: SheetPlatform
   /** Origin serving `/api/*`. Empty means the document's own origin. */
   apiOrigin: string
   /** Origin a link handed to a browser points at. Empty means the document's. */
@@ -26,7 +26,7 @@ export interface LooraRuntime {
   openExternal: (url: string) => void
 }
 
-let runtime: LooraRuntime = {
+let runtime: SheetRuntime = {
   platform: 'web',
   apiOrigin: '',
   appOrigin: '',
@@ -38,7 +38,7 @@ let runtime: LooraRuntime = {
  * module that calls this ahead of the router, so the auth client picks up the
  * origins at the moment it is created.
  */
-export function configureRuntime(next: Partial<LooraRuntime>) {
+export function configureRuntime(next: Partial<SheetRuntime>) {
   runtime = { ...runtime, ...next }
 }
 
@@ -46,7 +46,7 @@ function documentOrigin() {
   return typeof location === 'undefined' ? '' : location.origin
 }
 
-export function platform(): LooraPlatform {
+export function platform(): SheetPlatform {
   return runtime.platform
 }
 

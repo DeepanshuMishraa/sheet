@@ -1,5 +1,5 @@
 {
-  "name": "@loora/editor",
+  "name": "@sheet/editor",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.3",
-    "@loora/canvas": "workspace:*",
-    "@loora/db": "workspace:*",
-    "@loora/platform": "workspace:*",
-    "@loora/rpc": "workspace:*",
-    "@loora/ui": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/db": "workspace:*",
+    "@sheet/platform": "workspace:*",
+    "@sheet/rpc": "workspace:*",
+    "@sheet/ui": "workspace:*",
     "@tanstack/react-router": "latest",
     "lucide": "^0.544.0",
     "motion": "^12.42.2"

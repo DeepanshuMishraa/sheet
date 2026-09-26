@@ -7,20 +7,20 @@ import {
   createPageNode,
   createTextNode,
   defaultLayout,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   appUrl,
-  createLooraServer,
-  createLooraToolExecutor,
+  createSheetServer,
+  createSheetToolExecutor,
   exportCanvasCode,
 } from './mcp-server'
 import type { McpUsageController } from './mcp-server'
 
-const originalAppUrl = process.env.LOORA_APP_URL
+const originalAppUrl = process.env.SHEET_APP_URL
 
 afterEach(() => {
-  if (originalAppUrl === undefined) delete process.env.LOORA_APP_URL
-  else process.env.LOORA_APP_URL = originalAppUrl
+  if (originalAppUrl === undefined) delete process.env.SHEET_APP_URL
+  else process.env.SHEET_APP_URL = originalAppUrl
 })
 
 function documentFixture() {
@@ -58,7 +58,7 @@ function usageController(): McpUsageController {
 
 describe('MCP agent workflow', () => {
   test('executes the same registered handlers through the internal API boundary', async () => {
-    const execute = createLooraToolExecutor('user-test', usageController())
+    const execute = createSheetToolExecutor('user-test', usageController())
     const result = await execute('getUsage', {}) as {
       content: Array<{ type: string; text: string }>
     }
@@ -71,15 +71,15 @@ describe('MCP agent workflow', () => {
   })
 
   test('returns canonical Main and branch editor URLs', () => {
-    process.env.LOORA_APP_URL = 'https://loora.test/'
+    process.env.SHEET_APP_URL = 'https://sheet.test/'
 
     expect(appUrl('design one')).toBe(
-      'https://loora.test/design/design%20one',
+      'https://sheet.test/design/design%20one',
     )
     expect(
       appUrl('design one', 'branch one', { node: 'text-title' }),
     ).toBe(
-      'https://loora.test/design/design%20one/b/branch%20one?node=text-title',
+      'https://sheet.test/design/design%20one/b/branch%20one?node=text-title',
     )
   })
 
@@ -120,7 +120,7 @@ describe('MCP agent workflow', () => {
     expect(tailwind.pageId).toBe('page-home')
     expect(tailwind.code).toContain('className=')
     expect(tailwind.code).toContain('[font-size:16px]')
-    expect(tailwind.code).toContain('useLooraRuntime(rootRef)')
+    expect(tailwind.code).toContain('useSheetRuntime(rootRef)')
     expect(jsx.code).toContain('style={{')
     expect(html.code).toMatch(/^<!doctype html>/)
     expect(html.nodeId).toBe('text-title')
@@ -137,14 +137,14 @@ describe('MCP agent workflow', () => {
   test('advertises context, code export, and a real screenshot tool', async () => {
     let reservations = 0
     const usage = usageController()
-    const server = createLooraServer('user-test', {
+    const server = createSheetServer('user-test', {
       current: usage.current,
       reserve: async () => {
         reservations += 1
         return usage.reserve()
       },
     })
-    const client = new Client({ name: 'loora-test', version: '1.0.0' })
+    const client = new Client({ name: 'sheet-test', version: '1.0.0' })
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair()
     await server.connect(serverTransport)
@@ -188,7 +188,7 @@ describe('MCP agent workflow', () => {
         throw new Error('Expected getUsage to return text')
       }
       expect(JSON.parse(usageContent.text).remaining).toBe(188)
-      expect(usageResult._meta?.['loora/usage']).toEqual(
+      expect(usageResult._meta?.['sheet/usage']).toEqual(
         await usage.current(),
       )
       expect(reservations).toBe(0)
@@ -200,8 +200,8 @@ describe('MCP agent workflow', () => {
 
   test('keeps the tool manifest compact via shared schema definitions', async () => {
     const usage = usageController()
-    const server = createLooraServer('user-test', usage)
-    const client = new Client({ name: 'loora-test', version: '1.0.0' })
+    const server = createSheetServer('user-test', usage)
+    const client = new Client({ name: 'sheet-test', version: '1.0.0' })
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair()
     await server.connect(serverTransport)

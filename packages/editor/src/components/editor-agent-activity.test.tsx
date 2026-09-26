@@ -1,12 +1,14 @@
 import { describe, expect, test, vi } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { CanvasEngine, type CanvasTransaction } from '@loora/canvas/engine'
+import { CanvasEngine, type CanvasTransaction } from '@sheet/canvas/engine'
 import { createStarterCanvas } from '../lib/canvas-fixtures'
 import type { CanvasEditorController } from './editor'
 
 vi.doMock('@tanstack/react-router', () => ({
   Link: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  useLocation: () => ({ pathname: '/design/activity' }),
+  useNavigate: () => () => {},
 }))
 
 const { CanvasEditor } = await import('./editor')

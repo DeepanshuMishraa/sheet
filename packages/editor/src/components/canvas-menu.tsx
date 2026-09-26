@@ -14,8 +14,8 @@ import {
   Trash2Icon,
   TypeIcon,
   UngroupIcon,
-} from '@loora/ui/icons'
-import { CopyIcon, FrameIcon, MaximizeIcon } from '@loora/ui/icons'
+} from '@sheet/ui/icons'
+import { CopyIcon, FrameIcon, MaximizeIcon } from '@sheet/ui/icons'
 import {
   ContextMenu,
   ContextMenuItem,
@@ -26,7 +26,7 @@ import {
   ContextMenuSubPopup,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from '@loora/ui/context-menu'
+} from '@sheet/ui/context-menu'
 import type { BuiltInShortcutId } from '../lib/shortcuts'
 import type { CanvasEditorActions } from './editor'
 

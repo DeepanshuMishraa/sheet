@@ -3,7 +3,7 @@ import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { compileCanvasCode } from './canvas-code-copy'
 
 describe('Canvas code copy', () => {

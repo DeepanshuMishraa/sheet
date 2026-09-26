@@ -69,7 +69,7 @@ export function fontFamilyValue(family: string) {
 
 export function colorValue(_document: CanvasDocument, color: CanvasColor) {
   if (typeof color === 'string') return color
-  return `var(--loora-token-${color.token.replace(/[^a-zA-Z0-9_-]/g, '-')})`
+  return `var(--sheet-token-${color.token.replace(/[^a-zA-Z0-9_-]/g, '-')})`
 }
 
 export function paintValue(document: CanvasDocument, paint: CanvasPaint) {

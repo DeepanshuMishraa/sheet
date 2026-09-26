@@ -96,10 +96,15 @@ export interface CanvasDropPlacement {
   y: number
 }
 
+export interface CanvasPenStroke {
+  parentId: NodeId
+  points: { x: number; y: number }[]
+}
+
 export interface CanvasSurfaceProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onDrop'> {
   controlsRef?: Ref<CanvasSurfaceControls>
   initialCamera?: Partial<CanvasCamera>
-  interactionMode?: 'select' | 'pan'
+  interactionMode?: 'select' | 'pan' | 'pen'
   /**
    * Whether hovers and animations play on the canvas. On by default, because a
    * design that moves should move where it is being designed; off is for
@@ -108,6 +113,7 @@ export interface CanvasSurfaceProps extends Omit<HTMLAttributes<HTMLDivElement>,
   motion?: boolean
   onCameraChange?: (camera: CanvasCamera) => void
   onSelectionChange?: (selection: NodeRef[]) => void
+  onPenStroke?: (stroke: CanvasPenStroke) => void
   pageWidth?: number
   /**
    * Something was dropped onto the canvas from outside it. The surface resolves
@@ -131,9 +137,9 @@ function sameRef(left: NodeRef | null, right: NodeRef | null) {
 }
 
 function parseNodeRef(element: Element): NodeRef | null {
-  const nodeId = element.getAttribute('data-loora-node')
+  const nodeId = element.getAttribute('data-sheet-node')
   if (!nodeId) return null
-  const path = element.getAttribute('data-loora-instance-path')
+  const path = element.getAttribute('data-sheet-instance-path')
   return {
     nodeId,
     instancePath: path ? path.split('/').filter(Boolean) : [],
@@ -849,10 +855,10 @@ function RawCanvasNodeRenderer({
   const isPage = node.type === 'page'
   const common = {
     ref: setElement,
-    'data-loora-node': node.id,
-    'data-loora-instance-path': instancePath.join('/'),
-    'data-loora-node-type': node.type,
-    'data-loora-locked': node.locked ? 'true' : undefined,
+    'data-sheet-node': node.id,
+    'data-sheet-instance-path': instancePath.join('/'),
+    'data-sheet-node-type': node.type,
+    'data-sheet-locked': node.locked ? 'true' : undefined,
     style: {
       ...nodeCss(
         engine.document,
@@ -936,10 +942,10 @@ function RawCanvasNodeRenderer({
     return (
       <div
         {...common}
-        data-loora-component-definition={
+        data-sheet-component-definition={
           insideInstanceRoot ? undefined : 'true'
         }
-        data-loora-component-root={
+        data-sheet-component-root={
           insideInstanceRoot ? currentInstance.id : undefined
         }
         onDoubleClick={onDoubleClick}
@@ -962,7 +968,7 @@ function RawCanvasNodeRenderer({
         {...common}
         contentEditable={editingText ? 'plaintext-only' : false}
         suppressContentEditableWarning
-        data-loora-text-editing={editingText ? 'true' : undefined}
+        data-sheet-text-editing={editingText ? 'true' : undefined}
         onBlur={onTextBlur}
         onDoubleClick={onDoubleClick}
         style={{
@@ -1014,8 +1020,8 @@ function RawCanvasNodeRenderer({
     return (
       <div
         {...common}
-        data-loora-component={component.id}
-        data-loora-variant={node.variant ?? component.defaultVariant}
+        data-sheet-component={component.id}
+        data-sheet-variant={node.variant ?? component.defaultVariant}
         onDoubleClick={onDoubleClick}
       >
         {visible ? (
@@ -1041,7 +1047,7 @@ function RawCanvasNodeRenderer({
     {
       ...common,
       onDoubleClick,
-      'data-loora-page': isPage ? 'true' : undefined,
+      'data-sheet-page': isPage ? 'true' : undefined,
     },
     visible ? (
       <RenderChildren
@@ -1059,11 +1065,11 @@ export const CanvasNodeRenderer = memo(RawCanvasNodeRenderer)
 
 function refAncestors(element: Element, scene: Element) {
   const result: { element: Element; ref: NodeRef }[] = []
-  let current: Element | null = element.closest('[data-loora-node]')
+  let current: Element | null = element.closest('[data-sheet-node]')
   while (current && scene.contains(current)) {
     const ref = parseNodeRef(current)
     if (ref) result.push({ element: current, ref })
-    current = current.parentElement?.closest('[data-loora-node]') ?? null
+    current = current.parentElement?.closest('[data-sheet-node]') ?? null
   }
   return result
 }
@@ -1077,8 +1083,8 @@ function chooseHit(
 ) {
   const hits = document
     .elementsFromPoint(event.clientX, event.clientY)
-    .filter((element) => scene.contains(element) && element.hasAttribute('data-loora-node'))
-    .filter((element) => element.getAttribute('data-loora-locked') !== 'true')
+    .filter((element) => scene.contains(element) && element.hasAttribute('data-sheet-node'))
+    .filter((element) => element.getAttribute('data-sheet-locked') !== 'true')
   if (hits.length === 0) return null
   if (event.metaKey || event.ctrlKey) return parseNodeRef(hits[0]!)
 
@@ -1119,8 +1125,8 @@ function drillHit(
   if (!current) return null
   const hits = document
     .elementsFromPoint(event.clientX, event.clientY)
-    .filter((element) => scene.contains(element) && element.hasAttribute('data-loora-node'))
-    .filter((element) => element.getAttribute('data-loora-locked') !== 'true')
+    .filter((element) => scene.contains(element) && element.hasAttribute('data-sheet-node'))
+    .filter((element) => element.getAttribute('data-sheet-locked') !== 'true')
   if (hits.length === 0) return null
   const ancestry = refAncestors(hits[0]!, scene)
   const index = ancestry.findIndex(({ ref }) => sameRef(ref, current))
@@ -1135,8 +1141,8 @@ function cycleHit(
 ) {
   const refs = document
     .elementsFromPoint(event.clientX, event.clientY)
-    .filter((element) => scene.contains(element) && element.hasAttribute('data-loora-node'))
-    .filter((element) => element.getAttribute('data-loora-locked') !== 'true')
+    .filter((element) => scene.contains(element) && element.hasAttribute('data-sheet-node'))
+    .filter((element) => element.getAttribute('data-sheet-locked') !== 'true')
     .map(parseNodeRef)
     .filter((ref): ref is NodeRef => !!ref)
     .filter((ref, index, all) => all.findIndex((candidate) => sameRef(candidate, ref)) === index)
@@ -1289,6 +1295,7 @@ function SelectionOverlay({
   cameraRef,
   syncRef,
   marqueeRef,
+  penPathRef,
   verticalGuideRef,
   horizontalGuideRef,
   dropLineRef,
@@ -1297,6 +1304,7 @@ function SelectionOverlay({
   cameraRef: MutableRefObject<CanvasCamera>
   syncRef: MutableRefObject<OverlaySync | null>
   marqueeRef: RefObject<SVGRectElement | null>
+  penPathRef: RefObject<SVGPathElement | null>
   verticalGuideRef: RefObject<SVGLineElement | null>
   horizontalGuideRef: RefObject<SVGLineElement | null>
   dropLineRef: RefObject<SVGLineElement | null>
@@ -1532,7 +1540,7 @@ function SelectionOverlay({
     label.length > labelChars ? `${label.slice(0, labelChars - 1)}…` : label
   return (
     <svg
-      data-loora-viewport-overlay
+      data-sheet-viewport-overlay
       aria-label="Canvas selection controls"
       style={{
         position: 'absolute',
@@ -1546,7 +1554,7 @@ function SelectionOverlay({
     >
       <line
         ref={verticalGuideRef}
-        data-loora-guide="vertical"
+        data-sheet-guide="vertical"
         x1="0"
         x2="0"
         y1="0"
@@ -1558,7 +1566,7 @@ function SelectionOverlay({
       />
       <line
         ref={horizontalGuideRef}
-        data-loora-guide="horizontal"
+        data-sheet-guide="horizontal"
         x1="0"
         x2="100%"
         y1="0"
@@ -1570,7 +1578,7 @@ function SelectionOverlay({
       />
       <line
         ref={dropLineRef}
-        data-loora-drop-line
+        data-sheet-drop-line
         x1="0"
         x2="0"
         y1="0"
@@ -1582,18 +1590,28 @@ function SelectionOverlay({
       />
       <rect
         ref={marqueeRef}
-        data-loora-marquee
+        data-sheet-marquee
         x="0"
         y="0"
         width="0"
         height="0"
-        fill="rgba(108, 92, 231, .1)"
-        stroke="#6c5ce7"
+        fill="rgba(13, 153, 255, 0.08)"
+        stroke="#0d99ff"
         strokeWidth="1"
         style={{ display: 'none' }}
       />
+      <path
+        ref={penPathRef}
+        data-sheet-pen-preview
+        fill="none"
+        stroke="#0d99ff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: 'none' }}
+      />
       {source && element && !source.locked ? (
-        <g ref={groupRef} data-loora-selection-overlay>
+        <g ref={groupRef} data-sheet-selection-overlay>
           <rect
             ref={outlineRef}
             x="0"
@@ -1601,12 +1619,12 @@ function SelectionOverlay({
             width="0"
             height="0"
             fill="none"
-            stroke="#6c5ce7"
+            stroke="#0d99ff"
             strokeWidth="1.5"
           />
           <g
             ref={labelRef}
-            data-loora-selection-label
+            data-sheet-selection-label
             // The press must not reach the surface: it would hit-test the empty
             // space above the layer and drop the selection the label belongs to.
             onPointerDown={(event) => event.stopPropagation()}
@@ -1624,7 +1642,7 @@ function SelectionOverlay({
               width={renaming ? renameWidth : labelWidth}
               height="18"
               rx="4"
-              fill="#6c5ce7"
+              fill="#0d99ff"
             />
             {renaming ? (
               <foreignObject width={renameWidth} height="18">
@@ -1682,8 +1700,8 @@ function SelectionOverlay({
                   height="8"
                   rx="2"
                   fill="#fff"
-                  stroke="#6c5ce7"
-                  strokeWidth="1"
+                  stroke="#0d99ff"
+                  strokeWidth="1.5"
                   onPointerDown={(event) =>
                     startResize(event, horizontal, vertical)
                   }
@@ -1760,7 +1778,7 @@ function RootNodes({ width }: { width: number }) {
  * scoped to each node id — the same rules the exporter writes, from the same
  * generator, which is what keeps the canvas honest about what you will get.
  *
- * The whole sheet sits behind `[data-loora-motion="on"]`, so a surface can turn
+ * The whole sheet sits behind `[data-sheet-motion="on"]`, so a surface can turn
  * motion off while you are working without the document knowing anything about
  * it.
  */
@@ -1784,7 +1802,7 @@ function CanvasMotionStyles() {
     document,
     Object.values(document.nodes),
     (node) =>
-      `[data-loora-motion="on"] [data-loora-node="${node.id.replace(/["\\]/g, '')}"]`,
+      `[data-sheet-motion="on"] [data-sheet-node="${node.id.replace(/["\\]/g, '')}"]`,
   )
   return sheet ? <style>{sheet}</style> : null
 }
@@ -1808,10 +1826,10 @@ function CanvasTokenStyles() {
   const declarations = Object.values(document.tokens)
     .map((token) => {
       const value = token.modes?.[document.activeThemeId] ?? token.value
-      return `--loora-token-${token.id.replace(/[^a-zA-Z0-9_-]/g, '-')}:${value};`
+      return `--sheet-token-${token.id.replace(/[^a-zA-Z0-9_-]/g, '-')}:${value};`
     })
     .join('')
-  return <style>{`[data-loora-canvas-surface]{${declarations}}`}</style>
+  return <style>{`[data-sheet-canvas-surface]{${declarations}}`}</style>
 }
 
 export function CanvasSurface({
@@ -1821,6 +1839,7 @@ export function CanvasSurface({
   motion = true,
   onCameraChange,
   onSelectionChange,
+  onPenStroke,
   pageWidth = 1440,
   onDrop,
   acceptsDrop,
@@ -1877,8 +1896,14 @@ export function CanvasSurface({
     latestY: number
     additive: boolean
   } | null>(null)
+  const pen = useRef<{
+    parentId: NodeId
+    parentRect: DOMRect
+    points: { x: number; y: number }[]
+  } | null>(null)
   const overlaySyncRef = useRef<OverlaySync | null>(null)
   const marqueeElementRef = useRef<SVGRectElement | null>(null)
+  const penPathRef = useRef<SVGPathElement | null>(null)
   const verticalGuideRef = useRef<SVGLineElement | null>(null)
   const horizontalGuideRef = useRef<SVGLineElement | null>(null)
   const dropLineRef = useRef<SVGLineElement | null>(null)
@@ -2219,7 +2244,7 @@ export function CanvasSurface({
           return
         }
         const element = registry.get(selected)
-        const parent = element?.parentElement?.closest('[data-loora-node]')
+        const parent = element?.parentElement?.closest('[data-sheet-node]')
         const parentRef = parent ? parseNodeRef(parent) : null
         if (parentRef) session.select([parentRef])
         else session.select([])
@@ -2246,7 +2271,7 @@ export function CanvasSurface({
       spaceHeld.current = false
       if (surfaceRef.current) {
         surfaceRef.current.style.cursor =
-          interactionMode === 'pan' ? 'grab' : ''
+          interactionMode === 'pan' ? 'grab' : interactionMode === 'pen' ? 'crosshair' : ''
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -2284,7 +2309,7 @@ export function CanvasSurface({
 
   const onSurfaceDoubleClick = (event: MouseEvent<HTMLDivElement>) => {
     const scene = sceneRef.current
-    if (!scene || readOnly || interactionMode === 'pan') return
+    if (!scene || readOnly || interactionMode !== 'select') return
     // Pointer capture makes native click/double-click events target the
     // surface in some browsers. Hit-test again so direct text editing still
     // works after the selection/drag gesture has seen both pointer presses.
@@ -2293,8 +2318,8 @@ export function CanvasSurface({
       .find(
         (element) =>
           scene.contains(element) &&
-          element.getAttribute('data-loora-node-type') === 'text' &&
-          element.getAttribute('data-loora-locked') !== 'true',
+          element.getAttribute('data-sheet-node-type') === 'text' &&
+          element.getAttribute('data-sheet-locked') !== 'true',
       )
     const ref = target ? parseNodeRef(target) : null
     if (!ref) return
@@ -2369,6 +2394,38 @@ export function CanvasSurface({
       return
     }
     if (event.button !== 0) return
+    if (interactionMode === 'pen' && !readOnly) {
+      const hit = document
+        .elementsFromPoint(event.clientX, event.clientY)
+        .map((element) => ({ element, ref: parseNodeRef(element) }))
+        .find(({ ref }) => {
+          if (!ref || ref.instancePath.length > 0) return false
+          const node = engine.getNode(ref.nodeId)
+          return (
+            !!node &&
+            ['page', 'frame', 'group'].includes(node.type) &&
+            node.layout.mode === 'absolute' &&
+            !node.locked
+          )
+        })
+      if (!hit?.ref) return
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const surfaceRect = event.currentTarget.getBoundingClientRect()
+      pen.current = {
+        parentId: hit.ref.nodeId,
+        parentRect: hit.element.getBoundingClientRect(),
+        points: [{ x: event.clientX, y: event.clientY }],
+      }
+      if (penPathRef.current) {
+        penPathRef.current.style.display = 'block'
+        penPathRef.current.setAttribute(
+          'd',
+          `M ${event.clientX - surfaceRect.left} ${event.clientY - surfaceRect.top}`,
+        )
+      }
+      return
+    }
     const current = session.selection[0] ?? null
     const selected = event.altKey
       ? cycleHit(event, scene, current)
@@ -2412,7 +2469,7 @@ export function CanvasSurface({
       !source ||
       readOnly ||
       source.locked ||
-      element.getAttribute('data-loora-text-editing') === 'true'
+      element.getAttribute('data-sheet-text-editing') === 'true'
     ) {
       return
     }
@@ -2435,7 +2492,7 @@ export function CanvasSurface({
         if (
           sameRef(ref, selected) ||
           ref.instancePath.join('/') !== selected.instancePath.join('/') ||
-          candidate.getAttribute('data-loora-locked') === 'true'
+          candidate.getAttribute('data-sheet-locked') === 'true'
         ) {
           return false
         }
@@ -2549,6 +2606,22 @@ export function CanvasSurface({
           String(Math.abs(current.latestY - current.y)),
         )
       })
+      return
+    }
+    if (pen.current) {
+      const last = pen.current.points.at(-1)
+      if (!last || Math.hypot(event.clientX - last.x, event.clientY - last.y) >= 2) {
+        pen.current.points.push({ x: event.clientX, y: event.clientY })
+      }
+      const surfaceRect = event.currentTarget.getBoundingClientRect()
+      penPathRef.current?.setAttribute(
+        'd',
+        pen.current.points
+          .map((point, index) =>
+            `${index === 0 ? 'M' : 'L'} ${point.x - surfaceRect.left} ${point.y - surfaceRect.top}`,
+          )
+          .join(' '),
+      )
       return
     }
     if (pan.current) {
@@ -2685,6 +2758,22 @@ export function CanvasSurface({
         return
       }
     }
+    if (pen.current) {
+      const current = pen.current
+      pen.current = null
+      if (penPathRef.current) penPathRef.current.style.display = 'none'
+      if (current.points.length > 1) {
+        const zoom = cameraRef.current.zoom || 1
+        onPenStroke?.({
+          parentId: current.parentId,
+          points: current.points.map((point) => ({
+            x: (point.x - current.parentRect.left) / zoom,
+            y: (point.y - current.parentRect.top) / zoom,
+          })),
+        })
+      }
+      return
+    }
     if (marquee.current) {
       const current = marquee.current
       marquee.current = null
@@ -2703,8 +2792,8 @@ export function CanvasSurface({
       const selected = registry
         .entries()
         .filter(({ element }) => {
-          if (element.getAttribute('data-loora-locked') === 'true') return false
-          const parent = element.parentElement?.closest('[data-loora-node]')
+          if (element.getAttribute('data-sheet-locked') === 'true') return false
+          const parent = element.parentElement?.closest('[data-sheet-node]')
           const parentRef = parent ? parseNodeRef(parent) : null
           if (editingRoot ? !sameRef(parentRef, editingRoot) : !!parentRef) {
             return false
@@ -2753,7 +2842,7 @@ export function CanvasSurface({
           (element) =>
             element !== current.element &&
             !current.element.contains(element) &&
-            element.hasAttribute('data-loora-node'),
+            element.hasAttribute('data-sheet-node'),
         )
         .map((element) => ({
           element,
@@ -3020,9 +3109,9 @@ export function CanvasSurface({
       ref={surfaceRef}
       className={className}
       tabIndex={0}
-      data-loora-canvas-surface
-      data-loora-interaction-mode={interactionMode}
-      data-loora-motion={motion ? 'on' : 'off'}
+      data-sheet-canvas-surface
+      data-sheet-interaction-mode={interactionMode}
+      data-sheet-motion={motion ? 'on' : 'off'}
       onDragOver={onDragOver}
       onDrop={onDropped}
       onPointerDown={onPointerDown}
@@ -3035,7 +3124,12 @@ export function CanvasSurface({
         overflow: 'hidden',
         touchAction: 'none',
         isolation: 'isolate',
-        cursor: interactionMode === 'pan' ? 'grab' : undefined,
+        cursor:
+          interactionMode === 'pan'
+            ? 'grab'
+            : interactionMode === 'pen'
+              ? 'crosshair'
+              : undefined,
         backgroundColor: 'var(--cx-canvas, #f3f3f5)',
         ...style,
       } as CSSProperties}
@@ -3044,7 +3138,7 @@ export function CanvasSurface({
       <CanvasMotionStyles />
       <div
         ref={sceneRef}
-        data-loora-canvas-scene
+        data-sheet-canvas-scene
         style={{
           position: 'absolute',
           inset: 0,
@@ -3059,6 +3153,7 @@ export function CanvasSurface({
         cameraRef={cameraRef}
         syncRef={overlaySyncRef}
         marqueeRef={marqueeElementRef}
+        penPathRef={penPathRef}
         verticalGuideRef={verticalGuideRef}
         horizontalGuideRef={horizontalGuideRef}
         dropLineRef={dropLineRef}

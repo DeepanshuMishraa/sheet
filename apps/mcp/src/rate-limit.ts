@@ -14,7 +14,7 @@ export type RateLimitRule = {
   windowMs: number
 }
 
-/** Same buckets the Rust transport counted, documented on `@loora/rpc/rate-limit`. */
+/** Same buckets the Rust transport counted, documented on `@sheet/rpc/rate-limit`. */
 export const mcpRateLimits = {
   mcp: { limit: 240, windowMs: 60_000 },
   'mcp-address': { limit: 600, windowMs: 60_000 },

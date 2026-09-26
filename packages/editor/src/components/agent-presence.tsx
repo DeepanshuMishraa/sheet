@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
-import { useCanvasDomRegistry } from '@loora/canvas/react'
-import { BotIcon } from '@loora/ui/icons'
-import { cn } from '@loora/ui/utils'
+import { useCanvasDomRegistry } from '@sheet/canvas/react'
+import { BotIcon } from '@sheet/ui/icons'
+import { cn } from '@sheet/ui/utils'
 import type { CanvasEditorController } from './editor'
 
 /**
@@ -231,7 +231,7 @@ export function CanvasAgentOverlay({
         : new ResizeObserver(schedule)
     resizeObserver?.observe(overlay)
     const scene = overlay.parentElement?.querySelector(
-      '[data-loora-canvas-scene]',
+      '[data-sheet-canvas-scene]',
     )
     const cameraObserver =
       scene && typeof MutationObserver !== 'undefined'

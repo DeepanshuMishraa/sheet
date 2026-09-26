@@ -387,7 +387,7 @@ export function keyframesCss(animation: CanvasAnimation) {
 }
 
 export function keyframesName(id: AnimationId) {
-  return `loora-motion-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+  return `sheet-motion-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 }
 
 /** The `animation` shorthand for one node's use of one animation. */

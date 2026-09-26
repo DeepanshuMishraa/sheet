@@ -1,5 +1,5 @@
 {
-  "name": "@loora/rpc",
+  "name": "@sheet/rpc",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,10 +12,10 @@
     "dump-mcp-tools": "bun run scripts/dump-mcp-tools.ts"
   },
   "dependencies": {
-    "@loora/agent": "workspace:*",
-    "@loora/canvas": "workspace:*",
-    "@loora/db": "workspace:*",
-    "@loora/platform": "workspace:*",
+    "@sheet/agent": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/db": "workspace:*",
+    "@sheet/platform": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.21.0",
     "@orpc/client": "^1.14.8",
     "@orpc/server": "^1.14.8",

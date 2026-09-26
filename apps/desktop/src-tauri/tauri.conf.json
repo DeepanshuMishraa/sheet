@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Loora",
+  "productName": "Sheet",
   "version": "0.1.0",
-  "identifier": "design.loora.desktop",
+  "identifier": "design.sheet.desktop",
   "build": {
     "beforeDevCommand": "bunx vite dev --port 1421 --strictPort --host 127.0.0.1",
     "devUrl": "http://127.0.0.1:1421",
@@ -20,7 +20,7 @@
         "style-src": "'self' 'unsafe-inline' http://127.0.0.1:*",
         "script-src": "'self' http://127.0.0.1:*"
       },
-      "capabilities": ["default"]
+      "capabilities": ["default", "window-drag"]
     }
   },
   "bundle": {

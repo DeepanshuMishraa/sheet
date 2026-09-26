@@ -1,12 +1,12 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest'
-import { configureRuntime } from '@loora/platform'
+import { configureRuntime } from '@sheet/platform'
 
 const list = vi.fn()
 const upload = vi.fn()
 const remove = vi.fn()
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: { asset: { list, upload, delete: remove } },
 }))
 
@@ -57,10 +57,10 @@ describe('AssetsPanel', () => {
   })
 
   test('resolves authenticated asset routes against the API origin', () => {
-    configureRuntime({ apiOrigin: 'https://api.loora.test' })
+    configureRuntime({ apiOrigin: 'https://api.sheet.test' })
 
     expect(absoluteAssetSrc({ id: 'a1' })).toBe(
-      'https://api.loora.test/api/asset/a1',
+      'https://api.sheet.test/api/asset/a1',
     )
   })
 

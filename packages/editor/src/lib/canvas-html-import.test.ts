@@ -39,7 +39,7 @@ describe('HTML import sandbox', () => {
     )
     const parsed = new DOMParser().parseFromString(output, 'text/html')
     const sandboxStyle = parsed.querySelector(
-      'style[data-loora-html-import="true"]',
+      'style[data-sheet-html-import="true"]',
     )
 
     expect(sandboxStyle?.textContent).toContain(
@@ -53,7 +53,7 @@ describe('HTML import sandbox', () => {
     )
     const parsed = new DOMParser().parseFromString(output, 'text/html')
     const sandboxStyle = parsed.querySelector(
-      'style[data-loora-html-import="true"]',
+      'style[data-sheet-html-import="true"]',
     )
 
     expect(sandboxStyle?.textContent).toContain('border: 0 solid')

@@ -1,4 +1,4 @@
-import { cn } from '@loora/ui/utils'
+import { cn } from '@sheet/ui/utils'
 
 /**
  * Added / removed / edited counts, in the diff colours the rest of the editor

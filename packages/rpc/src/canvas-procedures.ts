@@ -9,12 +9,12 @@ import {
   lte,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
+import { db } from '@sheet/db'
 import {
   canvasTransaction as canvasTransactionLog,
   design,
   designDraft,
-} from '@loora/db/schema'
+} from '@sheet/db/schema'
 import {
   CanvasConflictError,
   CanvasEngine,
@@ -22,17 +22,17 @@ import {
   parseCanvasTransaction,
   withTransactionPreconditions,
   type CanvasTransaction,
-} from '@loora/canvas/engine'
+} from '@sheet/canvas/engine'
 import {
   CANVAS_SCHEMA_VERSION,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   publishCanvasRealtimeEvent,
   readCanvasAgentActivity,
-} from '@loora/db/canvas-realtime'
-import { canvasTransactionPruneBefore } from '@loora/db/canvas-transactions'
+} from '@sheet/db/canvas-realtime'
+import { canvasTransactionPruneBefore } from '@sheet/db/canvas-transactions'
 import {
   localProcedure,
   optionalDraftIdSchema,

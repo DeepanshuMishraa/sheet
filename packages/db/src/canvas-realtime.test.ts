@@ -12,7 +12,7 @@ describe('Canvas realtime events', () => {
         draftId: 'branch one',
       }),
     ).toBe(
-      'loora:canvas:user%3Aone:design%2Fone:draft%3Abranch%20one',
+      'sheet:canvas:user%3Aone:design%2Fone:draft%3Abranch%20one',
     )
     expect(
       canvasRealtimeChannel('user:one', {

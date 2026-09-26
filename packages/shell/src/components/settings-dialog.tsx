@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Dialog, DialogPopup } from '@loora/ui/dialog'
+import { Dialog, DialogPopup } from '@sheet/ui/dialog'
 import { SettingsPanel } from './settings-panel'
-import { orpc } from '@loora/rpc/client'
+import { orpc } from '@sheet/rpc/client'
 import {
   cacheShortcuts,
   loadCachedShortcuts,
   normalizeConfig,
   type ShortcutConfig,
-} from '@loora/editor/lib/shortcuts'
+} from '@sheet/editor/lib/shortcuts'
 
 /**
  * Settings as a dialog, with the shortcut config it edits. Every app surface

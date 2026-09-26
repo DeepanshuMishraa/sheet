@@ -1,13 +1,13 @@
 import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, vi, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
+import { CanvasEngine } from '@sheet/canvas/engine'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
   createTextNode,
-} from '@loora/canvas/model'
-import { CanvasProvider } from '@loora/canvas/react'
+} from '@sheet/canvas/model'
+import { CanvasProvider, useCanvasSelection } from '@sheet/canvas/react'
 import { CanvasLayersPanel } from './layers-panel'
 
 function fixture() {
@@ -24,6 +24,11 @@ function fixture() {
   return document
 }
 
+function SelectionProbe() {
+  const selection = useCanvasSelection()
+  return <output data-testid="selection">{selection[0]?.nodeId ?? ''}</output>
+}
+
 describe('CanvasLayersPanel controls', () => {
   test('walks indexed children through expanded nested layers', () => {
     const view = render(
@@ -36,6 +41,19 @@ describe('CanvasLayersPanel controls', () => {
     expect(view.queryByText('Card title')).toBeNull()
     fireEvent.click(view.getByRole('button', { name: 'Expand layer' }))
     expect(view.getByText('Card title')).toBeTruthy()
+  })
+
+  test('selects the right-clicked layer before its context menu opens', () => {
+    const view = render(
+      <CanvasProvider engine={new CanvasEngine(fixture())}>
+        <CanvasLayersPanel />
+        <SelectionProbe />
+      </CanvasProvider>,
+    )
+
+    fireEvent.contextMenu(view.getByText('Card'))
+
+    expect(view.getByTestId('selection').textContent).toBe('frame')
   })
 
   test('creates pages and moves between dock positions', () => {

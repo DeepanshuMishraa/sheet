@@ -6,8 +6,8 @@ import {
   type NodeId,
   type NodeRef,
   type PageNode,
-} from '@loora/canvas/model'
-import { assetIdFromSrc } from '@loora/rpc/asset-url'
+} from '@sheet/canvas/model'
+import { assetIdFromSrc } from '@sheet/rpc/asset-url'
 
 const MAX_FETCHED_IMAGE_BYTES = 5 * 1024 * 1024
 

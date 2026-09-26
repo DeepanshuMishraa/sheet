@@ -6,11 +6,11 @@ const ID = `a${'0123456789abcdef'.repeat(2)}`
 describe('assetIdFromSrc', () => {
   test('reads the id back from the API route', () => {
     expect(assetIdFromSrc(assetRouteUrl(ID))).toBe(ID)
-    expect(assetIdFromSrc(`https://loora.design/api/asset/${ID}`)).toBe(ID)
+    expect(assetIdFromSrc(`https://sheet.design/api/asset/${ID}`)).toBe(ID)
   })
 
   test('reads the id back from a public bucket URL', () => {
-    const url = `https://assets.loora.design/${assetKey('user_1', ID)}`
+    const url = `https://assets.sheet.design/${assetKey('user_1', ID)}`
     expect(assetIdFromSrc(url)).toBe(ID)
   })
 

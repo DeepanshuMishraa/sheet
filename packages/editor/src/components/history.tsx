@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import { HistoryIcon, RotateCcwIcon } from '@loora/ui/icons'
-import type { CanvasDocument } from '@loora/canvas/model'
-import { diffDocuments } from '@loora/canvas/merge'
-import { useCanvasDocument } from '@loora/canvas/react'
-import { orpc } from '@loora/rpc/client'
+import { HistoryIcon, RotateCcwIcon } from '@sheet/ui/icons'
+import type { CanvasDocument } from '@sheet/canvas/model'
+import { diffDocuments } from '@sheet/canvas/merge'
+import { useCanvasDocument } from '@sheet/canvas/react'
+import { orpc } from '@sheet/rpc/client'
 import { CanvasDocumentPreview } from './canvas-preview'
-import { PanelEmpty, PanelLoading } from '@loora/ui/panel-shell'
-import { Badge } from '@loora/ui/badge'
-import { Button } from '@loora/ui/button'
+import { PanelEmpty, PanelLoading } from '@sheet/ui/panel-shell'
+import { Badge } from '@sheet/ui/badge'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogDescription,
   DialogHeader,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Input } from '@loora/ui/input'
-import { Spinner } from '@loora/ui/spinner'
+} from '@sheet/ui/dialog'
+import { Input } from '@sheet/ui/input'
+import { Spinner } from '@sheet/ui/spinner'
 import { relativeTime } from '../lib/designs'
-import { cn } from '@loora/ui/utils'
+import { cn } from '@sheet/ui/utils'
 import { DiffChips } from './diff-chips'
 import type { CanvasEditorController } from './editor'
 

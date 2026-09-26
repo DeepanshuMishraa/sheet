@@ -5,7 +5,7 @@ import {
   compileJsxComponent,
   compileStandaloneHtml,
   compileTailwindComponent,
-} from '@loora/canvas/export'
+} from '@sheet/canvas/export'
 import {
   buildChildIndex,
   canvasId,
@@ -16,7 +16,7 @@ import {
   type CanvasDocument,
   type CanvasNode,
   type NodeRef,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   createComponentInputSchema,
   createComponentTransaction,
@@ -46,7 +46,7 @@ import {
   viewCanvasInputSchema,
   viewNodeInputSchema,
   viewPageInputSchema,
-} from '@loora/agent/canvas-tools'
+} from '@sheet/agent/canvas-tools'
 import {
   MAX_NAME_LENGTH,
   CanvasUnavailableError,
@@ -84,7 +84,7 @@ export interface McpUsageController {
 }
 
 function usageMeta(usage?: McpIncludedUsage) {
-  return usage ? { _meta: { 'loora/usage': usage } } : {}
+  return usage ? { _meta: { 'sheet/usage': usage } } : {}
 }
 
 // Compact on purpose: results feed a model, and the indentation was ~30%
@@ -133,7 +133,7 @@ export function appUrl(
   branch?: string,
   extra: Record<string, string | undefined> = {},
 ) {
-  const origin = (process.env.LOORA_APP_URL?.trim() || 'https://loora.design').replace(/\/+$/, '')
+  const origin = (process.env.SHEET_APP_URL?.trim() || 'https://sheet.design').replace(/\/+$/, '')
   const path = branch
     ? `/design/${encodeURIComponent(design)}/b/${encodeURIComponent(branch)}`
     : `/design/${encodeURIComponent(design)}`
@@ -192,7 +192,7 @@ interface RegisteredToolConfig {
  * The SDK's tools/list handler inlines every shared shape into every tool
  * schema — the manifest came out at ~156KB (patchNodes alone 43KB) because
  * the style/layout/state shapes repeat a dozen times per tool. Converting
- * ourselves hoists the shapes registered in @loora/agent into named
+ * ourselves hoists the shapes registered in @sheet/agent into named
  * definitions, so each appears once per tool. The catalog is identical for
  * every server instance, so the converted list is built once per process.
  */
@@ -205,7 +205,7 @@ function logSlowTool(name: string, startedAt: number) {
   const durationMs = performance.now() - startedAt
   if (durationMs >= SLOW_TOOL_MS) {
     console.log(
-      `[loora-mcp] slow tool ${name} took ${Math.round(durationMs)}ms`,
+      `[sheet-mcp] slow tool ${name} took ${Math.round(durationMs)}ms`,
     )
   }
 }
@@ -229,11 +229,11 @@ function buildToolList(
   })
 }
 
-function createLooraRuntime(
+function createSheetRuntime(
   userId: string,
   usage: McpUsageController,
 ) {
-  const server = new McpServer({ name: 'loora', version: '0.3.0' })
+  const server = new McpServer({ name: 'sheet', version: '0.3.0' })
   const toolCatalog: Array<{ name: string; config: RegisteredToolConfig }> = []
   const toolHandlers = new Map<string, (args: unknown) => Promise<unknown>>()
   const registerToolDirect = server.registerTool.bind(server)
@@ -323,7 +323,7 @@ function createLooraRuntime(
     'listDesigns',
     {
       description:
-        'Start here. List the local Loora designs and canonical editor URLs.',
+        'Start here. List the local Sheet designs and canonical editor URLs.',
       annotations: { readOnlyHint: true },
     },
     tool('listDesigns', async (_args: unknown) =>
@@ -951,7 +951,7 @@ function createLooraRuntime(
         }
         const found = await getCanvasTarget(userId, args)
         const { renderCanvasScreenshot } = await import(
-          '@loora/rpc/mcp-screenshot'
+          '@sheet/rpc/mcp-screenshot'
         )
         const screenshot = await renderCanvasScreenshot(
           userId,
@@ -987,7 +987,7 @@ function createLooraRuntime(
     'viewNode',
     {
       description:
-        'Return a canonical open-in-Loora URL and semantic details for one node. Use getScreenshot when image pixels are needed.',
+        'Return a canonical open-in-Sheet URL and semantic details for one node. Use getScreenshot when image pixels are needed.',
       inputSchema: { ...targetShape, ...viewNodeInputSchema.shape },
       annotations: { readOnlyHint: true },
     },
@@ -1014,7 +1014,7 @@ function createLooraRuntime(
     'viewPage',
     {
       description:
-        'Return a canonical open-in-Loora URL and semantic tree for one Page. Use getScreenshot when image pixels are needed.',
+        'Return a canonical open-in-Sheet URL and semantic tree for one Page. Use getScreenshot when image pixels are needed.',
       inputSchema: { ...targetShape, ...viewPageInputSchema.shape },
       annotations: { readOnlyHint: true },
     },
@@ -1043,7 +1043,7 @@ function createLooraRuntime(
     'viewCanvas',
     {
       description:
-        'Return a canonical open-in-Loora URL and Page summary. Use getScreenshot to inspect pixels.',
+        'Return a canonical open-in-Sheet URL and Page summary. Use getScreenshot to inspect pixels.',
       inputSchema: { ...targetShape, ...viewCanvasInputSchema.shape },
       annotations: { readOnlyHint: true },
     },
@@ -1273,16 +1273,16 @@ function createLooraRuntime(
   }
 }
 
-export function createLooraServer(
+export function createSheetServer(
   userId: string,
   usage: McpUsageController,
 ) {
-  return createLooraRuntime(userId, usage).server
+  return createSheetRuntime(userId, usage).server
 }
 
-export function createLooraToolExecutor(
+export function createSheetToolExecutor(
   userId: string,
   usage: McpUsageController,
 ) {
-  return createLooraRuntime(userId, usage).execute
+  return createSheetRuntime(userId, usage).execute
 }

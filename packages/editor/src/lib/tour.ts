@@ -1,6 +1,6 @@
 import type { TourStep } from '../components/product-tour'
 
-export const TOUR_STORAGE_KEY = 'loora:tour-seen:1'
+export const TOUR_STORAGE_KEY = 'sheet:tour-seen:1'
 
 export function hasSeenTour(): boolean {
   if (typeof window === 'undefined') return true
@@ -30,7 +30,7 @@ export function clearTourSeen() {
   }
 }
 
-export const TOUR_PROGRESS_KEY = 'loora:tour-progress'
+export const TOUR_PROGRESS_KEY = 'sheet:tour-progress'
 
 export function readTourProgress(): number {
   if (typeof window === 'undefined') return 0
@@ -60,7 +60,7 @@ export function clearTourProgress() {
   }
 }
 
-export const MCP_ENDPOINT = 'https://mcp.loora.design/mcp'
+export const MCP_ENDPOINT = 'https://mcp.sheet.design/mcp'
 
 export function editorTourSteps({
   isMobile,

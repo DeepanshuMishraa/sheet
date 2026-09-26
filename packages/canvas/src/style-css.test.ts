@@ -88,14 +88,14 @@ describe('colorValue', () => {
 
   it('converts token references to CSS variables', () => {
     expect(colorValue(document, { token: 'color.primary' } as CanvasColor))
-      .toBe('var(--loora-token-color-primary)')
+      .toBe('var(--sheet-token-color-primary)')
   })
 
   it('sanitizes token names', () => {
     expect(colorValue(document, { token: 'color/primary' } as CanvasColor))
-      .toBe('var(--loora-token-color-primary)')
+      .toBe('var(--sheet-token-color-primary)')
     expect(colorValue(document, { token: 'color.primary!' } as CanvasColor))
-      .toBe('var(--loora-token-color-primary-)')
+      .toBe('var(--sheet-token-color-primary-)')
   })
 })
 
@@ -155,7 +155,7 @@ describe('paintValue', () => {
       ],
     }
     expect(paintValue(document, paint))
-      .toBe('linear-gradient(0deg, var(--loora-token-color-start) 0%, var(--loora-token-color-end) 100%)')
+      .toBe('linear-gradient(0deg, var(--sheet-token-color-start) 0%, var(--sheet-token-color-end) 100%)')
   })
 })
 

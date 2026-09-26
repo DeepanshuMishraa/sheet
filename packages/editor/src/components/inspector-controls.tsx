@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { ChevronDownIcon, ChevronRightIcon } from '@loora/ui/icons'
-import { cn } from '@loora/ui/utils'
+import { ChevronDownIcon, ChevronRightIcon } from '@sheet/ui/icons'
+import { cn } from '@sheet/ui/utils'
 
 const control =
   'h-7 w-full min-w-0 rounded-md border bg-background text-xs outline-none focus-within:border-ring'

@@ -3,8 +3,8 @@ import {
   compileStandaloneHtml,
   compileTailwindComponent,
   type CanvasExportOptions,
-} from '@loora/canvas/export'
-import type { CanvasDocument, NodeRef } from '@loora/canvas/model'
+} from '@sheet/canvas/export'
+import type { CanvasDocument, NodeRef } from '@sheet/canvas/model'
 
 export type CanvasCodeFormat = 'html' | 'jsx' | 'tailwind'
 

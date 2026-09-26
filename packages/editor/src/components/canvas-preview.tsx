@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { CanvasNodeRenderer, CanvasProvider } from '@loora/canvas/react'
-import type { CanvasDocument, PageNode } from '@loora/canvas/model'
-import { cn } from '@loora/ui/utils'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { CanvasNodeRenderer, CanvasProvider } from '@sheet/canvas/react'
+import type { CanvasDocument, PageNode } from '@sheet/canvas/model'
+import { cn } from '@sheet/ui/utils'
 
 const MAX_PAGES = 8
 const PADDING = 10
@@ -36,7 +36,7 @@ function tokenVariables(document: CanvasDocument) {
   const style: Record<string, string> = {}
   for (const token of Object.values(document.tokens)) {
     const value = token.modes?.[document.activeThemeId] ?? token.value
-    style[`--loora-token-${token.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`] = String(value)
+    style[`--sheet-token-${token.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`] = String(value)
   }
   return style as CSSProperties
 }

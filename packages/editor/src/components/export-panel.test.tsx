@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { CanvasProvider, useCanvasSession } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { CanvasProvider, useCanvasSession } from '@sheet/canvas/react'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
   createTextNode,
   defaultLayout,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 const handoffCreate = vi.fn()
 const captureCanvasPng = vi.fn()
 const captureNodePng = vi.fn()
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: {
     handoff: { create: handoffCreate },
     publish: {
@@ -148,7 +148,7 @@ describe('CanvasExport', () => {
 
     const frame = previewFrame(view)
     expect(frame?.getAttribute('sandbox')).toBe('allow-scripts')
-    expect(frame?.getAttribute('srcdoc')).toContain('data-loora-node="card"')
+    expect(frame?.getAttribute('srcdoc')).toContain('data-sheet-node="card"')
     expect(frame?.getAttribute('srcdoc')).toContain('<!doctype html>')
     fireEvent.click(view.getByRole('button', { name: 'Code' }))
     expect(codeText(view)).toBe(frame?.getAttribute('srcdoc') ?? '')
@@ -161,8 +161,8 @@ describe('CanvasExport', () => {
       view.getByRole('button', { name: 'Selection' }).getAttribute('aria-pressed'),
     ).toBe('true')
     fireEvent.click(view.getByRole('button', { name: 'Code' }))
-    expect(codeText(view)).toContain('data-loora-node="card"')
-    expect(codeText(view)).not.toContain('data-loora-node="other"')
+    expect(codeText(view)).toContain('data-sheet-node="card"')
+    expect(codeText(view)).not.toContain('data-sheet-node="other"')
   })
 
   test('widens back to the whole canvas on demand', async () => {
@@ -170,7 +170,7 @@ describe('CanvasExport', () => {
 
     fireEvent.click(view.getByRole('button', { name: 'Canvas' }))
     fireEvent.click(view.getByRole('button', { name: 'Code' }))
-    expect(codeText(view)).toContain('data-loora-node="other"')
+    expect(codeText(view)).toContain('data-sheet-node="other"')
   })
 
   test('renders the preview at the chosen breakpoint width', async () => {

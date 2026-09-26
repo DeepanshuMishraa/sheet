@@ -131,7 +131,7 @@ describe('editorTourSteps', () => {
 
   test('the last step hands over the MCP endpoint to copy', () => {
     const agent = editorTourSteps(options).at(-1)
-    expect(agent?.copy?.value).toBe('https://mcp.loora.design/mcp')
+    expect(agent?.copy?.value).toBe('https://mcp.sheet.design/mcp')
   })
 })
 

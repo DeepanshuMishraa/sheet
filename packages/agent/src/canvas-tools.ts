@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { CanvasOperation, CanvasTransaction } from '@loora/canvas/engine'
+import type { CanvasOperation, CanvasTransaction } from '@sheet/canvas/engine'
 import {
   DEFAULT_ORDER_STEP,
   buildChildIndex,
@@ -30,17 +30,17 @@ import {
   type SemanticTag,
   type TextRun,
   type CanvasVisualState,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   motionPreset,
   MOTION_PRESET_NAMES,
   type CanvasAnimation,
-} from '@loora/canvas/motion'
+} from '@sheet/canvas/motion'
 import {
   hoverPreset,
   HOVER_PRESET_NAMES,
   type HoverPresetName,
-} from '@loora/canvas/motion-presets'
+} from '@sheet/canvas/motion-presets'
 
 const lengthSchema = z.union([
   z.object({ unit: z.literal('px'), value: z.number().finite() }),
@@ -1570,7 +1570,7 @@ export function createCanvasAgentTools({
     },
     deleteNodes: {
       description:
-        'Delete source nodes and their descendants. This requires user confirmation in the Loora client.',
+        'Delete source nodes and their descendants. This requires user confirmation in the Sheet client.',
       inputSchema: deleteNodesInputSchema,
     },
     readNode: {

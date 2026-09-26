@@ -1,4 +1,4 @@
-import type { CanvasElement, CanvasPage } from '@loora/db/canvas'
+import type { CanvasElement, CanvasPage } from '@sheet/db/canvas'
 
 export interface Commit {
   id: string
@@ -60,7 +60,7 @@ export function toHistoryPage(
   }
 }
 
-const key = (docId: string) => `loora:history:${docId}`
+const key = (docId: string) => `sheet:history:${docId}`
 const MAX_COMMITS = 50
 
 export function loadHistory(docId: string): Commit[] {

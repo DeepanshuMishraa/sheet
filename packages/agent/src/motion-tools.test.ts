@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
+import { CanvasEngine } from '@sheet/canvas/engine'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   animateNodesInputSchema,
   animateNodesOperations,

@@ -1,5 +1,5 @@
 {
-  "name": "@loora/db",
+  "name": "@sheet/db",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,8 +12,8 @@
     "studio": "bun run drizzle-kit studio"
   },
   "dependencies": {
-    "@loora/canvas": "workspace:*",
-    "@loora/realtime": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/realtime": "workspace:*",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

@@ -11,13 +11,13 @@ import {
   type CanvasRealtimeEvent,
   type CanvasRealtimeEventInput,
   type CanvasRealtimeTarget,
-} from '@loora/realtime/events'
+} from '@sheet/realtime/events'
 import {
   readRealtimeRoomState,
   realtimeIngestConfig,
   sendRealtimeIngest,
-} from '@loora/realtime/ingest'
-import { publishLocalEvent } from '@loora/realtime/local-bus'
+} from '@sheet/realtime/ingest'
+import { publishLocalEvent } from '@sheet/realtime/local-bus'
 
 interface RuntimeRedisClient {
   connect(): Promise<unknown>
@@ -40,7 +40,7 @@ declare const Bun:
 /**
  * Server-side realtime plumbing.
  *
- * The wire protocol itself lives in `@loora/realtime`; this module is the part
+ * The wire protocol itself lives in `@sheet/realtime`; this module is the part
  * that talks to infrastructure. Publishes go to the WebSocket Worker's ingest
  * endpoint and, when configured, Redis as well. The Worker owns WebSocket room
  * state while Redis keeps the SSE fallback and multi-instance web subscribers
@@ -60,7 +60,7 @@ export {
   type CanvasRealtimeEvent,
   type CanvasRealtimeEventInput,
   type CanvasRealtimeTarget,
-} from '@loora/realtime/events'
+} from '@sheet/realtime/events'
 
 function redisUrl() {
   return process.env.REDIS_URL?.trim() || null

@@ -1,4 +1,4 @@
-import { configureRuntime } from '@loora/platform'
+import { configureRuntime } from '@sheet/platform'
 
 /**
  * Imported before anything else, so the runtime is configured before
@@ -10,8 +10,8 @@ import { configureRuntime } from '@loora/platform'
  */
 configureRuntime({
   platform: 'desktop',
-  appOrigin: import.meta.env.VITE_LOORA_APP_ORIGIN ?? 'http://127.0.0.1:4100',
-  // A window that followed an outside link would stop being Loora. The host
+  appOrigin: import.meta.env.VITE_SHEET_APP_ORIGIN ?? 'http://127.0.0.1:4100',
+  // A window that followed an outside link would stop being Sheet. The host
   // opens it in a browser instead, and the window stays where it was.
   openExternal: (url) => {
     void fetch('/desktop/open', {

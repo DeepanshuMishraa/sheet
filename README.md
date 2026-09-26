@@ -1,6 +1,6 @@
-![Loora](./readme-banner.png)
+![Sheet](./readme-banner.png)
 
-# Loora
+# Sheet
 
 A local-first canvas design tool your agent can edit. Arrange structured UI
 nodes on the canvas; connect Claude, Codex, Cursor, or opencode over MCP and
@@ -17,7 +17,7 @@ Bun · Tauri · Drizzle + SQLite · oRPC.
 Teaches an agent how to use the canvas tools well. Add `-g` to install it for every project.
 
 ```bash
-npx skills add https://github.com/lassejlv/loora/tree/main/skills/loora-design-guide
+npx skills add https://github.com/lassejlv/sheet/tree/main/skills/sheet-design-guide
 ```
 
 ## Monorepo layout
@@ -50,13 +50,13 @@ app with the server compiled in.
 
 Copyright (C) 2026 Lasse Vestergaard
 
-Loora is free software: you can redistribute it and/or modify it under the
+Sheet is free software: you can redistribute it and/or modify it under the
 terms of the **GNU Affero General Public License** as published by the Free
 Software Foundation, either version 3 of the License, or (at your option) any
 later version.
 
 See [LICENSE](./LICENSE) for the full license text.
 
-You may fork, modify, and self-host Loora (including for business use). If you
+You may fork, modify, and self-host Sheet (including for business use). If you
 modify the software and provide it to users over a network, AGPL-3.0 requires
 you to offer the corresponding source to those users under the same license.

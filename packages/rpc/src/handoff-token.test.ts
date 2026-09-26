@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createHandoffToken, readHandoffToken } from './handoff-token'
 
-const originalSecret = process.env.LOORA_HANDOFF_SECRET
+const originalSecret = process.env.SHEET_HANDOFF_SECRET
 
 beforeEach(() => {
-  process.env.LOORA_HANDOFF_SECRET = 'test-only-handoff-secret-at-least-32-bytes'
+  process.env.SHEET_HANDOFF_SECRET = 'test-only-handoff-secret-at-least-32-bytes'
 })
 
 afterEach(() => {
-  if (originalSecret == null) delete process.env.LOORA_HANDOFF_SECRET
-  else process.env.LOORA_HANDOFF_SECRET = originalSecret
+  if (originalSecret == null) delete process.env.SHEET_HANDOFF_SECRET
+  else process.env.SHEET_HANDOFF_SECRET = originalSecret
 })
 
 describe('handoff tokens', () => {

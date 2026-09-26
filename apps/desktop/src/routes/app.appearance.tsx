@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AppearanceSettings } from '@loora/shell/appearance-settings'
-import { AppPageShell } from '@loora/shell/app-page-shell'
+import { AppearanceSettings } from '@sheet/shell/appearance-settings'
+import { AppPageShell } from '@sheet/shell/app-page-shell'
 
 export const Route = createFileRoute('/app/appearance')({
   component: AppearancePage,

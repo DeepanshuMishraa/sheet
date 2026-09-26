@@ -39,9 +39,13 @@ import HugeEllipsisIcon from '@hugeicons/core-free-icons/EllipsisIcon'
 import HugeExternalLinkIcon from '@hugeicons/core-free-icons/ExternalLinkIcon'
 import HugeEyeIcon from '@hugeicons/core-free-icons/EyeIcon'
 import HugeEyeOffIcon from '@hugeicons/core-free-icons/EyeOffIcon'
+import HugeFile01Icon from '@hugeicons/core-free-icons/File01Icon'
 import HugeFilePlusIcon from '@hugeicons/core-free-icons/FileAddIcon'
 import HugeFileCodeIcon from '@hugeicons/core-free-icons/FileCodeIcon'
 import HugeImportIcon from '@hugeicons/core-free-icons/FileImportIcon'
+import HugeCropIcon from '@hugeicons/core-free-icons/CropIcon'
+import HugePenTool01Icon from '@hugeicons/core-free-icons/PenTool01Icon'
+import HugeAddCircleIcon from '@hugeicons/core-free-icons/AddCircleIcon'
 import HugeFolderIcon from '@hugeicons/core-free-icons/Folder01Icon'
 import HugeFrameIcon from '@hugeicons/core-free-icons/FrameIcon'
 import HugeGitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon'
@@ -101,6 +105,7 @@ import HugeUndoIcon from '@hugeicons/core-free-icons/Undo02Icon'
 import HugeUngroupIcon from '@hugeicons/core-free-icons/UngroupIcon'
 import HugeUnlinkIcon from '@hugeicons/core-free-icons/Unlink01Icon'
 import HugeUnlink2Icon from '@hugeicons/core-free-icons/Unlink02Icon'
+import HugeUserGroupIcon from '@hugeicons/core-free-icons/UserGroupIcon'
 import {
   HugeiconsIcon,
   type HugeiconsIconProps,
@@ -195,13 +200,18 @@ export const CommandIcon = createIcon(HugeCommandIcon, 'CommandIcon')
 export const ComponentIcon = createIcon(HugeComponentIcon, 'ComponentIcon')
 export const CopyIcon = createIcon(HugeCopyIcon, 'CopyIcon')
 export const CreditCardIcon = createIcon(HugeCreditCardIcon, 'CreditCardIcon')
+export const CropIcon = createIcon(HugeCropIcon, 'CropIcon')
 export const DownloadIcon = createIcon(HugeDownloadIcon, 'DownloadIcon')
 export const EllipsisIcon = createIcon(HugeEllipsisIcon, 'EllipsisIcon')
 export const ExternalLinkIcon = createIcon(HugeExternalLinkIcon, 'ExternalLinkIcon')
 export const EyeIcon = createIcon(HugeEyeIcon, 'EyeIcon')
 export const EyeOffIcon = createIcon(HugeEyeOffIcon, 'EyeOffIcon')
+export const File01Icon = createIcon(HugeFile01Icon, 'File01Icon')
+export const FileTextIcon = File01Icon
 export const FileCode2Icon = createIcon(HugeFileCodeIcon, 'FileCode2Icon')
 export const FilePlus2Icon = createIcon(HugeFilePlusIcon, 'FilePlus2Icon')
+export const PenTool01Icon = createIcon(HugePenTool01Icon, 'PenTool01Icon')
+export const PlusCircleIcon = createIcon(HugeAddCircleIcon, 'PlusCircleIcon')
 export const FolderIcon = createIcon(HugeFolderIcon, 'FolderIcon')
 export const FrameIcon = createIcon(HugeFrameIcon, 'FrameIcon')
 export const GitBranchIcon = createIcon(HugeGitBranchIcon, 'GitBranchIcon')
@@ -283,6 +293,7 @@ export const UnlinkIcon = createIcon(HugeUnlinkIcon, 'UnlinkIcon')
 export const Unlink2Icon = createIcon(HugeUnlink2Icon, 'Unlink2Icon')
 export const UnlockIcon = createIcon(HugeUnlockIcon, 'UnlockIcon')
 export const UnplugIcon = createIcon(HugeUnplugIcon, 'UnplugIcon')
+export const UserGroupIcon = createIcon(HugeUserGroupIcon, 'UserGroupIcon')
 export const XIcon = createIcon(HugeXIcon, 'XIcon')
 export const ZoomInIcon = createIcon(HugeZoomInIcon, 'ZoomInIcon')
 export const ZoomOutIcon = createIcon(HugeZoomOutIcon, 'ZoomOutIcon')

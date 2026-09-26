@@ -27,7 +27,7 @@ export { TAILWIND_PREFLIGHT_CSS, TAILWIND_PREFLIGHT_VERSION } from './tailwind-p
 
 /**
  * Base CSS injected into the HTML import sandbox. Official Tailwind Preflight
- * plus Loora chrome so Paper snapshots measure with the same reset they were
+ * plus Sheet chrome so Paper snapshots measure with the same reset they were
  * authored against (`border: 0 solid`, unstyled lists/buttons, etc.).
  */
 export const HTML_IMPORT_SANDBOX_BASE_CSS = [

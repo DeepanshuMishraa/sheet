@@ -3,9 +3,9 @@ import {
   convertHtmlSnapshotToCanvas,
   type HtmlCanvasImportResult,
   type HtmlCanvasSnapshot,
-} from '@loora/canvas/import'
+} from '@sheet/canvas/import'
 
-export { HTML_IMPORT_SANDBOX_BASE_CSS } from '@loora/canvas/import'
+export { HTML_IMPORT_SANDBOX_BASE_CSS } from '@sheet/canvas/import'
 
 export const MAX_HTML_IMPORT_SOURCE_BYTES = 8_000_000
 export const MAX_CSS_IMPORT_SOURCE_BYTES = 2_000_000
@@ -243,7 +243,7 @@ export function buildHtmlImportDocument(html: string, css = '') {
   parsed.head.prepend(policy)
 
   const styles = parsed.createElement('style')
-  styles.dataset.looraHtmlImport = 'true'
+  styles.dataset.sheetHtmlImport = 'true'
   const safeCss = css.replace(/<\/style/gi, '<\\/style')
   styles.textContent = `${HTML_IMPORT_SANDBOX_BASE_CSS}${safeCss}`
   parsed.head.appendChild(styles)

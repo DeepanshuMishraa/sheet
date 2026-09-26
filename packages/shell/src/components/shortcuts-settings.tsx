@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@loora/ui/button'
+import { Button } from '@sheet/ui/button'
 import {
   BUILTIN_META,
   DEFAULT_SHORTCUTS,
@@ -11,8 +11,8 @@ import {
   resolveBuiltIn,
   type BuiltInShortcutId,
   type ShortcutConfig,
-} from '@loora/editor/lib/shortcuts'
-import { cn } from '@loora/ui/utils'
+} from '@sheet/editor/lib/shortcuts'
+import { cn } from '@sheet/ui/utils'
 
 export function ShortcutsSettings({
   config,

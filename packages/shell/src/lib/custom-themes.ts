@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'loora:custom-themes'
+const STORAGE_KEY = 'sheet:custom-themes'
 
 export const CUSTOM_THEME_PREFIX = 'custom:'
 

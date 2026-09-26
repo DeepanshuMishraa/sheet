@@ -4,14 +4,14 @@ import {
   rebaseTransactions,
   type CanvasTransaction,
   type CanvasTransactionConflict,
-} from '@loora/canvas/engine'
+} from '@sheet/canvas/engine'
 import {
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
-import { orpc } from '@loora/rpc/client'
-import { apiUrl } from '@loora/platform'
-import type { CanvasPresencePeer } from '@loora/realtime/events'
+} from '@sheet/canvas/model'
+import { orpc } from '@sheet/rpc/client'
+import { apiUrl } from '@sheet/platform'
+import type { CanvasPresencePeer } from '@sheet/realtime/events'
 
 export interface CanvasSyncTarget {
   designId: string
@@ -46,7 +46,7 @@ interface PendingRecord {
   transactions: CanvasTransaction[]
 }
 
-const DATABASE_NAME = 'loora-canvas'
+const DATABASE_NAME = 'sheet-canvas'
 const STORE_NAME = 'pending-transactions'
 const REALTIME_CONNECTED_REFRESH_MS = 5 * 60_000
 const REALTIME_DISCONNECTED_REFRESH_MS = 15_000
@@ -56,7 +56,7 @@ const CLOSE_REALTIME_REAUTH = 4001
 /** After this many sockets that never opened, stay on the event stream. */
 const MAX_SOCKET_FAILURES = 3
 /** Offered alongside the ticket so the service knows which dialect this is. */
-const REALTIME_PROTOCOL = 'loora.realtime.v1'
+const REALTIME_PROTOCOL = 'sheet.realtime.v1'
 /** A pointer moves at frame rate; the wire does not have to. */
 const PRESENCE_THROTTLE_MS = 80
 const PRESENCE_HEARTBEAT_MS = 20_000

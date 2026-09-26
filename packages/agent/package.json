@@ -1,5 +1,5 @@
 {
-  "name": "@loora/agent",
+  "name": "@sheet/agent",
   "private": true,
   "type": "module",
   "exports": {
@@ -7,7 +7,7 @@
     "./repair-layout": "./src/repair-layout.ts"
   },
   "dependencies": {
-    "@loora/canvas": "workspace:*",
+    "@sheet/canvas": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

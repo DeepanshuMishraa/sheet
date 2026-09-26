@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
-import { userPreferences } from '@loora/db/schema'
-import { EMPTY_SHORTCUT_CONFIG } from '@loora/db/shortcuts'
+import { db } from '@sheet/db'
+import { userPreferences } from '@sheet/db/schema'
+import { EMPTY_SHORTCUT_CONFIG } from '@sheet/db/shortcuts'
 import { parseShortcutConfig, shortcutConfigSchema } from './shortcuts'
 import { localProcedure } from './procedures'
 

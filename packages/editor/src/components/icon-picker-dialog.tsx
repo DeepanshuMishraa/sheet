@@ -8,11 +8,11 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Input } from '@loora/ui/input'
-import { Tabs, TabsList, TabsTrigger } from '@loora/ui/tabs'
-import { Button } from '@loora/ui/button'
-import { Spinner } from '@loora/ui/spinner'
+} from '@sheet/ui/dialog'
+import { Input } from '@sheet/ui/input'
+import { Tabs, TabsList, TabsTrigger } from '@sheet/ui/tabs'
+import { Button } from '@sheet/ui/button'
+import { Spinner } from '@sheet/ui/spinner'
 import {
   getHugeicons,
   getLucide,

@@ -6,32 +6,32 @@ import {
   or,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
+import { db } from '@sheet/db'
 import {
   design,
   designDraft,
   designVersion,
-} from '@loora/db/schema'
+} from '@sheet/db/schema'
 import {
   CANVAS_SCHEMA_VERSION,
   createCanvasDocument,
   parseCanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   changedNodeIds,
   diffDocuments,
   mergeDocuments,
   type CanvasMergeConflict,
   type CanvasMergeResolutions,
-} from '@loora/canvas/merge'
+} from '@sheet/canvas/merge'
 import {
   mergeCanvas,
   type MergeChoice,
-} from '@loora/db/drafts'
+} from '@sheet/db/drafts'
 import {
   publishBranchChanged,
   publishCanvasRealtimeEvent,
-} from '@loora/db/canvas-realtime'
+} from '@sheet/db/canvas-realtime'
 import {
   documentDiff,
   draftIdSchema,

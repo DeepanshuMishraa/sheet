@@ -10,7 +10,7 @@ import {
   type CanvasLayout,
   type CanvasNode,
   type ShapeNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { repairStackedLayout } from './repair-layout'
 
 function documentWith(nodes: CanvasNode[]): CanvasDocument {

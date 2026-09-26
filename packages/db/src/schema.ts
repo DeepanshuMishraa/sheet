@@ -6,8 +6,8 @@ import {
   sqliteTable,
   text,
 } from 'drizzle-orm/sqlite-core'
-import type { CanvasTransaction } from '@loora/canvas/engine'
-import type { CanvasDocument } from '@loora/canvas/model'
+import type { CanvasTransaction } from '@sheet/canvas/engine'
+import type { CanvasDocument } from '@sheet/canvas/model'
 import type { CanvasElement, CanvasPage } from './canvas'
 import type { DraftStatus } from './drafts'
 import { EMPTY_SHORTCUT_CONFIG, type ShortcutConfig } from './shortcuts'

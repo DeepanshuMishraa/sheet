@@ -1,6 +1,6 @@
-# `@loora/mcp`
+# `@sheet/mcp`
 
-The Loora local server. One Bun process serves everything over SQLite:
+The Sheet local server. One Bun process serves everything over SQLite:
 
 | Route | Purpose |
 |-------|---------|
@@ -11,22 +11,22 @@ The Loora local server. One Bun process serves everything over SQLite:
 | `/api/canvas-events` | Live canvas/branch/agent events over SSE |
 | `GET` `/ready`, `/health` | Liveness |
 
-Tools execute in-process through the canonical `createLooraToolExecutor`
-from `@loora/rpc/mcp-server` — the same Canvas engine, branch/history
+Tools execute in-process through the canonical `createSheetToolExecutor`
+from `@sheet/rpc/mcp-server` — the same Canvas engine, branch/history
 persistence, exporter, screenshot renderer, and asset handling the editor
-uses. There is exactly one implementation of Loora's document semantics,
+uses. There is exactly one implementation of Sheet's document semantics,
 one user (`local`), no accounts, no meters.
 
 ## Run
 
 ```sh
-bun run dev              # server on :4100 (LOORA_MCP_PORT)
+bun run dev              # server on :4100 (SHEET_MCP_PORT)
 ```
 
 Point any MCP client at `http://127.0.0.1:4100/mcp`:
 
 ```sh
-claude mcp add --transport http loora http://127.0.0.1:4100/mcp
+claude mcp add --transport http sheet http://127.0.0.1:4100/mcp
 ```
 
 Stdio mode for clients that spawn a process:
@@ -35,14 +35,14 @@ Stdio mode for clients that spawn a process:
 bun run dev:stdio
 ```
 
-Environment: `LOORA_SQLITE_PATH` (default `./data/loora.db`,
-`:memory:` for tests), `LOORA_HANDOFF_SECRET` (handoffs only),
+Environment: `SHEET_SQLITE_PATH` (default `./data/sheet.db`,
+`:memory:` for tests), `SHEET_HANDOFF_SECRET` (handoffs only),
 `REDIS_URL` (optional rate-limit counters, else in-memory).
 
 Compile a self-contained sidecar binary for the desktop app:
 
 ```sh
-bun run build:server   # apps/mcp/dist/loora-server
+bun run build:server   # apps/mcp/dist/sheet-server
 ```
 
 ## Validate

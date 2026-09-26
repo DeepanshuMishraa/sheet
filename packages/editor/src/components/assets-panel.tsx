@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ImagePlusIcon, Trash2Icon } from '@loora/ui/icons'
-import { LinkIcon, SearchIcon } from '@loora/ui/icons'
-import { Button } from '@loora/ui/button'
+import { ImagePlusIcon, Trash2Icon } from '@sheet/ui/icons'
+import { LinkIcon, SearchIcon } from '@sheet/ui/icons'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogDescription,
@@ -9,14 +9,14 @@ import {
   DialogHeader,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Input } from '@loora/ui/input'
-import { Skeleton } from '@loora/ui/skeleton'
-import { orpc } from '@loora/rpc/client'
-import { assetRouteUrl } from '@loora/rpc/asset-url'
-import { apiUrl, appUrl } from '@loora/platform'
+} from '@sheet/ui/dialog'
+import { Input } from '@sheet/ui/input'
+import { Skeleton } from '@sheet/ui/skeleton'
+import { orpc } from '@sheet/rpc/client'
+import { assetRouteUrl } from '@sheet/rpc/asset-url'
+import { apiUrl, appUrl } from '@sheet/platform'
 import { relativeTime } from '../lib/designs'
-import { cn } from '@loora/ui/utils'
+import { cn } from '@sheet/ui/utils'
 
 export interface AssetMeta {
   id: string
@@ -45,7 +45,7 @@ export function absoluteAssetSrc(asset: Pick<AssetMeta, 'id' | 'url'>) {
 }
 
 /** Payload a canvas drop reads to place an asset it was handed. */
-export const ASSET_DRAG_TYPE = 'application/x-loora-asset'
+export const ASSET_DRAG_TYPE = 'application/x-sheet-asset'
 
 /** Matches the server cap, so an oversized file is refused before it is read. */
 export const MAX_ASSET_BYTES = 5 * 1024 * 1024

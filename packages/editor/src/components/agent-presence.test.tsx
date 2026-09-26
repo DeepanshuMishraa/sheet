@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react'
 import { describe, expect, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { createCanvasDocument } from '@loora/canvas/model'
-import { CanvasProvider } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { createCanvasDocument } from '@sheet/canvas/model'
+import { CanvasProvider } from '@sheet/canvas/react'
 import { CanvasAgentOverlay } from './agent-presence'
 import type { CanvasEditorController } from './editor'
 

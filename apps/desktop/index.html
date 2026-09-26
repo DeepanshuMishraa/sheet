@@ -2,18 +2,68 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Loora</title>
+    <title>Sheet</title>
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#fafafa" />
     <!-- Self-hosted, and byte-identical to what the web app loads. -->
     <link rel="stylesheet" href="/vendor/fonts.css" />
+    <style>
+      /* Boot splash: shown while the bundle parses and React mounts, so the
+         window never sits blank. Pure CSS — no JS dependency. React removes
+         `#boot-splash` once it has painted (see `routes/__root.tsx`). */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+        color: #0d0d0d;
+        z-index: 50;
+      }
+      html.dark #boot-splash {
+        background: #212121;
+        color: #ededed;
+      }
+      .boot-matrix {
+        display: grid;
+        grid-template-columns: repeat(3, 8px);
+        gap: 6px;
+      }
+      .boot-matrix i {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.18;
+        animation: boot-dot-glow 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .boot-matrix i:nth-child(2) { animation-delay: 0.12s; }
+      .boot-matrix i:nth-child(3) { animation-delay: 0.24s; }
+      .boot-matrix i:nth-child(4) { animation-delay: 0.12s; }
+      .boot-matrix i:nth-child(5) { animation-delay: 0.24s; }
+      .boot-matrix i:nth-child(6) { animation-delay: 0.36s; }
+      .boot-matrix i:nth-child(7) { animation-delay: 0.24s; }
+      .boot-matrix i:nth-child(8) { animation-delay: 0.36s; }
+      .boot-matrix i:nth-child(9) { animation-delay: 0.48s; }
+      @keyframes boot-dot-glow {
+        0%, 100% { opacity: 0.18; }
+        30% { opacity: 1; }
+        60% { opacity: 0.18; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-matrix i {
+          animation: none;
+          opacity: 0.35;
+        }
+      }
+    </style>
     <script>
       // Dark before first paint, so the window never flashes white on the way
       // in. The full restore — custom themes, interface scale — happens in
-      // `@loora/shell/lib/theme` once React is running; this is only the part
+      // `@sheet/shell/lib/theme` once React is running; this is only the part
       // that has to be done before there is anything to see.
       try {
-        var stored = localStorage.getItem('loora:theme')
+        var stored = localStorage.getItem('sheet:theme')
         document.documentElement.classList.toggle(
           'dark',
           stored === 'dark' ||
@@ -21,9 +71,70 @@
               matchMedia('(prefers-color-scheme: dark)').matches),
         )
       } catch (error) {}
+      // Interface typefaces before first paint, so a stored pick never flashes
+      // the default face. Mirrors `@sheet/shell/lib/ui-font`; unknown ids fall
+      // back to the stylesheet defaults by leaving the vars unset.
+      try {
+        var monoFonts = {
+          'system-mono': 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          'spline-sans-mono':
+            "'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'geist-mono':
+            "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'jetbrains-mono':
+            "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'paper-mono':
+            "'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'space-mono':
+            "'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'ibm-plex-mono':
+            "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'fira-code':
+            "'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace",
+          'roboto-mono':
+            "'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+        }
+        // The interface face accepts every sans, plus every mono for a
+        // full-mono chrome. Mirrors `@sheet/shell/lib/ui-font`.
+        var sansFonts = Object.assign(
+          {
+            system:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, system-ui, sans-serif",
+            geist: "'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            archivo: "'Archivo', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            'space-grotesk':
+              "'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            'dm-sans': "'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            manrope: "'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            outfit: "'Outfit', 'Inter', ui-sans-serif, system-ui, sans-serif",
+            'ibm-plex-sans':
+              "'IBM Plex Sans', 'Inter', ui-sans-serif, system-ui, sans-serif",
+          },
+          monoFonts,
+        )
+        var pickedSans = localStorage.getItem('sheet:ui-sans')
+        var pickedMono = localStorage.getItem('sheet:ui-mono')
+        if (pickedSans && sansFonts[pickedSans]) {
+          document.documentElement.style.setProperty(
+            '--sheet-font-sans',
+            sansFonts[pickedSans],
+          )
+        }
+        if (pickedMono && monoFonts[pickedMono]) {
+          document.documentElement.style.setProperty(
+            '--sheet-font-mono',
+            monoFonts[pickedMono],
+          )
+        }
+      } catch (error) {}
     </script>
   </head>
   <body>
+    <div id="boot-splash" role="status" aria-label="Loading">
+      <div class="boot-matrix" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

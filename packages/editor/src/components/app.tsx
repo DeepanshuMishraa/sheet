@@ -5,22 +5,21 @@ import {
   FilePlus2Icon,
   FolderIcon,
   PencilIcon,
-} from '@loora/ui/icons'
+} from '@sheet/ui/icons'
 import {
   CheckIcon,
   ChevronDownIcon,
   HistoryIcon,
   ImageIcon,
   RefreshCwIcon,
-} from '@loora/ui/icons'
-import { CanvasEngine, type CanvasTransaction } from '@loora/canvas/engine'
+} from '@sheet/ui/icons'
+import { CanvasEngine, type CanvasTransaction } from '@sheet/canvas/engine'
 import {
   CanvasEditor,
   type CanvasEditorController,
   type CanvasSettingsSlot,
 } from './editor'
 import {
-  CanvasBranches,
   type CanvasBranchSummary,
 } from './branches'
 import { CanvasPresenceFacePile } from './presence'
@@ -29,10 +28,11 @@ import {
   type CanvasSyncTarget,
 } from '../lib/canvas-client'
 import { createStarterCanvas } from '../lib/canvas-fixtures'
-import { createDesign, type DesignSummary } from '../lib/designs'
-import { orpc } from '@loora/rpc/client'
-import { Button } from '@loora/ui/button'
-import { Input } from '@loora/ui/input'
+import { type DesignSummary } from '../lib/designs'
+import { orpc } from '@sheet/rpc/client'
+import { Button } from '@sheet/ui/button'
+import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
+import { Input } from '@sheet/ui/input'
 import {
   Dialog,
   DialogDescription,
@@ -41,16 +41,16 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
+} from '@sheet/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@loora/ui/dropdown-menu'
+} from '@sheet/ui/dropdown-menu'
 
-function CanvasDocSwitcher({
+export function CanvasDocSwitcher({
   documents,
   activeId,
   onSwitch,
@@ -130,7 +130,7 @@ function CanvasDocSwitcher({
 }
 
 function previewController(): CanvasEditorController {
-  const engine = new CanvasEngine(createStarterCanvas('preview', 'Loora Canvas'))
+  const engine = new CanvasEngine(createStarterCanvas('preview', 'Sheet Canvas'))
   return {
     engine,
     status: 'ready',
@@ -202,32 +202,6 @@ export function CanvasApp({
       setLoading(false)
     }
   }, [])
-
-  const switchTarget = useCallback(
-    async (draftId: string | null) => {
-      if (!activeId) return
-      await controllerRef.current?.flush()
-      if (draftId) {
-        await navigate({
-          to: '/design/$id/b/$branchId',
-          params: { id: activeId, branchId: draftId },
-          search: true,
-        })
-        return
-      }
-      await navigate({
-        to: '/design/$id',
-        params: { id: activeId },
-        search: true,
-      })
-    },
-    [activeId, navigate],
-  )
-
-  const newDesign = useCallback(async () => {
-    const created = await createDesign()
-    await navigate({ to: '/design/$id', params: { id: created.id } })
-  }, [navigate])
 
   useEffect(() => {
     if (preview || !designId) return
@@ -302,7 +276,7 @@ export function CanvasApp({
   if (preview) {
     return (
       <div className="h-screen min-h-[42rem] w-full">
-        <CanvasEditor controller={previewValue} name="Loora Canvas" />
+        <CanvasEditor controller={previewValue} name="Sheet Canvas" />
       </div>
     )
   }
@@ -337,21 +311,19 @@ export function CanvasApp({
       <main className="grid h-full place-items-center bg-cx-canvas">
         <div className="flex flex-col items-center gap-5">
           <img
-            src="/logo-removebg-preview.png"
-            alt="Loora"
+            src="/app-icon.png"
+            alt="Sheet"
             width={48}
             height={48}
             className="size-12"
             draggable={false}
           />
-          <div
-            className="h-0.5 w-32 overflow-hidden rounded-full bg-foreground/10"
-            role="progressbar"
-            aria-valuetext={progress}
-            aria-busy="true"
-          >
-            <div className="cx-load-bar h-full w-2/5 rounded-full bg-foreground/70" />
-          </div>
+          <DotMatrixLoader
+            rows={3}
+            columns={5}
+            className="size-8 text-foreground"
+            aria-label={progress}
+          />
           <p className="text-xs text-muted-foreground">{progress}</p>
         </div>
       </main>
@@ -395,12 +367,6 @@ export function CanvasApp({
     setArchiveOpen(false)
     await navigate({ to: '/app' })
   }
-  const switchDesign = (id: string) => {
-    if (id === activeId) return
-    void controller.flush().then(() =>
-      navigate({ to: '/design/$id', params: { id } }),
-    )
-  }
   return (
     <div className="h-full min-h-0">
       <CanvasEditor
@@ -411,32 +377,6 @@ export function CanvasApp({
           activeBranch?.status === 'applied' ||
           activeBranch?.status === 'closed'
         }
-        topBar={({ openAssets, openHistory }) => (
-          <>
-            <CanvasDocSwitcher
-              documents={documents}
-              activeId={activeId}
-              onSwitch={switchDesign}
-              onNew={() => void newDesign()}
-              onAssets={openAssets}
-              onHistory={openHistory}
-              onRename={() => {
-                setRenameName(active?.name ?? '')
-                setRenameOpen(true)
-              }}
-              onArchive={() => setArchiveOpen(true)}
-            />
-            <span className="text-muted-foreground/50">/</span>
-            <CanvasBranches
-              designId={activeId}
-              activeDraftId={activeDraftId}
-              controller={controller}
-              branches={branches}
-              onBranchesChange={setBranches}
-              onSwitch={switchTarget}
-            />
-          </>
-        )}
         topBarEnd={
           <>
             <CanvasPresenceFacePile controller={controller} />

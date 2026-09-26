@@ -6,7 +6,7 @@ import {
   createTextNode,
   defaultLayout,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   CLIPBOARD_KIND,
   buildClipboardPayload,

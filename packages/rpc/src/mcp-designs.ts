@@ -8,7 +8,7 @@ import {
   lt,
   or,
 } from 'drizzle-orm'
-import { db } from '@loora/db'
+import { db } from '@sheet/db'
 import {
   asset,
   canvasTransaction as canvasTransactionLog,
@@ -16,27 +16,27 @@ import {
   designDraft,
   designVersion,
   user,
-} from '@loora/db/schema'
+} from '@sheet/db/schema'
 import {
   CanvasEngine,
   parseCanvasTransaction,
   withTransactionPreconditions,
   type CanvasTransaction,
-} from '@loora/canvas/engine'
+} from '@sheet/canvas/engine'
 import {
   CANVAS_SCHEMA_VERSION,
   createCanvasDocument,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   changedNodeIds,
   diffDocuments,
   mergeDocuments,
   type CanvasMergeConflict,
-} from '@loora/canvas/merge'
-import { publishBranchChanged, publishCanvasRealtimeEvent } from '@loora/db/canvas-realtime'
-import { canvasTransactionPruneBefore } from '@loora/db/canvas-transactions'
+} from '@sheet/canvas/merge'
+import { publishBranchChanged, publishCanvasRealtimeEvent } from '@sheet/db/canvas-realtime'
+import { canvasTransactionPruneBefore } from '@sheet/db/canvas-transactions'
 
 export const MAX_NAME_LENGTH = 200
 
@@ -94,7 +94,7 @@ export async function listDesigns(userId: string) {
 
 /**
  * A design reads as missing for two very different reasons: it was deleted, or
- * this connection is authorized as a different Loora account than the one that
+ * this connection is authorized as a different Sheet account than the one that
  * owns it — a second account, or a re-authorization, leaves every tool call
  * saying "not found" with nothing pointing at why. Name the account.
  */
@@ -108,7 +108,7 @@ async function accountLabel(userId: string) {
 }
 
 async function missingDesignMessage(userId: string, designId: string) {
-  return `Design "${designId}" not found for the connected Loora account (${await accountLabel(userId)}). It was deleted, or it belongs to another account.`
+  return `Design "${designId}" not found for the connected Sheet account (${await accountLabel(userId)}). It was deleted, or it belongs to another account.`
 }
 
 export async function getCanvasTarget(
@@ -142,7 +142,7 @@ export async function getCanvasTarget(
       .limit(1)
     if (!found) {
       throw new Error(
-        `Draft "${target.draftId}" not found in design "${target.designId}" for the connected Loora account (${await accountLabel(userId)}).`,
+        `Draft "${target.draftId}" not found in design "${target.designId}" for the connected Sheet account (${await accountLabel(userId)}).`,
       )
     }
     if (found.canvasVersion !== CANVAS_SCHEMA_VERSION || !found.document) {

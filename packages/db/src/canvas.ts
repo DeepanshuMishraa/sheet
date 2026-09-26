@@ -1,6 +1,6 @@
 // Legacy persisted canvas data. It remains readable only for rollback and
 // expiring-link compatibility. Writable editor code uses CanvasDocument from
-// @loora/canvas.
+// @sheet/canvas.
 export interface CanvasElement {
   id: string
   name: string

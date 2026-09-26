@@ -17,7 +17,7 @@ use axum::{
     },
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{any, post},
+    routing::{any, get, post},
     Json, Router,
 };
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -31,7 +31,7 @@ use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 use tokio::{fs, net::TcpListener, process::Child, sync::Mutex};
 use url::Url;
 
-const BRIDGE_COOKIE_PREFIX: &str = "loora_bridge";
+const BRIDGE_COOKIE_PREFIX: &str = "sheet_bridge";
 const BRIDGE_QUERY: &str = "bridge";
 const DEFAULT_MCP_PORT: u16 = 4100;
 
@@ -52,6 +52,17 @@ struct AppState {
     port: u16,
     bridge_token: String,
     sidecar: Arc<Mutex<Option<Child>>>,
+    profile: Arc<LocalProfile>,
+}
+
+struct LocalProfile {
+    first_name: String,
+    picture: Option<ProfilePicture>,
+}
+
+enum ProfilePicture {
+    Jpeg(Vec<u8>),
+    File(PathBuf),
 }
 
 #[derive(Deserialize)]
@@ -61,9 +72,9 @@ struct OpenRequest {
 
 impl Config {
     fn read(app: &tauri::AppHandle) -> Self {
-        let mcp_port = read_port("LOORA_MCP_PORT", DEFAULT_MCP_PORT);
-        let api_origin = read_origin("LOORA_API_ORIGIN", &format!("http://127.0.0.1:{mcp_port}"));
-        let dev_server = env::var("LOORA_DESKTOP_DEV_SERVER")
+        let mcp_port = read_port("SHEET_MCP_PORT", DEFAULT_MCP_PORT);
+        let api_origin = read_origin("SHEET_API_ORIGIN", &format!("http://127.0.0.1:{mcp_port}"));
+        let dev_server = env::var("SHEET_DESKTOP_DEV_SERVER")
             .ok()
             .filter(|value| !value.trim().is_empty())
             .and_then(|value| Url::parse(value.trim()).ok())
@@ -94,9 +105,9 @@ impl Config {
 }
 
 /// Where the SQLite file and the handoff secret live. The OS app-data
-/// directory, overridable with `LOORA_DATA_DIR` (tests, portable installs).
+/// directory, overridable with `SHEET_DATA_DIR` (tests, portable installs).
 fn read_data_dir() -> PathBuf {
-    if let Ok(value) = env::var("LOORA_DATA_DIR") {
+    if let Ok(value) = env::var("SHEET_DATA_DIR") {
         if !value.trim().is_empty() {
             return PathBuf::from(value.trim());
         }
@@ -104,9 +115,9 @@ fn read_data_dir() -> PathBuf {
     dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(if cfg!(target_os = "linux") {
-            "loora"
+            "sheet"
         } else {
-            "Loora"
+            "Sheet"
         })
 }
 
@@ -131,30 +142,119 @@ fn read_port(name: &str, fallback: u16) -> u16 {
 
 fn requested_port() -> u16 {
     if cfg!(debug_assertions) {
-        read_port("LOORA_DESKTOP_PORT", 4300)
+        read_port("SHEET_DESKTOP_PORT", 4300)
     } else {
-        read_port("LOORA_DESKTOP_PORT", 0)
+        read_port("SHEET_DESKTOP_PORT", 0)
+    }
+}
+
+fn command_bytes(program: &str, args: &[&str]) -> Option<Vec<u8>> {
+    let output = std::process::Command::new(program)
+        .args(args)
+        .output()
+        .ok()?;
+    output.status.success().then_some(output.stdout)
+}
+
+fn command_output(program: &str, args: &[&str]) -> Option<String> {
+    command_bytes(program, args)
+        .map(|bytes| String::from_utf8_lossy(&bytes).trim().to_owned())
+        .filter(|value| !value.is_empty())
+}
+
+fn first_name(full_name: &str) -> Option<String> {
+    full_name.split_whitespace().next().map(str::to_owned)
+}
+
+fn jpeg_photo(record: &[u8]) -> Option<Vec<u8>> {
+    let payload = record.splitn(2, |byte| *byte == b':').nth(1)?;
+    let hex = payload
+        .iter()
+        .copied()
+        .filter(u8::is_ascii_hexdigit)
+        .collect::<Vec<_>>();
+    if hex.len() % 2 != 0 {
+        return None;
+    }
+    let bytes = hex
+        .chunks_exact(2)
+        .map(|pair| {
+            let high = (pair[0] as char).to_digit(16)?;
+            let low = (pair[1] as char).to_digit(16)?;
+            Some(((high << 4) | low) as u8)
+        })
+        .collect::<Option<Vec<_>>>()?;
+    bytes.starts_with(&[0xff, 0xd8, 0xff]).then_some(bytes)
+}
+
+fn picture_path(record: &str) -> Option<PathBuf> {
+    record.lines().find_map(|line| {
+        let value = line
+            .trim()
+            .strip_prefix("Picture:")
+            .unwrap_or(line.trim())
+            .trim();
+        (!value.is_empty()).then(|| PathBuf::from(value))
+    })
+}
+
+impl LocalProfile {
+    fn read() -> Self {
+        let username = env::var("USER")
+            .or_else(|_| env::var("USERNAME"))
+            .unwrap_or_else(|_| "Local user".to_owned());
+        #[cfg(target_os = "macos")]
+        let full_name = command_output("id", &["-F", &username]);
+        #[cfg(not(target_os = "macos"))]
+        let full_name = None;
+        #[cfg(target_os = "macos")]
+        let picture = command_bytes(
+            "dscl",
+            &[".", "-read", &format!("/Users/{username}"), "JPEGPhoto"],
+        )
+        .and_then(|record| jpeg_photo(&record))
+        .map(ProfilePicture::Jpeg)
+        .or_else(|| {
+            command_output(
+                "dscl",
+                &[".", "-read", &format!("/Users/{username}"), "Picture"],
+            )
+            .and_then(|record| picture_path(&record))
+            .filter(|path| path.is_file())
+            .map(ProfilePicture::File)
+        });
+        #[cfg(not(target_os = "macos"))]
+        let picture = None;
+
+        Self {
+            first_name: full_name
+                .as_deref()
+                .and_then(first_name)
+                .or_else(|| first_name(&username))
+                .unwrap_or_else(|| "Local user".to_owned()),
+            picture,
+        }
     }
 }
 
 /// The compiled local server (`bun build --compile`), bundled beside the app.
-/// `LOORA_SERVER_BIN` overrides everything (development, custom layouts).
+/// `SHEET_SERVER_BIN` overrides everything (development, custom layouts).
 fn resolve_server_bin(app: &tauri::AppHandle) -> Option<PathBuf> {
-    if let Ok(value) = env::var("LOORA_SERVER_BIN") {
+    if let Ok(value) = env::var("SHEET_SERVER_BIN") {
         let path = PathBuf::from(value.trim());
         if path.is_file() {
             return Some(path);
         }
         eprintln!(
-            "[desktop] LOORA_SERVER_BIN is not a file: {}",
+            "[desktop] SHEET_SERVER_BIN is not a file: {}",
             path.display()
         );
     }
-    let triple = env::var("LOORA_SERVER_TRIPLE").ok();
+    let triple = env::var("SHEET_SERVER_TRIPLE").ok();
     let file_name = if cfg!(windows) {
-        "loora-server.exe"
+        "sheet-server.exe"
     } else {
-        "loora-server"
+        "sheet-server"
     };
     let mut candidates = Vec::new();
     if let Ok(exe) = env::current_exe() {
@@ -230,7 +330,7 @@ async fn spawn_sidecar(state: &AppState) {
         );
         return;
     };
-    let db_path = state.config.data_dir.join("loora.db");
+    let db_path = state.config.data_dir.join("sheet.db");
     if let Some(parent) = db_path.parent() {
         if fs::create_dir_all(parent).await.is_err() {
             eprintln!("[desktop] could not create data dir: {}", parent.display());
@@ -240,17 +340,17 @@ async fn spawn_sidecar(state: &AppState) {
     let handoff_secret = read_handoff_secret(&state.config.data_dir).await;
     let mut command = tokio::process::Command::new(&bin);
     command
-        .env("LOORA_SQLITE_PATH", &db_path)
-        .env("LOORA_MCP_PORT", state.config.mcp_port.to_string())
+        .env("SHEET_SQLITE_PATH", &db_path)
+        .env("SHEET_MCP_PORT", state.config.mcp_port.to_string())
         .env(
             "MCP_PUBLIC_URL",
             format!("http://127.0.0.1:{}", state.config.mcp_port),
         );
     if let Some(secret) = handoff_secret {
-        command.env("LOORA_HANDOFF_SECRET", secret);
+        command.env("SHEET_HANDOFF_SECRET", secret);
     }
     // A sidecar that cannot listen is worse than none: the proxy answers
-    // 502 and the window says Loora is unreachable instead of hanging.
+    // 502 and the window says Sheet is unreachable instead of hanging.
     command.stdout(std::process::Stdio::null());
     command.stderr(std::process::Stdio::inherit());
     match command.spawn() {
@@ -355,6 +455,48 @@ async fn require_bridge(State(state): State<AppState>, request: Request, next: N
     next.run(request).await
 }
 
+async fn desktop_profile(State(state): State<AppState>) -> Response {
+    Json(json!({
+        "firstName": &state.profile.first_name,
+        "imageUrl": state
+            .profile
+            .picture
+            .as_ref()
+            .map(|picture| match picture {
+                ProfilePicture::Jpeg(_) => "/desktop/profile-image?source=jpeg-photo",
+                ProfilePicture::File(_) => "/desktop/profile-image?source=picture",
+            }),
+    }))
+    .into_response()
+}
+
+async fn desktop_profile_image(State(state): State<AppState>) -> Response {
+    let Some(picture) = &state.profile.picture else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    match picture {
+        ProfilePicture::Jpeg(bytes) => (
+            [(CONTENT_TYPE, "image/jpeg"), (CACHE_CONTROL, "no-store")],
+            bytes.clone(),
+        )
+            .into_response(),
+        ProfilePicture::File(path) => match fs::read(path).await {
+            Ok(bytes) => (
+                [
+                    (
+                        CONTENT_TYPE,
+                        mime_guess::from_path(path).first_or_octet_stream().as_ref(),
+                    ),
+                    (CACHE_CONTROL, "no-store"),
+                ],
+                bytes,
+            )
+                .into_response(),
+            Err(_) => StatusCode::NOT_FOUND.into_response(),
+        },
+    }
+}
+
 async fn desktop_open(Json(payload): Json<OpenRequest>) -> Response {
     let Ok(url) = Url::parse(&payload.url) else {
         return (StatusCode::BAD_REQUEST, Json(json!({ "opened": false }))).into_response();
@@ -431,7 +573,7 @@ async fn proxy_api(State(state): State<AppState>, request: Request) -> Response 
         Ok(response) => response,
         Err(error) => {
             eprintln!("[desktop] proxy failed: {error}");
-            return (StatusCode::BAD_GATEWAY, "Loora is unreachable").into_response();
+            return (StatusCode::BAD_GATEWAY, "Sheet is unreachable").into_response();
         }
     };
 
@@ -567,6 +709,8 @@ async fn proxy_dev_server(state: &AppState, dev_server: &Url, request: Request) 
 
 fn router(state: AppState) -> Router {
     Router::new()
+        .route("/desktop/profile", get(desktop_profile))
+        .route("/desktop/profile-image", get(desktop_profile_image))
         .route("/desktop/open", post(desktop_open))
         .route("/api/{*path}", any(proxy_api))
         .fallback(serve_app)
@@ -603,6 +747,7 @@ fn main() {
                     port,
                     bridge_token: bridge_token.clone(),
                     sidecar: Arc::new(Mutex::new(None)),
+                    profile: Arc::new(LocalProfile::read()),
                 };
                 spawn_sidecar(&state).await;
                 handle.manage(state.clone());
@@ -617,11 +762,16 @@ fn main() {
                     "http://127.0.0.1:{port}/?{BRIDGE_QUERY}={bridge_token}"
                 ))
                 .map_err(|error| format!("could not build desktop URL: {error}"))?;
-                WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
-                    .title("Loora")
+                let window = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
+                    .title("Sheet")
                     .inner_size(1440.0, 900.0)
                     .min_inner_size(960.0, 640.0)
-                    .decorations(true)
+                    .decorations(true);
+                #[cfg(target_os = "macos")]
+                let window = window
+                    .title_bar_style(tauri::TitleBarStyle::Overlay)
+                    .hidden_title(true);
+                window
                     .build()
                     .map_err(|error| format!("could not create desktop window: {error}"))?;
                 Ok::<(), String>(())
@@ -629,7 +779,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while running Loora")
+        .expect("error while running Sheet")
         .run(|handle, event| {
             if let RunEvent::ExitRequested { .. } = event {
                 // Best effort: the OS reclaims the sidecar's port and
@@ -665,6 +815,10 @@ mod tests {
             port: 4300,
             bridge_token: "test-bridge-token".to_owned(),
             sidecar: Arc::new(Mutex::new(None)),
+            profile: Arc::new(LocalProfile {
+                first_name: "Local".to_owned(),
+                picture: None,
+            }),
         }
     }
 
@@ -692,7 +846,7 @@ mod tests {
                 Request::builder()
                     .uri("/desktop/open")
                     .header(HOST, "attacker.example:4300")
-                    .header(COOKIE, "loora_bridge_4300=test-bridge-token")
+                    .header(COOKIE, "sheet_bridge_4300=test-bridge-token")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -710,7 +864,7 @@ mod tests {
                     .uri("/desktop/open")
                     .header(HOST, "127.0.0.1:4300")
                     .header(ORIGIN, "https://attacker.example")
-                    .header(COOKIE, "loora_bridge_4300=test-bridge-token")
+                    .header(COOKIE, "sheet_bridge_4300=test-bridge-token")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -741,7 +895,7 @@ mod tests {
             .unwrap()
             .to_str()
             .unwrap();
-        assert!(cookie.starts_with("loora_bridge_4300=test-bridge-token;"));
+        assert!(cookie.starts_with("sheet_bridge_4300=test-bridge-token;"));
         assert!(cookie.contains("HttpOnly"));
         assert!(cookie.contains("SameSite=Strict"));
     }
@@ -754,7 +908,7 @@ mod tests {
                     .uri("/desktop/open")
                     .method(Method::POST)
                     .header(HOST, "127.0.0.1:4300")
-                    .header(COOKIE, "loora_bridge_4300=test-bridge-token")
+                    .header(COOKIE, "sheet_bridge_4300=test-bridge-token")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -766,6 +920,29 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_first_account_name() {
+        assert_eq!(first_name("Deepanshu Mishra").as_deref(), Some("Deepanshu"));
+        assert_eq!(first_name("  Deepanshu  ").as_deref(), Some("Deepanshu"));
+    }
+
+    #[test]
+    fn reads_the_macos_jpeg_photo_record() {
+        assert_eq!(
+            jpeg_photo(b"JPEGPhoto:\n ffd8 ffe0"),
+            Some(vec![0xff, 0xd8, 0xff, 0xe0]),
+        );
+        assert_eq!(jpeg_photo(b"JPEGPhoto:\n 00ff"), None);
+    }
+
+    #[test]
+    fn reads_the_macos_picture_record() {
+        assert_eq!(
+            picture_path("Picture:\n /Library/User Pictures/Animals/Eagle.heic"),
+            Some(PathBuf::from("/Library/User Pictures/Animals/Eagle.heic")),
+        );
+    }
+
+    #[test]
     fn hop_by_hop_headers_are_removed() {
         assert!(is_hop_by_hop(&CONNECTION));
         assert!(is_hop_by_hop(&HOST));
@@ -774,7 +951,7 @@ mod tests {
 
     #[test]
     fn invalid_origin_falls_back() {
-        let variable = "LOORA_DESKTOP_TEST_ORIGIN";
+        let variable = "SHEET_DESKTOP_TEST_ORIGIN";
         std::env::set_var(variable, "not a URL");
         assert_eq!(
             read_origin(variable, "http://127.0.0.1:4100").as_str(),
@@ -785,11 +962,11 @@ mod tests {
 
     #[test]
     fn invalid_port_falls_back() {
-        assert_eq!(read_port("LOORA_DESKTOP_TEST_PORT", 4100), 4100);
-        std::env::set_var("LOORA_DESKTOP_TEST_PORT", "99999");
-        assert_eq!(read_port("LOORA_DESKTOP_TEST_PORT", 4100), 4100);
-        std::env::set_var("LOORA_DESKTOP_TEST_PORT", "4123");
-        assert_eq!(read_port("LOORA_DESKTOP_TEST_PORT", 4123), 4123);
-        std::env::remove_var("LOORA_DESKTOP_TEST_PORT");
+        assert_eq!(read_port("SHEET_DESKTOP_TEST_PORT", 4100), 4100);
+        std::env::set_var("SHEET_DESKTOP_TEST_PORT", "99999");
+        assert_eq!(read_port("SHEET_DESKTOP_TEST_PORT", 4100), 4100);
+        std::env::set_var("SHEET_DESKTOP_TEST_PORT", "4123");
+        assert_eq!(read_port("SHEET_DESKTOP_TEST_PORT", 4123), 4123);
+        std::env::remove_var("SHEET_DESKTOP_TEST_PORT");
     }
 }

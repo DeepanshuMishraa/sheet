@@ -5,6 +5,7 @@ import '#app/platform'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AppLoading } from '@sheet/ui/app-loading'
 import { routeTree } from '#app/routeTree.gen'
 import '#app/styles.css'
 
@@ -12,6 +13,8 @@ const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
   scrollRestoration: true,
+  // Route components code-split; without this a chunk load is a blank frame.
+  defaultPendingComponent: () => <AppLoading />,
 })
 
 // No `Register` augmentation here. Every route this window has is declared

@@ -1,5 +1,5 @@
 {
-  "name": "@loora/desktop",
+  "name": "@sheet/desktop",
   "private": true,
   "type": "module",
   "imports": {
@@ -8,18 +8,18 @@
   "scripts": {
     "dev": "tauri dev",
     "build:app": "vite build",
-    "build:server": "mkdir -p src-tauri/binaries && bun build --compile ../mcp/src/local.ts --outfile src-tauri/binaries/loora-server",
+    "build:server": "mkdir -p src-tauri/binaries && bun build --compile ../mcp/src/local.ts --outfile src-tauri/binaries/sheet-server",
     "build": "tauri build",
     "check": "tsc --noEmit && cargo check --manifest-path src-tauri/Cargo.toml",
     "generate-routes": "tsr generate"
   },
   "dependencies": {
-    "@loora/canvas": "workspace:*",
-    "@loora/editor": "workspace:*",
-    "@loora/platform": "workspace:*",
-    "@loora/rpc": "workspace:*",
-    "@loora/shell": "workspace:*",
-    "@loora/ui": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/editor": "workspace:*",
+    "@sheet/platform": "workspace:*",
+    "@sheet/rpc": "workspace:*",
+    "@sheet/shell": "workspace:*",
+    "@sheet/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.100.0",
     "@tanstack/react-router": "latest",

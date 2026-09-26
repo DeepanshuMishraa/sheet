@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
-import { AppShell } from '@loora/shell/app-page-shell'
+import { AppShell } from '@sheet/shell/app-page-shell'
 
 export const Route = createFileRoute('/app')({ component: AppLayout })
 

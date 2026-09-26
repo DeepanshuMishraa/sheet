@@ -1,5 +1,5 @@
 {
-  "name": "@loora/platform",
+  "name": "@sheet/platform",
   "private": true,
   "type": "module",
   "exports": {

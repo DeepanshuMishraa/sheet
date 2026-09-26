@@ -2,13 +2,13 @@ import type {
   BuiltInShortcutId,
   KeyChord,
   ShortcutConfig,
-} from '@loora/db/shortcuts'
-import { EMPTY_SHORTCUT_CONFIG } from '@loora/db/shortcuts'
+} from '@sheet/db/shortcuts'
+import { EMPTY_SHORTCUT_CONFIG } from '@sheet/db/shortcuts'
 
 export type { BuiltInShortcutId, KeyChord, ShortcutConfig }
 export { EMPTY_SHORTCUT_CONFIG }
 
-export const SHORTCUT_STORAGE_KEY = 'loora:shortcuts'
+export const SHORTCUT_STORAGE_KEY = 'sheet:shortcuts'
 
 export type ShortcutGroupId = 'tools' | 'edit' | 'view' | 'arrange' | 'panels'
 

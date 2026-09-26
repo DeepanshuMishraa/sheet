@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import type { CanvasTransaction } from '@loora/canvas/engine'
+import type { CanvasTransaction } from '@sheet/canvas/engine'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
   createTextNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   applyAcknowledgedTransactions,
   parseCanvasRealtimeMessage,

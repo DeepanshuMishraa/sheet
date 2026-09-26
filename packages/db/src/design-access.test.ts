@@ -10,7 +10,7 @@ describe('design access roles', () => {
 
   it('resolves nothing for an unknown design', async () => {
     await expect(
-      resolveDesignAccess('missing', { id: 'local', email: 'local@loora.design' }),
+      resolveDesignAccess('missing', { id: 'local', email: 'local@sheet.design' }),
     ).resolves.toBeNull()
   })
 })

@@ -7,7 +7,7 @@ function from(values: Record<string, string>) {
 
 describe('MCP server config', () => {
   test('defaults the public url from the port', () => {
-    const config = from({ LOORA_MCP_PORT: '4100' })
+    const config = from({ SHEET_MCP_PORT: '4100' })
     expect(config.port).toBe(4100)
     expect(config.publicUrl).toBe('http://localhost:4100')
     expect(config.redisUrl).toBeNull()

@@ -12,10 +12,10 @@ import {
   type JsonValue,
 } from './tools'
 
-console.error('[loora-mcp] stdio ready as the local user')
+console.error('[sheet-mcp] stdio ready as the local user')
 
 const server = new Server(
-  { name: 'loora', version: '0.3.0' },
+  { name: 'sheet', version: '0.3.0' },
   { capabilities: { tools: { listChanged: true } } },
 )
 

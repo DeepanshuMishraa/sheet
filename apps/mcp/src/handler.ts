@@ -15,7 +15,7 @@ const PROTOCOL_VERSIONS = [
   '2025-03-26',
   '2025-06-18',
 ] as const
-const SERVER_NAME = 'loora'
+const SERVER_NAME = 'sheet'
 const SERVER_VERSION = '0.3.0'
 const MAX_BODY_BYTES = 32 * 1024 * 1024
 const CORS_MAX_AGE = '86400'
@@ -59,7 +59,7 @@ export async function handleRequest(request: Request, state: AppState) {
   const path = url.pathname.replace(/\/+$/, '') || '/'
   if (request.method === 'GET' && (path === '/' || path === '/health')) {
     return cors(json(200, {
-      name: 'loora-mcp',
+      name: 'sheet-mcp',
       endpoint: `${state.config.publicUrl}/mcp`,
     }))
   }
@@ -220,7 +220,7 @@ async function callMethod(
       const text =
         error instanceof DirectMcpError
           ? error.message
-          : "Loora's MCP execution service is temporarily unavailable."
+          : "Sheet's MCP execution service is temporarily unavailable."
       return {
         content: [{ type: 'text', text }],
         isError: true,
@@ -244,7 +244,7 @@ function hostAllowed(request: Request, publicUrl: string) {
   }
   const host = requestHost(request.headers.get('host'))
   if (!host) return false
-  if (host.startsWith('loora-mcp.') && host.endsWith('.workers.dev')) return true
+  if (host.startsWith('sheet-mcp.') && host.endsWith('.workers.dev')) return true
   return allowed.has(host)
 }
 

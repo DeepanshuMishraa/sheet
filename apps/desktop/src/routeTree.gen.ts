@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAppearanceRouteImport } from './routes/app.appearance'
+import { Route as AppFilesRouteImport } from './routes/app.files'
 import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
+import { Route as AppNewRouteImport } from './routes/app.new'
 import { Route as DesignIdRouteImport } from './routes/design.$id'
 import { Route as DesignIdBBranchIdRouteImport } from './routes/design.$id_.b.$branchId'
 
@@ -37,9 +39,19 @@ const AppAppearanceRoute = AppAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFilesRoute = AppFilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNewRoute = AppNewRouteImport.update({
+  id: '/new',
+  path: '/new',
   getParentRoute: () => AppRoute,
 } as any)
 const DesignIdRoute = DesignIdRouteImport.update({
@@ -57,7 +69,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/appearance': typeof AppAppearanceRoute
+  '/app/files': typeof AppFilesRoute
   '/app/integrations': typeof AppIntegrationsRoute
+  '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app/': typeof AppIndexRoute
   '/design/$id/b/$branchId': typeof DesignIdBBranchIdRoute
@@ -65,7 +79,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/appearance': typeof AppAppearanceRoute
+  '/app/files': typeof AppFilesRoute
   '/app/integrations': typeof AppIntegrationsRoute
+  '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app': typeof AppIndexRoute
   '/design/$id/b/$branchId': typeof DesignIdBBranchIdRoute
@@ -75,7 +91,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/appearance': typeof AppAppearanceRoute
+  '/app/files': typeof AppFilesRoute
   '/app/integrations': typeof AppIntegrationsRoute
+  '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app/': typeof AppIndexRoute
   '/design/$id_/b/$branchId': typeof DesignIdBBranchIdRoute
@@ -86,7 +104,9 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/appearance'
+    | '/app/files'
     | '/app/integrations'
+    | '/app/new'
     | '/design/$id'
     | '/app/'
     | '/design/$id/b/$branchId'
@@ -94,7 +114,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app/appearance'
+    | '/app/files'
     | '/app/integrations'
+    | '/app/new'
     | '/design/$id'
     | '/app'
     | '/design/$id/b/$branchId'
@@ -103,7 +125,9 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/appearance'
+    | '/app/files'
     | '/app/integrations'
+    | '/app/new'
     | '/design/$id'
     | '/app/'
     | '/design/$id_/b/$branchId'
@@ -146,11 +170,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAppearanceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/files': {
+      id: '/app/files'
+      path: '/files'
+      fullPath: '/app/files'
+      preLoaderRoute: typeof AppFilesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/integrations': {
       id: '/app/integrations'
       path: '/integrations'
       fullPath: '/app/integrations'
       preLoaderRoute: typeof AppIntegrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/new': {
+      id: '/app/new'
+      path: '/new'
+      fullPath: '/app/new'
+      preLoaderRoute: typeof AppNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/design/$id': {
@@ -172,13 +210,17 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAppearanceRoute: typeof AppAppearanceRoute
+  AppFilesRoute: typeof AppFilesRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
+  AppNewRoute: typeof AppNewRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAppearanceRoute: AppAppearanceRoute,
+  AppFilesRoute: AppFilesRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
+  AppNewRoute: AppNewRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

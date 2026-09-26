@@ -1,18 +1,18 @@
 {
-  "name": "@loora/mcp",
+  "name": "@sheet/mcp",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "bun --env-file=../../.env run src/local.ts",
     "dev:stdio": "bun --env-file=../../.env run src/stdio.ts",
-    "build:server": "bun build --compile src/local.ts --outfile dist/loora-server",
+    "build:server": "bun build --compile src/local.ts --outfile dist/sheet-server",
     "test": "bun run --cwd ../.. test apps/mcp"
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
-    "@loora/canvas": "workspace:*",
-    "@loora/db": "workspace:*",
-    "@loora/rpc": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/db": "workspace:*",
+    "@sheet/rpc": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.21.0",
     "@orpc/server": "^1.14.8",
     "drizzle-orm": "catalog:"

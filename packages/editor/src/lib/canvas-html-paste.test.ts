@@ -6,7 +6,7 @@ import {
   createInstanceNode,
   createPageNode,
   defaultLayout,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { containingPageForRef, placeHtmlImport } from './canvas-html-paste'
 
 describe('HTML clipboard paste', () => {

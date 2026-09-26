@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { isDesktop } from '@loora/platform'
-import { cn } from '@loora/ui/utils'
+import { isDesktop } from '@sheet/platform'
+import { cn } from '@sheet/ui/utils'
 
 /**
  * The public status page. Instatus serves `summary.json` with
  * `access-control-allow-origin: *`, so the browser reads it directly — no
  * proxy route, and nothing to keep running when the app itself is down.
  */
-const STATUS_URL = 'https://loora.instatus.com'
+const STATUS_URL = 'https://sheet.instatus.com'
 const SUMMARY_URL = `${STATUS_URL}/summary.json`
 const REFRESH_MS = 60_000
 

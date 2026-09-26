@@ -86,7 +86,7 @@ export function canvasRealtimeChannel(
   target: CanvasRealtimeTarget,
 ) {
   return [
-    'loora',
+    'sheet',
     'canvas',
     encodeURIComponent(userId),
     encodeURIComponent(target.designId),

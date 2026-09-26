@@ -5,13 +5,13 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { ClipboardIcon, CodeXmlIcon } from '@loora/ui/icons'
+import { ClipboardIcon, CodeXmlIcon } from '@sheet/ui/icons'
 import {
   CheckIcon,
   DownloadIcon,
   EyeIcon,
   Link2Icon,
-} from '@loora/ui/icons'
+} from '@sheet/ui/icons'
 import {
   compileJsxComponent,
   compileStandaloneHtml,
@@ -19,7 +19,7 @@ import {
   prepareCanvasExport,
   serializeCanvasDocument,
   type CanvasExportOptions,
-} from '@loora/canvas/export'
+} from '@sheet/canvas/export'
 import {
   buildChildIndex,
   orderedChildren,
@@ -29,26 +29,26 @@ import {
   type NodeId,
   type NodeRef,
   type PageNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   useCanvasDocument,
   useCanvasDomRegistry,
   useCanvasSelection,
-} from '@loora/canvas/react'
+} from '@sheet/canvas/react'
 import { captureCanvasPng, captureNodePng } from '../lib/canvas-capture'
 import { copyText } from '../lib/copy-text'
-import { orpc } from '@loora/rpc/client'
-import { apiUrl } from '@loora/platform'
-import { Button } from '@loora/ui/button'
+import { orpc } from '@sheet/rpc/client'
+import { apiUrl } from '@sheet/platform'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogHeader,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Spinner } from '@loora/ui/spinner'
-import { Switch } from '@loora/ui/switch'
-import { cn } from '@loora/ui/utils'
+} from '@sheet/ui/dialog'
+import { Spinner } from '@sheet/ui/spinner'
+import { Switch } from '@sheet/ui/switch'
+import { cn } from '@sheet/ui/utils'
 import type { CanvasEditorController } from './editor'
 
 type ExportFormat =
@@ -113,7 +113,7 @@ export function safeExportName(name: string, extension: string) {
       .trim()
       .replace(/[^\p{L}\p{N}_-]+/gu, '-')
       .replace(/^-+|-+$/g, '')
-      .toLowerCase() || 'loora-design'
+      .toLowerCase() || 'sheet-design'
   return `${base}.${extension}`
 }
 
@@ -579,7 +579,7 @@ export function CanvasExport({
   }, [format, png, compiled])
 
   const handoffPrompt = handoff
-    ? `Fetch the Loora Canvas handoff from ${handoff.url}. Read the version 3 JSON document and assets. Recreate the selected UI faithfully using its normalized nodes, parentId/order hierarchy, structured layout and styles, responsive overrides, components, instances, tokens, typed local states, and declarative event interactions. Runtime state is ephemeral; CanvasDocument remains the authoring source of truth. Do not look for editable source strings.`
+    ? `Fetch the Sheet Canvas handoff from ${handoff.url}. Read the version 3 JSON document and assets. Recreate the selected UI faithfully using its normalized nodes, parentId/order hierarchy, structured layout and styles, responsive overrides, components, instances, tokens, typed local states, and declarative event interactions. Runtime state is ephemeral; CanvasDocument remains the authoring source of truth. Do not look for editable source strings.`
     : ''
 
   const createHandoff = async () => {

@@ -3,6 +3,28 @@
 version = 4
 
 [[package]]
+name = "Sheet"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "dirs",
+ "http-body-util",
+ "mime_guess",
+ "rand 0.9.5",
+ "reqwest 0.12.28",
+ "rustls",
+ "serde",
+ "serde_json",
+ "subtle",
+ "tauri",
+ "tauri-build",
+ "tokio",
+ "tower",
+ "url",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1783,28 +1805,6 @@ name = "log"
 version = "0.4.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
-
-[[package]]
-name = "loora-desktop"
-version = "0.1.0"
-dependencies = [
- "axum",
- "base64 0.22.1",
- "dirs",
- "http-body-util",
- "mime_guess",
- "rand 0.9.5",
- "reqwest 0.12.28",
- "rustls",
- "serde",
- "serde_json",
- "subtle",
- "tauri",
- "tauri-build",
- "tokio",
- "tower",
- "url",
-]
 
 [[package]]
 name = "lru-slab"

@@ -6,8 +6,8 @@ import {
   isCustomThemeId,
 } from './custom-themes'
 
-const STORAGE_KEY = 'loora:theme'
-const CUSTOM_STORAGE_KEY = 'loora:custom-themes'
+const STORAGE_KEY = 'sheet:theme'
+const CUSTOM_STORAGE_KEY = 'sheet:custom-themes'
 const SYSTEM_DARK_QUERY = '(prefers-color-scheme: dark)'
 
 /**

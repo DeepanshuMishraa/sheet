@@ -20,14 +20,14 @@ import {
   type NodeRef,
   resolveNodeRef,
   type VectorNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   useCanvasDocument,
   useCanvasReadOnly,
   useCanvasSelection,
   useCanvasTransaction,
-} from '@loora/canvas/react'
-import type { CanvasOperation } from '@loora/canvas/engine'
+} from '@sheet/canvas/react'
+import type { CanvasOperation } from '@sheet/canvas/engine'
 import {
   AlignCenterHorizontalIcon,
   AlignCenterVerticalIcon,
@@ -41,16 +41,16 @@ import {
   StretchHorizontalIcon,
   Trash2Icon,
   Unlink2Icon,
-} from '@loora/ui/icons'
+} from '@sheet/ui/icons'
 import {
   AlignCenterIcon,
   AlignLeftIcon,
   AlignRightIcon,
   Link2Icon,
-} from '@loora/ui/icons'
-import { PanelEmpty, PanelShell } from '@loora/ui/panel-shell'
-import { Button } from '@loora/ui/button'
-import { cn } from '@loora/ui/utils'
+} from '@sheet/ui/icons'
+import { PanelEmpty, PanelShell } from '@sheet/ui/panel-shell'
+import { Button } from '@sheet/ui/button'
+import { cn } from '@sheet/ui/utils'
 import { NumberCell, Pair, Section, SelectCell } from './inspector-controls'
 import { MotionSection } from './motion-section'
 
@@ -697,8 +697,91 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
           </Section>
         ) : null}
 
-        <Section title="Layout">
-          <Pair>
+        <Section
+          title="Layout"
+          action={
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                aria-label="Align left"
+                title="Align left"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { align: 'start' } })
+                }}
+              >
+                <AlignLeftIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Align horizontal centers"
+                title="Align horizontal centers"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { align: 'center' } })
+                }}
+              >
+                <AlignCenterHorizontalIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Align right"
+                title="Align right"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { align: 'end' } })
+                }}
+              >
+                <AlignRightIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Align top"
+                title="Align top"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { justify: 'start' } })
+                }}
+              >
+                <AlignStartVerticalIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Align vertical centers"
+                title="Align vertical centers"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { justify: 'center' } })
+                }}
+              >
+                <AlignCenterVerticalIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Align bottom"
+                title="Align bottom"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { justify: 'end' } })
+                }}
+              >
+                <AlignEndVerticalIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Distribute horizontal spacing"
+                title="Distribute horizontal spacing"
+                className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                onClick={() => {
+                  if (mode === 'flex') commit({ layout: { justify: 'space-between' } })
+                }}
+              >
+                <AlignHorizontalSpaceBetweenIcon className="size-3.5" />
+              </button>
+            </div>
+          }
+        >
+          <div className="grid grid-cols-3 gap-1">
             <NumberCell
               label="X"
               value={layout((item) => item.layout.x)}
@@ -709,6 +792,14 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
               value={layout((item) => item.layout.y)}
               onCommit={(y) => commit({ layout: { y } })}
             />
+            <NumberCell
+              label="Rot"
+              suffix="°"
+              value={layout((item) => item.rotation)}
+              onCommit={(rotation) => commit({ rotation })}
+            />
+          </div>
+          <Pair>
             <LengthCell
               label="W"
               value={layout((item) => inspectedLength(item, 'width'))}
@@ -738,24 +829,16 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
               }
             />
           </Pair>
-          <Pair>
-            <SelectCell
-              label="Pos"
-              value={layout((item) => item.layout.position)}
-              onChange={(value) =>
-                commit({ layout: { position: value as 'absolute' | 'flow' } })
-              }
-            >
-              <option value="absolute">Absolute</option>
-              <option value="flow">Flow</option>
-            </SelectCell>
-            <NumberCell
-              label="Rot"
-              suffix="°"
-              value={layout((item) => item.rotation)}
-              onCommit={(rotation) => commit({ rotation })}
-            />
-          </Pair>
+          <SelectCell
+            label="Pos"
+            value={layout((item) => item.layout.position)}
+            onChange={(value) =>
+              commit({ layout: { position: value as 'absolute' | 'flow' } })
+            }
+          >
+            <option value="absolute">Absolute</option>
+            <option value="flow">Flow</option>
+          </SelectCell>
           {arrangesChildren ? (
             <>
               <Pair>
@@ -796,7 +879,7 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
           ) : null}
         </Section>
 
-        <Section title="Stack">
+        <Section title="Flex">
           <ChoiceCell
             label="Mode"
             value={mode}
@@ -830,15 +913,118 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
 
           {mode === 'flex' ? (
             <>
-              <ChoiceCell
-                label="Flow"
-                value={direction}
-                choices={[
-                  { value: 'row', label: 'Row' },
-                  { value: 'column', label: 'Column' },
-                ]}
-                onChange={(value) => commit({ layout: { direction: value } })}
-              />
+              {/* 3x3 interactive alignment matrix + Direction & Gap */}
+              <div className="flex items-center gap-3 py-1">
+                <div
+                  role="group"
+                  aria-label="Alignment grid"
+                  className="grid size-14 grid-cols-3 grid-rows-3 gap-1 rounded-md border border-line bg-surface-2 p-1.5 shrink-0"
+                >
+                  {[
+                    { r: 0, c: 0, label: 'Top left' },
+                    { r: 0, c: 1, label: 'Top center' },
+                    { r: 0, c: 2, label: 'Top right' },
+                    { r: 1, c: 0, label: 'Center left' },
+                    { r: 1, c: 1, label: 'Center' },
+                    { r: 1, c: 2, label: 'Center right' },
+                    { r: 2, c: 0, label: 'Bottom left' },
+                    { r: 2, c: 1, label: 'Bottom center' },
+                    { r: 2, c: 2, label: 'Bottom right' },
+                  ].map(({ r, c, label }) => {
+                    const currentJustify = layout((item) => item.layout.justify ?? 'start')
+                    const currentAlign = layout((item) => item.layout.align ?? 'start')
+                    const colAlign = c === 0 ? 'start' : c === 1 ? 'center' : 'end'
+                    const rowAlign = r === 0 ? 'start' : r === 1 ? 'center' : 'end'
+                    const targetJustify = direction === 'column' ? rowAlign : colAlign
+                    const targetAlign = direction === 'column' ? colAlign : rowAlign
+                    const active = currentJustify === targetJustify && currentAlign === targetAlign
+
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        aria-label={label}
+                        title={label}
+                        className={cn(
+                          'flex items-center justify-center rounded-xs transition-colors',
+                          active
+                            ? 'bg-[#0d99ff]'
+                            : 'bg-muted-foreground/25 hover:bg-muted-foreground/50',
+                        )}
+                        onClick={() =>
+                          commit({
+                            layout: {
+                              justify: targetJustify,
+                              align: targetAlign,
+                            },
+                          })
+                        }
+                      />
+                    )
+                  })}
+                </div>
+
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Column direction"
+                      title="Column"
+                      className={cn(
+                        'flex size-7 items-center justify-center rounded-md border text-xs transition-colors',
+                        direction === 'column'
+                          ? 'border-ring bg-surface-2 font-medium text-foreground'
+                          : 'border-line text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+                      )}
+                      onClick={() => commit({ layout: { direction: 'column' } })}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Row direction"
+                      title="Row"
+                      className={cn(
+                        'flex size-7 items-center justify-center rounded-md border text-xs transition-colors',
+                        direction === 'row'
+                          ? 'border-ring bg-surface-2 font-medium text-foreground'
+                          : 'border-line text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+                      )}
+                      onClick={() => commit({ layout: { direction: 'row' } })}
+                    >
+                      →
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Wrap toggle"
+                      title="Wrap"
+                      className={cn(
+                        'flex size-7 items-center justify-center rounded-md border text-xs transition-colors',
+                        layout((item) => item.layout.wrap)
+                          ? 'border-ring bg-surface-2 font-medium text-foreground'
+                          : 'border-line text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+                      )}
+                      onClick={() =>
+                        commit({
+                          layout: {
+                            wrap: !layout((item) => item.layout.wrap),
+                          },
+                        })
+                      }
+                    >
+                      ↩
+                    </button>
+                  </div>
+                  <NumberCell
+                    label="▯ Gap"
+                    min={0}
+                    value={layout((item) => item.layout.gap ?? 0)}
+                    onCommit={(gap) => commit({ layout: { gap } })}
+                  />
+                </div>
+              </div>
+
+              {/* Accessible segmented selectors */}
               <ChoiceCell
                 label="Align"
                 value={layout((item) => item.layout.align ?? 'stretch')}
@@ -882,7 +1068,7 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
             </>
           ) : null}
 
-          {mode === 'flex' || mode === 'grid' ? (
+          {mode === 'grid' ? (
             <Pair>
               <NumberCell
                 label="Gap"
@@ -890,28 +1076,15 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
                 value={layout((item) => item.layout.gap ?? 0)}
                 onCommit={(gap) => commit({ layout: { gap } })}
               />
-              {mode === 'grid' ? (
-                <NumberCell
-                  label="Cols"
-                  min={1}
-                  max={24}
-                  value={layout((item) => item.layout.columns ?? 1)}
-                  onCommit={(columns) =>
-                    commit({ layout: { columns: Math.round(columns) } })
-                  }
-                />
-              ) : (
-                <SelectCell
-                  label="Wrap"
-                  value={layout((item) => (item.layout.wrap ? 'wrap' : 'nowrap'))}
-                  onChange={(value) =>
-                    commit({ layout: { wrap: value === 'wrap' } })
-                  }
-                >
-                  <option value="nowrap">No</option>
-                  <option value="wrap">Yes</option>
-                </SelectCell>
-              )}
+              <NumberCell
+                label="Cols"
+                min={1}
+                max={24}
+                value={layout((item) => item.layout.columns ?? 1)}
+                onCommit={(columns) =>
+                  commit({ layout: { columns: Math.round(columns) } })
+                }
+              />
             </Pair>
           ) : null}
 
@@ -939,6 +1112,39 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
             >
               {linkPadding ? <Link2Icon /> : <Unlink2Icon />}
             </Button>
+          </div>
+
+          <div className="flex flex-col gap-1 pt-1">
+            <label className="flex items-center gap-2 px-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={layout((item) => item.layout.position) === 'absolute'}
+                onChange={(event) =>
+                  commit({
+                    layout: {
+                      position: event.target.checked ? 'absolute' : 'flow',
+                    },
+                  })
+                }
+                className="rounded border-line"
+              />
+              <span>Absolute position</span>
+            </label>
+            <label className="flex items-center gap-2 px-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={layout((item) => item.style.overflow) === 'hidden'}
+                onChange={(event) =>
+                  commit({
+                    style: {
+                      overflow: event.target.checked ? 'hidden' : 'visible',
+                    },
+                  })
+                }
+                className="rounded border-line"
+              />
+              <span>Clip content <kbd className="text-[10px] text-muted-foreground/60">⌥C</kbd></span>
+            </label>
           </div>
         </Section>
 
@@ -975,7 +1181,81 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
           </Section>
         ) : null}
 
-        <Section title="Appearance">
+        <Section title="Radius">
+          <Pair>
+            <NumberCell
+              label="Radius"
+              min={0}
+              value={perCorner ? null : radius}
+              onCommit={(value) => commit({ style: { radius: value } })}
+            />
+            <Button
+              size="xs"
+              variant="outline"
+              className="h-7 w-full text-xs font-normal"
+              onClick={() => {
+                if (perCorner) {
+                  commit({ style: { radius: radius ?? 0 } })
+                } else {
+                  const r = radius ?? 0
+                  commit({ style: { radius: [r, r, r, r] } })
+                }
+              }}
+            >
+              {perCorner ? 'Unified' : 'Corners'}
+            </Button>
+          </Pair>
+          {perCorner && Array.isArray(node.style.radius) ? (
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              {node.style.radius.map((corner, index) => (
+                <NumberCell
+                  key={index}
+                  label={['TL', 'TR', 'BR', 'BL'][index]!}
+                  min={0}
+                  value={corner}
+                  onCommit={(value) => {
+                    const next = [...(node.style.radius as [number, number, number, number])]
+                    next[index] = value
+                    commit({
+                      style: { radius: next as [number, number, number, number] },
+                    })
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
+        </Section>
+
+        <Section title="Blending">
+          <Pair>
+            <NumberCell
+              label="Opacity"
+              min={0}
+              max={100}
+              step={1}
+              suffix="%"
+              value={(() => {
+                const value = layout((item) => item.style.opacity)
+                return value === null ? null : Math.round(value * 100)
+              })()}
+              onCommit={(opacity) =>
+                commit({ style: { opacity: Math.min(1, Math.max(0, opacity / 100)) } })
+              }
+            />
+            <SelectCell
+              label="Blend"
+              value="normal"
+              onChange={() => {}}
+            >
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+            </SelectCell>
+          </Pair>
+        </Section>
+
+        <Section title="Fill">
           {gradient ? (
             <>
               <div className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
@@ -1067,60 +1347,6 @@ export function CanvasPropertiesPanel({ onClose }: { onClose?: () => void }) {
               </Button>
             </div>
           )}
-
-          <Pair>
-            <NumberCell
-              label="Opacity"
-              min={0}
-              max={100}
-              step={1}
-              suffix="%"
-              value={(() => {
-                const value = layout((item) => item.style.opacity)
-                return value === null ? null : Math.round(value * 100)
-              })()}
-              onCommit={(opacity) =>
-                commit({ style: { opacity: Math.min(1, Math.max(0, opacity / 100)) } })
-              }
-            />
-            <NumberCell
-              label="Radius"
-              min={0}
-              value={perCorner ? null : radius}
-              onCommit={(value) => commit({ style: { radius: value } })}
-            />
-          </Pair>
-          {perCorner && Array.isArray(node.style.radius) ? (
-            <div className="grid grid-cols-4 gap-1">
-              {node.style.radius.map((corner, index) => (
-                <NumberCell
-                  key={index}
-                  label={['TL', 'TR', 'BR', 'BL'][index]!}
-                  min={0}
-                  value={corner}
-                  onCommit={(value) => {
-                    const next = [...(node.style.radius as [number, number, number, number])]
-                    next[index] = value
-                    commit({
-                      style: { radius: next as [number, number, number, number] },
-                    })
-                  }}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <SelectCell
-            label="Clip"
-            value={layout((item) => item.style.overflow)}
-            onChange={(value) =>
-              commit({ style: { overflow: value as CanvasStyle['overflow'] } })
-            }
-          >
-            <option value="visible">Visible</option>
-            <option value="hidden">Hidden</option>
-            <option value="auto">Scroll</option>
-          </SelectCell>
         </Section>
 
         <Section title="Stroke" defaultOpen={false}>

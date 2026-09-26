@@ -1,14 +1,14 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { renderElementToPng } from '@loora/canvas/export'
-import { CanvasNodeRenderer, CanvasProvider } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { renderElementToPng } from '@sheet/canvas/export'
+import { CanvasNodeRenderer, CanvasProvider } from '@sheet/canvas/react'
 import {
   type CanvasDocument,
   type NodeRef,
   type PageNode,
-} from '@loora/canvas/model'
-import type { CanvasDomRegistry } from '@loora/canvas/react'
+} from '@sheet/canvas/model'
+import type { CanvasDomRegistry } from '@sheet/canvas/react'
 
 const nextFrame = () =>
   new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -82,7 +82,7 @@ export async function renderPagePng(
     await nextFrame()
     await globalThis.document.fonts?.ready
     const rendered = host.querySelector<HTMLElement>(
-      `[data-loora-node="${CSS.escape(pageId)}"][data-loora-instance-path=""]`,
+      `[data-sheet-node="${CSS.escape(pageId)}"][data-sheet-instance-path=""]`,
     )
     if (!rendered) throw new Error('Responsive Page preview did not render')
     const outputHeight = Math.max(

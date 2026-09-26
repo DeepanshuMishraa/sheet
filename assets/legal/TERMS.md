@@ -4,17 +4,17 @@ Effective date: 30 July 2026
 
 Last updated: 30 July 2026
 
-These Terms of Service ("Terms") govern your access to and use of Loora, available at [https://loora.design](https://loora.design) and related services such as the remote MCP endpoint at [https://mcp.loora.design](https://mcp.loora.design) (together, the "Service"), operated by Lasse Vestergaard ("we", "us", or "our").
+These Terms of Service ("Terms") govern your access to and use of Sheet, available at [https://sheet.design](https://sheet.design) and related services such as the remote MCP endpoint at [https://mcp.sheet.design](https://mcp.sheet.design) (together, the "Service"), operated by Lasse Vestergaard ("we", "us", or "our").
 
 This document is a professional draft for owner and counsel review. It is not legal advice.
 
 ## 1. The Service
 
-Loora is a canvas-based design tool. You can create and arrange structured UI on an infinite canvas, save designs with version history, work on branches/drafts, upload assets, export designs (for example HTML/CSS, React/TSX, JSON, or PNG), create time-limited handoff links, and optionally connect integrations (for example GitHub).
+Sheet is a canvas-based design tool. You can create and arrange structured UI on an infinite canvas, save designs with version history, work on branches/drafts, upload assets, export designs (for example HTML/CSS, React/TSX, JSON, or PNG), create time-limited handoff links, and optionally connect integrations (for example GitHub).
 
-A remote MCP server may expose Loora canvas capabilities to compatible AI clients (for example Claude or Cursor) when you authorize them. There is no requirement to use MCP; the editor works on its own.
+A remote MCP server may expose Sheet canvas capabilities to compatible AI clients (for example Claude or Cursor) when you authorize them. There is no requirement to use MCP; the editor works on its own.
 
-Features, plans, limits, and integrations may change over time. Some features may require preview access, an active plan, or a connected third-party account. Current plan details are described at [https://loora.design/pricing](https://loora.design/pricing) and in the product billing UI.
+Features, plans, limits, and integrations may change over time. Some features may require preview access, an active plan, or a connected third-party account. Current plan details are described at [https://sheet.design/pricing](https://sheet.design/pricing) and in the product billing UI.
 
 ## 2. Eligibility And Authority
 
@@ -30,7 +30,7 @@ You agree to provide accurate account information, keep your credentials secure,
 
 Access may be gated by preview access approval, acceptance of these Terms and the Privacy Policy, and/or an active plan, as configured for the Service. We may suspend or terminate accounts that violate these Terms, create risk, or remain unpaid where a paid plan is required.
 
-You can delete your account from Loora settings. Deletion removes your production account data from the Service as described in our Privacy Policy, subject to records we must retain for legal or billing reasons.
+You can delete your account from Sheet settings. Deletion removes your production account data from the Service as described in our Privacy Policy, subject to records we must retain for legal or billing reasons.
 
 ## 4. Acceptable Use
 
@@ -63,14 +63,14 @@ Exports are one-way. Exported code or assets are not automatically re-imported a
 
 ### Plans
 
-Loora currently offers:
+Sheet currently offers:
 
-- **Free** — $0 per month, with plan limits described at [https://loora.design/pricing](https://loora.design/pricing) (for example design file count, asset storage, weekly MCP call limits, and version history depth).
+- **Free** — $0 per month, with plan limits described at [https://sheet.design/pricing](https://sheet.design/pricing) (for example design file count, asset storage, weekly MCP call limits, and version history depth).
 - **Pro** — currently $20 per month, or $200 per year (two months free relative to the monthly rate), with higher or unlimited limits and additional capabilities as described on the pricing page and in the product.
 
 A legacy **Studio** plan may still appear for existing subscribers and is treated as a legacy entitlement; it is not the primary offering for new customers.
 
-Plan details, limits, and pricing are billed in USD (or as shown at checkout), may change from time to time, and control access to capacity (files, storage, history, branches, MCP calls, and any agent-related or image features enabled on that plan). Loora does not sell prepaid AI credits as a product path.
+Plan details, limits, and pricing are billed in USD (or as shown at checkout), may change from time to time, and control access to capacity (files, storage, history, branches, MCP calls, and any agent-related or image features enabled on that plan). Sheet does not sell prepaid AI credits as a product path.
 
 ### Trials
 
@@ -78,7 +78,7 @@ We may offer a free trial for Pro from time to time. If a trial is available, it
 
 ### Billing and cancellation
 
-Paid subscriptions renew for the selected period (monthly or yearly) unless canceled. You can manage, change, or cancel your subscription from Billing in Loora settings (or the Polar customer portal where linked). Cancellation takes effect according to the billing provider's and portal's rules (typically at the end of the then-current period when cancel-at-period-end is selected).
+Paid subscriptions renew for the selected period (monthly or yearly) unless canceled. You can manage, change, or cancel your subscription from Billing in Sheet settings (or the Polar customer portal where linked). Cancellation takes effect according to the billing provider's and portal's rules (typically at the end of the then-current period when cancel-at-period-end is selected).
 
 Payments are processed by our billing provider, **Polar** (Polar Software, Inc.), which acts as merchant of record for applicable transactions. Taxes (including VAT where applicable), invoices, payment methods, and customer portal features are handled through Polar and its payment partners (including Stripe) where applicable. Failed payments may result in loss of paid access until resolved.
 
@@ -112,13 +112,13 @@ Third-party services are governed by their own terms and privacy policies. We ar
 
 We aim to keep the Service available and useful, but we do not guarantee uninterrupted or error-free operation, specific uptime, or particular support response times. Features may be added, changed, or discontinued.
 
-Support is available at [support@loora.design](mailto:support@loora.design). We will use reasonable efforts to respond, without guaranteeing response times.
+Support is available at [support@sheet.design](mailto:support@sheet.design). We will use reasonable efforts to respond, without guaranteeing response times.
 
 ## 9. Intellectual Property
 
 The Service—including software, branding, documentation, and UI not comprising your User Content—is owned by us or our licensors. These Terms do not transfer ownership of the Service to you.
 
-The Loora source code is licensed under the GNU Affero General Public License v3.0 or later (see the project [LICENSE](../../LICENSE)). Third-party open-source components are licensed under their respective licenses.
+The Sheet source code is licensed under the GNU Affero General Public License v3.0 or later (see the project [LICENSE](../../LICENSE)). Third-party open-source components are licensed under their respective licenses.
 
 If you provide feedback or suggestions about the Service, you grant us a perpetual, royalty-free license to use that feedback to improve the Service without obligation to you.
 
@@ -166,4 +166,4 @@ We may update these Terms from time to time. We will post the updated Terms with
 
 ## 17. Contact
 
-Questions about these Terms: [support@loora.design](mailto:support@loora.design)
+Questions about these Terms: [support@sheet.design](mailto:support@sheet.design)

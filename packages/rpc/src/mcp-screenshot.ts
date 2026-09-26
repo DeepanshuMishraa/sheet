@@ -5,17 +5,17 @@ import {
   type Browser,
   type ElementHandle,
 } from 'playwright-core'
-import { db } from '@loora/db'
-import { asset } from '@loora/db/schema'
-import { compileStandaloneHtml } from '@loora/canvas/export'
+import { db } from '@sheet/db'
+import { asset } from '@sheet/db/schema'
+import { compileStandaloneHtml } from '@sheet/canvas/export'
 import {
   orderedChildren,
   type CanvasDocument,
   type NodeId,
   type NodeRef,
-} from '@loora/canvas/model'
-import { readCanvasNodeRef } from '@loora/agent/canvas-tools'
-import { s3 } from '@loora/rpc/storage'
+} from '@sheet/canvas/model'
+import { readCanvasNodeRef } from '@sheet/agent/canvas-tools'
+import { s3 } from '@sheet/rpc/storage'
 import { assetIdFromSrc } from './asset-url'
 import { BoundedConcurrencyGate } from './mcp-concurrency'
 import { IdleResource } from './mcp-idle-resource'
@@ -145,7 +145,7 @@ async function prepareDocument(userId: string, source: CanvasDocument) {
     const id = assetIdFromSrc(image.src)
     const loaded = id ? assets.get(id) : null
     if (id && loaded) {
-      image.src = `https://assets.loora.invalid/${encodeURIComponent(id)}`
+      image.src = `https://assets.sheet.invalid/${encodeURIComponent(id)}`
       assetsByUrl.set(image.src, loaded)
       continue
     }
@@ -278,7 +278,7 @@ async function renderCanvasScreenshotWithBrowser(
       )
     })
 
-    const root = page.locator('[data-loora-export-root="true"]').first()
+    const root = page.locator('[data-sheet-export-root="true"]').first()
     await root.waitFor({ state: 'visible' })
     const handle = (
       target.targetNodeId === target.exportNodeId
@@ -286,8 +286,8 @@ async function renderCanvasScreenshotWithBrowser(
         : (
             await root.evaluateHandle(
               (element, nodeId) =>
-                [...element.querySelectorAll('[data-loora-node]')].find(
-                  (node) => node.getAttribute('data-loora-node') === nodeId,
+                [...element.querySelectorAll('[data-sheet-node]')].find(
+                  (node) => node.getAttribute('data-sheet-node') === nodeId,
                 ) ?? null,
               target.targetNodeId,
             )

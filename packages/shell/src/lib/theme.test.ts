@@ -13,8 +13,8 @@ import {
   THEME_INIT_SCRIPT,
 } from './theme'
 
-const STORAGE_KEY = 'loora:theme'
-const CUSTOM_STORAGE_KEY = 'loora:custom-themes'
+const STORAGE_KEY = 'sheet:theme'
+const CUSTOM_STORAGE_KEY = 'sheet:custom-themes'
 const originalMatchMedia = window.matchMedia
 
 function runInitScript() {

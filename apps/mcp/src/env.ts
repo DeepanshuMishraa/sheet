@@ -10,7 +10,7 @@ export type FetchImpl = (
 export type Env = {
   MCP_PUBLIC_URL: string
   PORT?: string
-  LOORA_MCP_PORT?: string
+  SHEET_MCP_PORT?: string
   REDIS_URL?: string
 }
 

@@ -1,20 +1,20 @@
-import { canvasId, type CanvasNode, type NodeRef } from '@loora/canvas/model'
-import type { CanvasOperation } from '@loora/canvas/engine'
+import { canvasId, type CanvasNode, type NodeRef } from '@sheet/canvas/model'
+import type { CanvasOperation } from '@sheet/canvas/engine'
 import {
   motionPreset,
   MOTION_PRESET_NAMES,
   type CanvasEasing,
   type CanvasNodeAnimation,
   type MotionPresetName,
-} from '@loora/canvas/motion'
+} from '@sheet/canvas/motion'
 import {
   hoverPreset,
   HOVER_PRESET_NAMES,
   type HoverPresetName,
-} from '@loora/canvas/motion-presets'
-import { useCanvasDocument, useCanvasTransaction } from '@loora/canvas/react'
-import { Trash2Icon } from '@loora/ui/icons'
-import { Button } from '@loora/ui/button'
+} from '@sheet/canvas/motion-presets'
+import { useCanvasDocument, useCanvasTransaction } from '@sheet/canvas/react'
+import { Trash2Icon } from '@sheet/ui/icons'
+import { Button } from '@sheet/ui/button'
 import { NumberCell, Pair, Section, SelectCell } from './inspector-controls'
 
 /**

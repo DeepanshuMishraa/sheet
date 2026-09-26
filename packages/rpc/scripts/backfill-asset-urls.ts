@@ -17,13 +17,13 @@
  * public to point at, so references to it are left alone.
  */
 import { and, eq, isNotNull } from 'drizzle-orm'
-import { db } from '@loora/db'
-import { asset, design, designDraft } from '@loora/db/schema'
+import { db } from '@sheet/db'
+import { asset, design, designDraft } from '@sheet/db/schema'
 import {
   CANVAS_SCHEMA_VERSION,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { ASSET_ROUTE_PREFIX, assetIdFromSrc } from '../src/asset-url'
 import { assetPublicUrl } from '../src/storage'
 

@@ -1,6 +1,6 @@
 import { useReducedMotion } from 'motion/react'
 import { motion } from 'motion/react'
-import { Button } from '@loora/ui/button'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogDescription,
@@ -9,10 +9,10 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
+} from '@sheet/ui/dialog'
 import { fadeUp, uiTransition } from '../lib/motion'
 
-export const WELCOME_STORAGE_KEY = 'loora:welcome-seen'
+export const WELCOME_STORAGE_KEY = 'sheet:welcome-seen'
 
 export function hasSeenWelcome(): boolean {
   if (typeof window === 'undefined') return true
@@ -36,7 +36,7 @@ const BEATS = [
   },
   {
     title: 'Connect your own agent',
-    body: 'Point Claude or Cursor at the Loora MCP server and it edits the same document you do.',
+    body: 'Point Claude or Cursor at the Sheet MCP server and it edits the same document you do.',
   },
   {
     title: 'Branch, merge, and ship',
@@ -141,7 +141,7 @@ export function WelcomeDialog({
 
         <DialogHeader className="gap-2.5 pt-4">
           <DialogTitle className="text-xl font-semibold tracking-tight">
-            loora<span className="text-cx-accent">.</span>
+            sheet<span className="text-cx-accent">.</span>
           </DialogTitle>
           <p className="text-sm font-medium leading-snug text-muted-foreground">
             The design harness.

@@ -5,7 +5,7 @@ import {
   createPageNode,
   createTextNode,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   dragRoots,
   dropPositionFor,

@@ -5,9 +5,9 @@ import {
   eq,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
-import { asset } from '@loora/db/schema'
-import { assetKey, assetUrl, s3 } from '@loora/rpc/storage'
+import { db } from '@sheet/db'
+import { asset } from '@sheet/db/schema'
+import { assetKey, assetUrl, s3 } from '@sheet/rpc/storage'
 import {
   localProcedure,
 } from './procedures'

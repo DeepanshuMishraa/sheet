@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Core capability for the Loora desktop window","local":true,"windows":["main"],"permissions":["core:default"]}}
+{"default":{"identifier":"default","description":"Core capability for the Sheet desktop window","local":true,"windows":["main"],"permissions":["core:default"]},"window-drag":{"identifier":"window-drag","description":"Allows the loopback-hosted Sheet interface to drag its desktop window","remote":{"urls":["http://127.0.0.1:*"]},"local":false,"windows":["main"],"permissions":["core:window:allow-start-dragging"]}}

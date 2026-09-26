@@ -8,7 +8,7 @@ import {
   UI_SCALE_INIT_SCRIPT,
 } from './ui-scale'
 
-const STORAGE_KEY = 'loora:ui-scale'
+const STORAGE_KEY = 'sheet:ui-scale'
 
 function runInitScript() {
   Function('localStorage', 'document', UI_SCALE_INIT_SCRIPT)(

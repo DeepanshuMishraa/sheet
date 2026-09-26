@@ -1,5 +1,5 @@
 {
-  "name": "@loora/shell",
+  "name": "@sheet/shell",
   "private": true,
   "type": "module",
   "exports": {
@@ -7,11 +7,12 @@
     "./*": "./src/components/*.tsx"
   },
   "dependencies": {
-    "@loora/canvas": "workspace:*",
-    "@loora/editor": "workspace:*",
-    "@loora/platform": "workspace:*",
-    "@loora/rpc": "workspace:*",
-    "@loora/ui": "workspace:*",
+    "@sheet/canvas": "workspace:*",
+    "@sheet/editor": "workspace:*",
+    "@sheet/platform": "workspace:*",
+    "@sheet/rpc": "workspace:*",
+    "@sheet/ui": "workspace:*",
+    "@tanstack/react-query": "^5.100.0",
     "@tanstack/react-router": "latest",
     "motion": "^12.42.2",
     "nuqs": "^2.9.1"

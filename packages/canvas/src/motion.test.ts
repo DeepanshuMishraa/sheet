@@ -65,10 +65,10 @@ describe('motion values', () => {
 
     const fade = motionPreset('fade-in-up')
     expect(keyframesCss(fade)).toBe(
-      '@keyframes loora-motion-fade-in-up{0%{opacity:0;transform:translate(0px,16px)}100%{opacity:1;transform:translate(0px,0px)}}',
+      '@keyframes sheet-motion-fade-in-up{0%{opacity:0;transform:translate(0px,16px)}100%{opacity:1;transform:translate(0px,0px)}}',
     )
     expect(animationCss(fade, { animationId: fade.id, trigger: 'load', delay: 120 })).toBe(
-      'loora-motion-fade-in-up 500ms ease-out 120ms 1 normal backwards',
+      'sheet-motion-fade-in-up 500ms ease-out 120ms 1 normal backwards',
     )
   })
 
@@ -179,11 +179,11 @@ describe('motion stylesheet', () => {
 
     expect(nodeMotionDeclarations(document, frame)).toEqual([
       'transition:all 180ms ease-out',
-      'animation:loora-motion-float 4000ms ease-in-out 0ms infinite normal none',
+      'animation:sheet-motion-float 4000ms ease-in-out 0ms infinite normal none',
     ])
 
     const sheet = motionStyleSheet(document, [frame], () => '.card')
-    expect(sheet).toContain('@keyframes loora-motion-float')
+    expect(sheet).toContain('@keyframes sheet-motion-float')
     expect(sheet).toContain('.card:hover{transform:scale(1.04)}')
     // Somebody who asked not to be moved is not moved.
     expect(sheet).toContain('@media (prefers-reduced-motion: reduce)')
@@ -197,7 +197,7 @@ describe('motion stylesheet', () => {
 
     expect(nodeMotionDeclarations(document, frame)).toEqual([])
     expect(motionStyleSheet(document, [frame], () => '.card')).toContain(
-      '.card:hover{animation:loora-motion-pulse',
+      '.card:hover{animation:sheet-motion-pulse',
     )
   })
 })
@@ -212,9 +212,9 @@ describe('exported motion', () => {
 
     const { css } = compileCanvas(document)
 
-    expect(css).toContain('@keyframes loora-motion-fade-in-up')
+    expect(css).toContain('@keyframes sheet-motion-fade-in-up')
     expect(css).toContain('transition:all 180ms ease-out')
-    expect(css).toContain('animation:loora-motion-fade-in-up 500ms ease-out 80ms 1 normal backwards')
+    expect(css).toContain('animation:sheet-motion-fade-in-up 500ms ease-out 80ms 1 normal backwards')
     expect(css).toContain(':hover{')
     expect(css).toContain('box-shadow:0px 8px 24px -4px rgba(0,0,0,0.18)')
     expect(css).toContain('@media (prefers-reduced-motion: reduce)')

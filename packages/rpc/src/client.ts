@@ -1,7 +1,7 @@
 import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import type { RouterClient } from '@orpc/server'
-import { apiUrl } from '@loora/platform'
+import { apiUrl } from '@sheet/platform'
 import type { appRouter } from './router.ts'
 
 /**
@@ -10,7 +10,7 @@ import type { appRouter } from './router.ts'
  *
  * The URL comes from the platform runtime: the web app calls its own origin,
  * and the desktop app calls the loopback server in its own process, which
- * proxies on to Loora with the session it holds.
+ * proxies on to Sheet with the session it holds.
  */
 const link = new RPCLink({
   url: () => apiUrl('/api/rpc'),

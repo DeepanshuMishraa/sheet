@@ -12,7 +12,7 @@ const create = vi.fn()
 const rename = vi.fn()
 const getPreferences = vi.fn()
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: {
     design: {
       list,
@@ -31,7 +31,7 @@ vi.doMock('@loora/rpc/client', () => ({
     },
   },
 }))
-vi.doMock('@loora/auth/client', () => ({
+vi.doMock('@sheet/auth/client', () => ({
   authClient: {
     useSession: () => ({ data: { user: { id: 'user-1', name: 'Lasse' } } }),
     signOut: vi.fn(),
@@ -92,8 +92,11 @@ function openMenu(name: string) {
   })
 }
 
+import { resetDashboardSearchQuery } from '../lib/dashboard-search'
+
 describe('DesignsDashboard', () => {
   beforeEach(() => {
+    resetDashboardSearchQuery()
     window.localStorage.clear()
     navigate.mockReset().mockResolvedValue(undefined)
     getPreferences.mockReset().mockResolvedValue({ shortcuts: null })
@@ -170,16 +173,15 @@ describe('DesignsDashboard', () => {
     expect(screen.queryByText('Loading your files…')).toBeNull()
   })
 
-  test('archives instead of deleting, and offers no delete from Recents', async () => {
+  test('confirms deletion and moves the file to the archive', async () => {
     render(<DesignsDashboard />)
     await screen.findByText('Ideal pine')
 
     openMenu('Actions for Ideal pine')
-    expect(await screen.findByRole('menuitem', { name: 'Archive' })).toBeTruthy()
-    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull()
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }))
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Archive' }))
+    expect(await screen.findByText('Delete “Ideal pine”?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() =>
       expect(archive).toHaveBeenCalledWith({ id: 'design-new' }),
     )
@@ -188,59 +190,26 @@ describe('DesignsDashboard', () => {
     expect(screen.getByText('Portfolio Design')).toBeTruthy()
   })
 
-  test('lists the archive on demand and restores a file back into Recents', async () => {
-    listArchived.mockResolvedValue([
-      {
-        id: 'design-gone',
-        name: 'Old landing',
-        revision: 2,
-        updatedAt: Date.now() - 72 * HOUR,
-        archivedAt: Date.now() - 2 * HOUR,
-      },
+  test('displays scratchpad with permanent draft subtitle', async () => {
+    list.mockResolvedValue([
+      { id: 'design-scratch', name: 'Scratchpad', revision: 1, updatedAt: Date.now() - HOUR },
     ])
     render(<DesignsDashboard />)
-    await screen.findByText('Ideal pine')
-    // The archive is only read when somebody asks for it.
-    expect(listArchived).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }))
-
-    expect(await screen.findByText('Old landing')).toBeTruthy()
-    expect(screen.getByText('Archived 2 hours ago')).toBeTruthy()
-    expect(screen.queryByText('Ideal pine')).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: /Restore/ }))
-    await waitFor(() =>
-      expect(restore).toHaveBeenCalledWith({ id: 'design-gone' }),
-    )
-    await waitFor(() => expect(screen.queryByText('Old landing')).toBeNull())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Recents' }))
-    expect(await screen.findByText('Old landing')).toBeTruthy()
+    expect(await screen.findByText('Scratchpad')).toBeTruthy()
+    expect(screen.getByText('Your permanent draft')).toBeTruthy()
   })
 
-  test('permanently deletes only from the archive', async () => {
-    listArchived.mockResolvedValue([
-      {
-        id: 'design-gone',
-        name: 'Old landing',
-        revision: 2,
-        updatedAt: Date.now() - 72 * HOUR,
-        archivedAt: Date.now() - 2 * HOUR,
-      },
-    ])
+  test('toggles between grid and list views', async () => {
     render(<DesignsDashboard />)
     await screen.findByText('Ideal pine')
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }))
-    await screen.findByText('Old landing')
 
-    openMenu('Actions for Old landing')
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete permanently' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete permanently' }))
+    const listBtn = screen.getByRole('button', { name: 'List view' })
+    fireEvent.click(listBtn)
+    expect(listBtn.getAttribute('aria-pressed')).toBe('true')
 
-    await waitFor(() =>
-      expect(deleteDesign).toHaveBeenCalledWith({ id: 'design-gone' }),
-    )
-    await waitFor(() => expect(screen.queryByText('Old landing')).toBeNull())
+    const gridBtn = screen.getByRole('button', { name: 'Grid view' })
+    fireEvent.click(gridBtn)
+    expect(gridBtn.getAttribute('aria-pressed')).toBe('true')
   })
 })

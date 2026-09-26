@@ -1,10 +1,10 @@
 import { useQueryStates } from 'nuqs'
-import { Tabs, TabsList, TabsPanel, TabsTab } from '@loora/ui/tabs'
-import { PanelShell } from '@loora/ui/panel-shell'
+import { Tabs, TabsList, TabsPanel, TabsTab } from '@sheet/ui/tabs'
+import { PanelShell } from '@sheet/ui/panel-shell'
 import { ShortcutsSettings } from './shortcuts-settings'
 import { AppearanceSettings } from './appearance-settings'
 import { editorSearchParams, type SettingsTab } from '../lib/url-state'
-import type { ShortcutConfig } from '@loora/editor/lib/shortcuts'
+import type { ShortcutConfig } from '@sheet/editor/lib/shortcuts'
 
 export function SettingsPanel({
   onClose,

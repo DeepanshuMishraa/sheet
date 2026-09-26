@@ -1,19 +1,19 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { CanvasProvider } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { CanvasProvider } from '@sheet/canvas/react'
 import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 const list = vi.fn()
 const compareCanvas = vi.fn()
 const commitCanvas = vi.fn()
 const restoreCanvas = vi.fn()
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: { history: { list, compareCanvas, commitCanvas, restoreCanvas } },
 }))
 

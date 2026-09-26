@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Loora is an infinite-canvas design tool. Users arrange structured UI nodes on a
+Sheet is an infinite-canvas design tool. Users arrange structured UI nodes on a
 canvas; local MCP clients (and agent handoff consumers) mutate the same
 document through typed transactions. Designs have version history, isolated
 drafts/branches, and one-way exports.
@@ -21,37 +21,37 @@ loopback server.
 ```
 apps/desktop      Tauri host + Vite interface for the desktop app
 apps/mcp          Local server: MCP endpoint, oRPC API, assets, handoffs, SSE — all on SQLite
-packages/ui       Shared design-system primitives, tokens, icon barrel, `cn` (`@loora/ui`)
-packages/shell    Design browser, settings, integrations, mounted by the desktop app (`@loora/shell`)
-packages/platform Which client this is, and where its API and links point (`@loora/platform`)
-packages/editor   Canvas editor shell, panels, client sync (`@loora/editor`)
+packages/ui       Shared design-system primitives, tokens, icon barrel, `cn` (`@sheet/ui`)
+packages/shell    Design browser, settings, integrations, mounted by the desktop app (`@sheet/shell`)
+packages/platform Which client this is, and where its API and links point (`@sheet/platform`)
+packages/editor   Canvas editor shell, panels, client sync (`@sheet/editor`)
 packages/canvas   Canvas model, engine, merge, React surface, import, export
-packages/db       Drizzle schema, bun:sqlite client, migrations (`@loora/db`)
-packages/rpc      oRPC `appRouter`, storage, history, handoff (`@loora/rpc`)
-packages/agent    Shared canvas tools + layout repair for MCP (`@loora/agent`)
-packages/realtime Realtime wire protocol plus the in-process local event bus (`@loora/realtime`)
+packages/db       Drizzle schema, bun:sqlite client, migrations (`@sheet/db`)
+packages/rpc      oRPC `appRouter`, storage, history, handoff (`@sheet/rpc`)
+packages/agent    Shared canvas tools + layout repair for MCP (`@sheet/agent`)
+packages/realtime Realtime wire protocol plus the in-process local event bus (`@sheet/realtime`)
 ```
 
 ### Local server (`apps/mcp`)
 
 One Bun process is the whole backend, and the only backend there is. With
-`LOORA_SQLITE_PATH` set (default `./data/loora.db`) it serves MCP
+`SHEET_SQLITE_PATH` set (default `./data/sheet.db`) it serves MCP
 (`POST /mcp`, all 33 tools, no auth), the oRPC API the editor talks to
 (`/api/rpc/*`), assets (`/api/asset/:id`), handoffs (`/api/handoff/*`), and
 the live event stream (`/api/canvas-events`, SSE over the in-process bus).
 `GET /ready` is the health check. `bun run build:server` compiles it to a
 self-contained sidecar binary the desktop app spawns on startup.
 
-### `packages/ui` (`@loora/ui`)
+### `packages/ui` (`@sheet/ui`)
 
 Presentational design-system layer. **Must never** import db, RPC, canvas, or anything from an app — it holds no product state and runs no data fetching.
 
 | Export | Role |
 |--------|------|
-| `@loora/ui/<name>` | One primitive per file, e.g. `@loora/ui/button`, `@loora/ui/dialog` (`src/components/<name>.tsx`) |
-| `@loora/ui/utils` | `cn` (clsx + tailwind-merge) |
-| `@loora/ui/icons` | The hugeicons barrel — the only place `@hugeicons/*` is imported |
-| `@loora/ui/hooks/*` | Presentational hooks, e.g. `@loora/ui/hooks/use-media-query` |
+| `@sheet/ui/<name>` | One primitive per file, e.g. `@sheet/ui/button`, `@sheet/ui/dialog` (`src/components/<name>.tsx`) |
+| `@sheet/ui/utils` | `cn` (clsx + tailwind-merge) |
+| `@sheet/ui/icons` | The hugeicons barrel — the only place `@hugeicons/*` is imported |
+| `@sheet/ui/hooks/*` | Presentational hooks, e.g. `@sheet/ui/hooks/use-media-query` |
 
 Design tokens live in `packages/ui/src/styles.css`, which the desktop app
 imports — it also carries the `@source` lines for every package outside an
@@ -61,25 +61,25 @@ its own: the Tailwind import, its fonts, its sources.
 The shadcn CLI is pointed here, so generated primitives land in the package
 rather than an app.
 
-### `packages/editor` (`@loora/editor`)
+### `packages/editor` (`@sheet/editor`)
 
 The `/design` surface: the editor shell and every panel that hangs off it, plus
 the client half of canvas sync.
 
 | Export | Role |
 |--------|------|
-| `@loora/editor/app` | `CanvasApp` — the whole editor, mounted by the design routes |
-| `@loora/editor/<name>` | Panels and dialogs: `editor`, `branches`, `history`, `export-panel`, `layers-panel`, `properties-panel`, `share-dialog`, `assets-panel`, `canvas-preview`, … |
-| `@loora/editor/lib/canvas-client` | `CanvasSyncController` — optimistic apply, batching, rebase, realtime |
-| `@loora/editor/lib/*` | Clipboard, HTML paste/import, code copy, capture, shortcuts, design list helpers |
+| `@sheet/editor/app` | `CanvasApp` — the whole editor, mounted by the design routes |
+| `@sheet/editor/<name>` | Panels and dialogs: `editor`, `branches`, `history`, `export-panel`, `layers-panel`, `properties-panel`, `share-dialog`, `assets-panel`, `canvas-preview`, … |
+| `@sheet/editor/lib/canvas-client` | `CanvasSyncController` — optimistic apply, batching, rebase, realtime |
+| `@sheet/editor/lib/*` | Clipboard, HTML paste/import, code copy, capture, shortcuts, design list helpers |
 
-It depends on `@loora/canvas`, `@loora/ui`, `@loora/rpc` (client), and
+It depends on `@sheet/canvas`, `@sheet/ui`, `@sheet/rpc` (client), and
 **must never** import from an app. Where the editor needs
 a product surface it does not own, the app passes it in: `CanvasApp` takes
 `renderSettings` so the settings dialog body (appearance, shortcuts)
 stays in the shell. Add a slot rather than an import back into the app.
 
-### `packages/shell` (`@loora/shell`)
+### `packages/shell` (`@sheet/shell`)
 
 Every product surface that is not the canvas: the design browser, settings,
 and integrations. The desktop app mounts these, so a route file in it is
@@ -87,44 +87,44 @@ a few lines that pick a surface.
 
 | Export | Role |
 |--------|------|
-| `@loora/shell/<name>` | A surface, e.g. `@loora/shell/designs-dashboard` |
-| `@loora/shell/lib/*` | Theme, interface scale, custom themes, URL state |
+| `@sheet/shell/<name>` | A surface, e.g. `@sheet/shell/designs-dashboard` |
+| `@sheet/shell/lib/*` | Theme, interface scale, custom themes, URL state |
 
-It depends on `@loora/editor`, `@loora/ui`, `@loora/rpc`, and
-`@loora/platform`, and **must never** import from an app.
+It depends on `@sheet/editor`, `@sheet/ui`, `@sheet/rpc`, and
+`@sheet/platform`, and **must never** import from an app.
 
 There are no marketing pages in this repo: the desktop window never renders
 them.
 
-### `packages/platform` (`@loora/platform`)
+### `packages/platform` (`@sheet/platform`)
 
 Four questions, one answer each, for code that runs in more than one client:
 which platform this is, which origin serves `/api`, which origin a link handed
 to a browser should name, and how to follow a link that leaves the app. It
-imports **nothing** — `@loora/rpc/client` and the editor
+imports **nothing** — `@sheet/rpc/client` and the editor
 depend on it, so it can depend on none of them.
 
 The defaults assume the API lives on the same origin and links open in the
 same tab — correct for a browser client, wrong for desktop, so the desktop
 app calls `configureRuntime` once, before anything renders.
 
-### `packages/canvas` (`@loora/canvas`)
+### `packages/canvas` (`@sheet/canvas`)
 
 Dependency-light canvas core. **Must never** import db, RPC, auth, web, drafts, or branch concepts. Branches are product targets owned by RPC/MCP.
 
 | Export | Role |
 |--------|------|
-| `@loora/canvas/model` | `CanvasDocument`, node types, IDs, validation |
-| `@loora/canvas/engine` | Typed transactions, indexes, undo/redo, preconditions, rebase, subscriptions |
-| `@loora/canvas/merge` | Neutral left/right semantic merge |
-| `@loora/canvas/react` | DOM/SVG renderer, surface, overlays, hooks |
-| `@loora/canvas/motion` | Transitions, keyframe animations, easings, and the CSS they generate |
-| `@loora/canvas/export` | One-way HTML, JSX, Tailwind, React/TSX, JSON, PNG compile |
-| `@loora/canvas/import` | HTML/CSS snapshot conversion into validated structured nodes |
+| `@sheet/canvas/model` | `CanvasDocument`, node types, IDs, validation |
+| `@sheet/canvas/engine` | Typed transactions, indexes, undo/redo, preconditions, rebase, subscriptions |
+| `@sheet/canvas/merge` | Neutral left/right semantic merge |
+| `@sheet/canvas/react` | DOM/SVG renderer, surface, overlays, hooks |
+| `@sheet/canvas/motion` | Transitions, keyframe animations, easings, and the CSS they generate |
+| `@sheet/canvas/export` | One-way HTML, JSX, Tailwind, React/TSX, JSON, PNG compile |
+| `@sheet/canvas/import` | HTML/CSS snapshot conversion into validated structured nodes |
 
 Editor UI lives in `packages/editor` (branch panel, sync target, history, export, layers, properties). Keep branch/sync controllers outside the canvas package. The canvas package knows nothing about agents.
 
-### `packages/agent` (`@loora/agent`)
+### `packages/agent` (`@sheet/agent`)
 
 Shared canvas mutation vocabulary for MCP (and handoff consumers), not models or chat:
 
@@ -139,7 +139,7 @@ Every product mutation goes through oRPC. External agents use MCP or handoff.
 There are no sessions and no gates: each procedure runs as the single local
 user (`localProcedure` in `procedures.ts`).
 
-The client is `@loora/rpc/client` (`orpc`). It imports `appRouter` as a
+The client is `@sheet/rpc/client` (`orpc`). It imports `appRouter` as a
 type only, so no server implementation follows it into the bundle.
 
 ### Local server (`apps/mcp` — the `/mcp` half is in `handler.ts`)
@@ -147,8 +147,8 @@ type only, so no server implementation follows it into the bundle.
 The same Bun process from the section above. `handler.ts` owns MCP transport
 concerns only — rate limiting and stateless Streamable HTTP (`stdio.ts` is
 the local stdio adapter) — and executes every tool call in-process through
-`src/executor.ts`, i.e. the same `createLooraToolExecutor` from
-`@loora/rpc/mcp-server` the editor path uses: CanvasEngine validation,
+`src/executor.ts`, i.e. the same `createSheetToolExecutor` from
+`@sheet/rpc/mcp-server` the editor path uses: CanvasEngine validation,
 persistence, exports, screenshots, and asset handling, with realtime
 publishing onto the local bus so the open editor updates live.
 
@@ -159,15 +159,15 @@ shared interface, built by Vite from the same packages.
 
 - **The host** (`src-tauri/`) runs under Rust. It serves a loopback HTTP
   server, opens the window on it, and spawns the compiled local server on
-  startup. `/api/*` is proxied to `LOORA_API_ORIGIN` (the sidecar) — so
+  startup. `/api/*` is proxied to `SHEET_API_ORIGIN` (the sidecar) — so
   the window needs no cookie, no CORS, and no credential of its own, and
   images, the event stream, and oRPC behave as they do over the network.
 - **The interface** (`src/`) is Vite + React on TanStack Router and Query,
-  mounting `@loora/shell`. Vite serves it in development (proxying `/api`,
+  mounting `@sheet/shell`. Vite serves it in development (proxying `/api`,
   `/desktop`, `/callback`, `/realtime` back to the host) and the host serves
   the built files in a packaged app.
 - **Data** lives in one SQLite file in the OS app-data dir
-  (`LOORA_DATA_DIR` overrides). Back it up by copying the file.
+  (`SHEET_DATA_DIR` overrides). Back it up by copying the file.
 - Anything that leaves the app — a hand-off URL opened elsewhere — opens
   in a browser.
 
@@ -181,7 +181,7 @@ See `apps/desktop/README.md`.
   `canvasTransaction`, `asset`, `userPreferences`. Nothing else — no sharing,
   no billing, no publishing.
 
-Legacy helpers remain in `@loora/db/canvas` and `@loora/db/drafts` for rollback and expiring-link compatibility.
+Legacy helpers remain in `@sheet/db/canvas` and `@sheet/db/drafts` for rollback and expiring-link compatibility.
 
 ---
 
@@ -212,7 +212,7 @@ MCP local: `bun run dev` (or `bun run dev:stdio`).
 **Always** use `bun run test` so Vitest loads `vitest.setup.ts` for DOM globals
 (plus an in-memory SQLite database).
 
-Copy `.env.example` → `.env` before dev. Required pieces typically include `LOORA_SQLITE_PATH`; optional storage keys as needed.
+Copy `.env.example` → `.env` before dev. Required pieces typically include `SHEET_SQLITE_PATH`; optional storage keys as needed.
 
 Deploy: Railway via root `Dockerfile` / `railway.json` for the MCP server.
 
@@ -233,15 +233,15 @@ These are easy to break and expensive to fix. Treat them as hard rules.
 2. **No code-node escape hatch.** Never add arbitrary code nodes, freeform CSS/class strings as the authoring model, or two-way source sync with exported code.
 3. **All mutations are validated `CanvasTransaction`s.** Same ops and engine for React UI, oRPC, MCP tools, and handoff consumers. Transactions need stable idempotency IDs and touched-field preconditions.
 4. **Do not full-document replace on every move.** Pointer previews may use temporary DOM transforms; commit one transaction on pointer-up.
-5. **Render is real DOM/SVG** with `data-loora-node` and instance-path metadata. One camera transform + viewport-space SVG overlay. Document state lives in the engine; camera, selection, hover, tool, and isolation are ephemeral. Subscribe nodes to their own revision/parent order — avoid full-tree rerenders.
+5. **Render is real DOM/SVG** with `data-sheet-node` and instance-path metadata. One camera transform + viewport-space SVG overlay. Document state lives in the engine; camera, selection, hover, tool, and isolation are ephemeral. Subscribe nodes to their own revision/parent order — avoid full-tree rerenders.
 6. **Agent input is structured node descriptors**, not source code. Temporary client refs must resolve to permanent IDs. Destructive actions require confirmation in product UX: `deleteNodes` takes `confirmed: true` over MCP.
 7. **Exports are one-way** (HTML/CSS/JS, React/TSX, JSON, PNG, preview). They never round-trip into the editor.
-8. **Pull requests are not a Loora feature.** Drafts are the branch/merge model (`active` → `proposed` → `applied` | `closed`).
+8. **Pull requests are not a Sheet feature.** Drafts are the branch/merge model (`active` → `proposed` → `applied` | `closed`).
 9. **Deleting a design file means archiving it.** `design.archivedAt` takes it out of every list. `design.delete` is the only hard delete, it refuses a file that is not archived, and the Archived tab at `/app` is the only place that reaches it. The MCP `deleteDesign` tool archives.
 
 ### Shared MCP / handoff tool vocabulary
 
-Keep MCP tools and handoff consumers aligned on the shared `@loora/agent` vocabulary:
+Keep MCP tools and handoff consumers aligned on the shared `@sheet/agent` vocabulary:
 
 `createPage` · `insertNodes` · `patchNodes` · `moveNodes` · `deleteNodes` · `readNode` · `readTree` · `searchNodes` · `createComponent` · `createInstance` · `setTokens` · `setAnimations` · `animateNodes` · `viewNode` · `viewPage` · `viewCanvas`
 
@@ -251,7 +251,7 @@ Implementation: `packages/agent/src/canvas-tools.ts`, canonical MCP execution in
 
 One process, one bus, no gate.
 
-- `@loora/realtime` holds the wire protocol (`canvas.changed`, `agent.activity`,
+- `@sheet/realtime` holds the wire protocol (`canvas.changed`, `agent.activity`,
   `presence.peer`, `presence.state`) and the in-process local event bus
   (`local-bus`). It imports nothing from db or canvas.
 - The editor opens `/api/canvas-events` (SSE). The local server answers
@@ -261,7 +261,7 @@ One process, one bus, no gate.
   branch. Presence posts to `/api/canvas-presence` are accepted and ignored —
   one user has no peers.
 - Server-side publishers (oRPC, MCP tools) call the same
-  `@loora/db/canvas-realtime` functions as before. Those emit onto the local
+  `@sheet/db/canvas-realtime` functions as before. Those emit onto the local
   bus first, then try the ingest URL and Redis exactly as before; either may
   be unconfigured, in which case the bus is the whole transport.
 
@@ -312,16 +312,16 @@ Keyframes move opacity and transform only. Both composite without touching
 layout, which is what keeps an animated canvas smooth and the exported CSS
 honest about what a browser can run.
 
-`@loora/canvas/motion-css` generates the CSS, and both the editor renderer and
+`@sheet/canvas/motion-css` generates the CSS, and both the editor renderer and
 the exporter read from it — a hover that lifts a card on the canvas is the same
 rule in the download. Every motion stylesheet ends with a
 `prefers-reduced-motion` block that turns it all off. The canvas surface takes a
 `motion` prop so the editor can stop motion while somebody is working, without
 the document knowing.
 
-Presets carry the common asks: `@loora/canvas/motion` has `fade-in`,
+Presets carry the common asks: `@sheet/canvas/motion` has `fade-in`,
 `fade-in-up`, `fade-in-down`, `slide-in-left`, `slide-in-right`, `scale-in`,
-`pulse`, `float`, `spin`; `@loora/canvas/motion-presets` has hover looks —
+`pulse`, `float`, `spin`; `@sheet/canvas/motion-presets` has hover looks —
 `lift`, `grow`, `shrink`, `fade`, `nudge-right` — each bringing its own
 transition. Agents reach them through `setAnimations` (define, by preset name or
 full keyframes) and `animateNodes` (apply, with an optional `stagger` so a list
@@ -338,7 +338,7 @@ HTML/CSS import computes a sandboxed DOM snapshot and converts supported layout 
 - TypeScript/TSX, strict types, **two-space indent**, **single quotes**, **no semicolons** (match handwritten code).
 - `PascalCase` components · `camelCase` functions/vars · **kebab-case** filenames (`designs-dashboard.tsx`).
 - Prefer **named exports**.
-- Imports: `#app/` for `apps/desktop/src/*`; `@loora/ui|canvas|db|rpc|agent` (and subpath exports) across packages.
+- Imports: `#app/` for `apps/desktop/src/*`; `@sheet/ui|canvas|db|rpc|agent` (and subpath exports) across packages.
 - Keep server credentials, DB access, and provider secrets out of client components.
 - No repo-wide formatter/linter — match neighbors; run `bunx tsc --noEmit` before submitting.
 - Do not hand-edit generated files (the desktop `routeTree.gen.ts`, Drizzle snapshots you didn't intend to regenerate).
@@ -373,7 +373,7 @@ History uses Conventional Commits with scopes when useful:
 ## Security & Configuration
 
 - Copy `.env.example` → `.env`; never commit secrets.
-- Server-only: `LOORA_HANDOFF_SECRET`, storage credentials. The SQLite file
+- Server-only: `SHEET_HANDOFF_SECRET`, storage credentials. The SQLite file
   and `handoff.key` live in the data dir — they never leave the machine.
 - Validate image/interaction URLs, SVG paths, CSS-like values, metadata, geometry, overrides, and document size at the **canvas model** boundary.
 - Capability URLs must not leak into analytics. Handoff payloads use token-scoped asset routes.

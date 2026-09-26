@@ -1,4 +1,4 @@
-import type { CanvasDocument, CanvasLayout, CanvasNode, NodeId } from '@loora/canvas/model'
+import type { CanvasDocument, CanvasLayout, CanvasNode, NodeId } from '@sheet/canvas/model'
 
 /**
  * Repair for documents written before inserted descriptors inherited their

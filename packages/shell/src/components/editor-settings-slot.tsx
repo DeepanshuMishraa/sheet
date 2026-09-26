@@ -1,4 +1,4 @@
-import type { CanvasSettingsSlot } from '@loora/editor/editor'
+import type { CanvasSettingsSlot } from '@sheet/editor/editor'
 import { SettingsPanel } from './settings-panel'
 
 /**

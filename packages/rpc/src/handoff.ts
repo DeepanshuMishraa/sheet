@@ -1,14 +1,14 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { db } from '@loora/db'
-import { asset, design, designDraft } from '@loora/db/schema'
+import { db } from '@sheet/db'
+import { asset, design, designDraft } from '@sheet/db/schema'
 import { readHandoffToken } from './handoff-token'
-import { assetUrl } from '@loora/rpc/storage'
-import type { CanvasElement } from '@loora/db/canvas'
+import { assetUrl } from '@sheet/rpc/storage'
+import type { CanvasElement } from '@sheet/db/canvas'
 import {
   CANVAS_SCHEMA_VERSION,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 export function referencedAssetIds(
   sourceDocument: CanvasElement[] | CanvasDocument,
@@ -113,7 +113,7 @@ export async function buildHandoffPayload(token: string, origin: string) {
     : []
 
   const common = {
-    schema: 'loora.design-handoff',
+    schema: 'sheet.design-handoff',
     assets: assets
       .filter((item) => assetIds.has(item.id))
       .map(({ storageKey, ...item }) => ({

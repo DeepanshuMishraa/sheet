@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { applyTransaction } from '@loora/canvas/engine'
+import { applyTransaction } from '@sheet/canvas/engine'
 import {
   createCanvasDocument,
   createComponentNode,
@@ -10,7 +10,7 @@ import {
   defaultLayout,
   type CanvasLayout,
   type CanvasNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   canvasStylePatchSchema,
   createPageInputSchema,

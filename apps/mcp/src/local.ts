@@ -1,19 +1,19 @@
 import { RPCHandler } from '@orpc/server/fetch'
 import { and, eq } from 'drizzle-orm'
-import { LOCAL_USER_ID, db, ensureLocalUser } from '@loora/db'
-import { asset } from '@loora/db/schema'
-import { appRouter } from '@loora/rpc'
-import { buildHandoffPayload } from '@loora/rpc/handoff'
-import { readHandoffToken } from '@loora/rpc/handoff-token'
+import { LOCAL_USER_ID, db, ensureLocalUser } from '@sheet/db'
+import { asset } from '@sheet/db/schema'
+import { appRouter } from '@sheet/rpc'
+import { buildHandoffPayload } from '@sheet/rpc/handoff'
+import { readHandoffToken } from '@sheet/rpc/handoff-token'
 import {
   messageTargetsRoom,
   subscribeLocalEvents,
-} from '@loora/realtime/local-bus'
+} from '@sheet/realtime/local-bus'
 import { configFrom } from './config'
 import { createAppState, handleRequest } from './handler'
 
 /**
- * The local Loora server. One Bun process serves everything the desktop
+ * The local Sheet server. One Bun process serves everything the desktop
  * window and local MCP clients need:
  *
  * - `POST /mcp` — the MCP JSON-RPC endpoint (no auth, local user)
@@ -178,5 +178,5 @@ const server = Bun.serve({
   fetch: (request) => route(request, state),
 })
 
-console.info(`Loora local server listening on http://localhost:${server.port}`)
+console.info(`Sheet local server listening on http://localhost:${server.port}`)
 console.info(`MCP endpoint: http://localhost:${server.port}/mcp`)

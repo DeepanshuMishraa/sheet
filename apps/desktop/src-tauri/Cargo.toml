@@ -1,8 +1,8 @@
 [package]
-name = "loora-desktop"
+name = "Sheet"
 version = "0.1.0"
-description = "Loora desktop host"
-authors = ["Loora"]
+description = "Sheet"
+authors = ["Sheet"]
 edition = "2021"
 
 [build-dependencies]

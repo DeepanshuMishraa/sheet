@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react'
 import { describe, expect, vi, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { createCanvasDocument } from '@loora/canvas/model'
-import { CanvasProvider } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { createCanvasDocument } from '@sheet/canvas/model'
+import { CanvasProvider } from '@sheet/canvas/react'
 import { CanvasCollaboratorPresence } from './presence'
 import type { CanvasEditorController } from './editor'
 
@@ -24,7 +24,7 @@ describe('CanvasCollaboratorPresence', () => {
 
     const surface = document.createElement('div')
     const scene = document.createElement('div')
-    scene.dataset.looraCanvasScene = ''
+    scene.dataset.sheetCanvasScene = ''
     Object.defineProperty(scene, 'offsetWidth', { value: 1_000 })
     const getBoundingClientRect = vi.fn(() => ({
       left: 0,

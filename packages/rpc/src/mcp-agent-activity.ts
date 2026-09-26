@@ -4,7 +4,7 @@ import {
   canvasRealtimeChannel,
   publishCanvasAgentActivity,
   type CanvasRealtimeTarget,
-} from '@loora/db/canvas-realtime'
+} from '@sheet/db/canvas-realtime'
 
 /**
  * What each tool looks like to somebody watching the editor. Tools missing from

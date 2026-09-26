@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { useCanvasSelection } from '@loora/canvas/react'
+import { useCanvasSelection } from '@sheet/canvas/react'
 import type { CanvasPeer } from '../lib/canvas-client'
 import type { CanvasEditorController } from './editor'
-import { cn } from '@loora/ui/utils'
+import { cn } from '@sheet/ui/utils'
 
 const EMPTY_PEERS: CanvasPeer[] = []
 /** Matches the transport cadence so pointer events do not force extra layout. */
@@ -55,7 +55,7 @@ function useBroadcastPresence(
     const surface = surfaceRef.current
     if (!surface) return
     const scene = () =>
-      surface.querySelector<HTMLElement>('[data-loora-canvas-scene]')
+      surface.querySelector<HTMLElement>('[data-sheet-canvas-scene]')
     let frame: number | null = null
     let timer: ReturnType<typeof setTimeout> | null = null
     let measuredAt = 0
@@ -183,7 +183,7 @@ function PeerSelection({
       for (const peer of peersRef.current) {
         for (const nodeId of peer.selection.slice(0, 12)) {
           const element = surface.querySelector<HTMLElement>(
-            `[data-loora-node="${CSS.escape(nodeId)}"]`,
+            `[data-sheet-node="${CSS.escape(nodeId)}"]`,
           )
           if (!element) continue
           const rect = element.getBoundingClientRect()

@@ -3,22 +3,22 @@ import {
   canvasId,
   type CanvasColor,
   type DesignToken,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import {
   useCanvasDocument,
   useCanvasReadOnly,
   useCanvasTransaction,
-} from '@loora/canvas/react'
-import { PanelEmpty, PanelShell } from '@loora/ui/panel-shell'
+} from '@sheet/canvas/react'
+import { PanelEmpty, PanelShell } from '@sheet/ui/panel-shell'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@loora/ui/dropdown-menu'
-import { PlusIcon, Trash2Icon } from '@loora/ui/icons'
-import { Button } from '@loora/ui/button'
-import { cn } from '@loora/ui/utils'
+} from '@sheet/ui/dropdown-menu'
+import { PlusIcon, Trash2Icon } from '@sheet/ui/icons'
+import { Button } from '@sheet/ui/button'
+import { cn } from '@sheet/ui/utils'
 import { ColorCell, NumberCell, Section, SelectCell } from './properties-panel'
 
 const TOKEN_TYPES: { type: DesignToken['type']; label: string }[] = [

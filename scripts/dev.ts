@@ -11,17 +11,17 @@ import { join } from 'node:path'
  *   --server-only   just the local server (API + MCP)
  *   --desktop-only  just the Tauri window (expects a server already up)
  *
- * Env: LOORA_MCP_PORT (4100), LOORA_SQLITE_PATH (./data/loora.db).
+ * Env: SHEET_MCP_PORT (4100), SHEET_SQLITE_PATH (./data/sheet.db).
  * If a server is already listening, it is reused, not replaced.
  */
 
 const root = join(import.meta.dir, '..')
-const port = process.env.LOORA_MCP_PORT?.trim() || '4100'
+const port = process.env.SHEET_MCP_PORT?.trim() || '4100'
 const serverUrl = `http://127.0.0.1:${port}`
 const serverOnly = process.argv.includes('--server-only')
 const desktopOnly = process.argv.includes('--desktop-only')
 
-process.env.LOORA_SQLITE_PATH ??= join(root, 'data', 'loora.db')
+process.env.SHEET_SQLITE_PATH ??= join(root, 'data', 'sheet.db')
 
 async function serverUp() {
   try {

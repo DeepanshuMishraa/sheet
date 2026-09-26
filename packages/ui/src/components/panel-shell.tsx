@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { XIcon } from '@loora/ui/icons'
-import { Button } from '@loora/ui/button'
-import { ScrollArea } from '@loora/ui/scroll-area'
-import { Skeleton } from '@loora/ui/skeleton'
-import { cn } from '@loora/ui/utils'
+import { XIcon } from '@sheet/ui/icons'
+import { Button } from '@sheet/ui/button'
+import { ScrollArea } from '@sheet/ui/scroll-area'
+import { Skeleton } from '@sheet/ui/skeleton'
+import { cn } from '@sheet/ui/utils'
 
 export function PanelShell({
   title,

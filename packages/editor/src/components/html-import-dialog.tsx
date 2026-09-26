@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { FileCode2Icon } from '@loora/ui/icons'
-import type { CanvasDocument } from '@loora/canvas/model'
+import { FileCode2Icon } from '@sheet/ui/icons'
+import type { CanvasDocument } from '@sheet/canvas/model'
 import { importHtmlCssToCanvas } from '../lib/canvas-html-import'
-import { Button } from '@loora/ui/button'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogDescription,
@@ -11,10 +11,10 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Input } from '@loora/ui/input'
-import { Spinner } from '@loora/ui/spinner'
-import { Textarea } from '@loora/ui/textarea'
+} from '@sheet/ui/dialog'
+import { Input } from '@sheet/ui/input'
+import { Spinner } from '@sheet/ui/spinner'
+import { Textarea } from '@sheet/ui/textarea'
 
 export function HtmlImportDialog({
   open,

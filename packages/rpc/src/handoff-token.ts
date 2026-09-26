@@ -11,8 +11,8 @@ interface HandoffClaims {
 }
 
 function secret() {
-  const value = process.env.LOORA_HANDOFF_SECRET
-  if (!value || value.length < 16) throw new Error('LOORA_HANDOFF_SECRET is required for handoffs')
+  const value = process.env.SHEET_HANDOFF_SECRET
+  if (!value || value.length < 16) throw new Error('SHEET_HANDOFF_SECRET is required for handoffs')
   return value
 }
 

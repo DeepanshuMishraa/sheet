@@ -1,4 +1,4 @@
-import { LOCAL_USER_ID, ensureLocalUser } from '@loora/db'
+import { LOCAL_USER_ID, ensureLocalUser } from '@sheet/db'
 import type { JsonValue } from './tools'
 
 /**
@@ -6,7 +6,7 @@ import type { JsonValue } from './tools'
  *
  * Local-first: there are no accounts, no access checks, and no meters — every
  * call runs as the single local user through the canonical
- * `createLooraToolExecutor` from `@loora/rpc/mcp-server`.
+ * `createSheetToolExecutor` from `@sheet/rpc/mcp-server`.
  *
  * All imports are lazy so unit tests never touch the database driver at
  * module load.
@@ -24,14 +24,14 @@ async function localUserId() {
 }
 
 export async function directReady(): Promise<JsonValue> {
-  const { checkDatabaseConnection } = await import('@loora/db')
+  const { checkDatabaseConnection } = await import('@sheet/db')
   await checkDatabaseConnection()
   return { ready: true }
 }
 
 export async function directResolveUser(selector: string): Promise<JsonValue> {
   const userId = await localUserId()
-  return { id: userId, email: 'local@loora.design', selector: selector.trim() }
+  return { id: userId, email: 'local@sheet.design', selector: selector.trim() }
 }
 
 export async function directAccess(_userId: string): Promise<JsonValue> {
@@ -45,9 +45,9 @@ export async function directExecute(
   args: JsonValue,
 ): Promise<JsonValue> {
   const userId = await localUserId()
-  const { createLooraToolExecutor } = await import('@loora/rpc/mcp-server')
-  const { createMcpUsageController } = await import('@loora/rpc/mcp-usage')
-  const execute = createLooraToolExecutor(userId, createMcpUsageController())
+  const { createSheetToolExecutor } = await import('@sheet/rpc/mcp-server')
+  const { createMcpUsageController } = await import('@sheet/rpc/mcp-usage')
+  const execute = createSheetToolExecutor(userId, createMcpUsageController())
   try {
     return (await execute(tool, (args ?? {}) as Record<string, unknown>)) as unknown as JsonValue
   } catch (error) {

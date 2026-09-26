@@ -34,7 +34,7 @@ describe('MCP local HTTP contract', () => {
   })
 
   test('no token is required and tools execute directly', async () => {
-    vi.stubEnv('LOORA_SQLITE_PATH', ':memory:')
+    vi.stubEnv('SHEET_SQLITE_PATH', ':memory:')
     const state = createAppState(
       configWith({ MCP_PUBLIC_URL: 'http://localhost:4100' }),
     )
@@ -61,7 +61,7 @@ describe('MCP local HTTP contract', () => {
     })
     const body = await response.json()
     expect(response.status).toBe(200)
-    expect(body.result.serverInfo.name).toBe('loora')
+    expect(body.result.serverInfo.name).toBe('sheet')
   })
 
   test('unknown paths are 404', async () => {

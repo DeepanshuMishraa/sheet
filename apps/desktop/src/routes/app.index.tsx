@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { DesignsDashboard } from '@loora/shell/designs-dashboard'
+import { DesignsDashboard } from '@sheet/shell/designs-dashboard'
 
 export const Route = createFileRoute('/app/')({ component: FilesPage })
 

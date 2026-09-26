@@ -1,4 +1,4 @@
-/* Loora's design tokens, variants, and shared utilities.
+/* Sheet's design tokens, variants, and shared utilities.
    The desktop app bundles this into the Tauri window. It keeps its own entry
    stylesheet for the parts that are its own — the Tailwind import, its fonts,
    and its sources.
@@ -83,6 +83,13 @@
      Depth comes from two flat surface steps, a hairline, and a shadow. */
   --surface: #ffffff;
   --surface-2: #f4f4f4;
+  /* The app-chrome typefaces. Overridden at runtime from Appearance
+     (`sheet:ui-sans` / `sheet:ui-mono` via `--sheet-font-*` on the root);
+     the defaults here are what a fresh account gets. Kept separate from
+     Tailwind's `--font-*` theme keys so a runtime pick always wins over the
+     compiled utilities. */
+  --sheet-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --sheet-font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --line: #e6e6e6;
   --panel-shadow: 0 1px 2px --alpha(var(--color-black) / 6%);
   --panel-shadow-lg:
@@ -303,29 +310,6 @@ body {
   }
   to {
     background-position: -200% 0;
-  }
-}
-
-/* Figma-style indeterminate load bar under the product mark. */
-.cx-load-bar {
-  animation: cx-load-bar 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: transform;
-}
-
-@keyframes cx-load-bar {
-  0% {
-    transform: translateX(-120%);
-  }
-  100% {
-    transform: translateX(280%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cx-load-bar {
-    animation: none;
-    width: 40%;
-    transform: none;
   }
 }
 
@@ -554,7 +538,7 @@ body {
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans);
+    font-family: var(--sheet-font-sans);
   }
 }
 
@@ -564,6 +548,17 @@ body {
 @layer utilities {
   .bg-surface {
     background-color: var(--surface);
+  }
+
+  /* App-chrome typefaces follow the Appearance pick, not the compiled theme.
+     These sit in `utilities` (after Tailwind's own) so they win over the
+     inlined `font-sans` / `font-mono` utilities at equal specificity. */
+  .font-sans {
+    font-family: var(--sheet-font-sans);
+  }
+
+  .font-mono {
+    font-family: var(--sheet-font-mono);
   }
 
   .bg-surface-2 {

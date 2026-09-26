@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
-import { CanvasEngine } from '@loora/canvas/engine'
-import { CanvasProvider, useCanvasSession } from '@loora/canvas/react'
+import { CanvasEngine } from '@sheet/canvas/engine'
+import { CanvasProvider, useCanvasSession } from '@sheet/canvas/react'
 import {
   createCanvasDocument,
   createFrameNode,
@@ -10,7 +10,7 @@ import {
   createTextNode,
   createVectorNode,
   defaultLayout,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 import { CanvasPropertiesPanel } from './properties-panel'
 
 function fixture() {

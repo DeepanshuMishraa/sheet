@@ -1,4 +1,4 @@
-import { LOCAL_USER_ID, ensureLocalUser } from '@loora/db'
+import { LOCAL_USER_ID, ensureLocalUser } from '@sheet/db'
 
 export class AccessDeniedError extends Error {}
 

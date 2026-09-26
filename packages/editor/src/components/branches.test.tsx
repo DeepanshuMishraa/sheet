@@ -4,7 +4,7 @@ import {
   createCanvasDocument,
   createFrameNode,
   createPageNode,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 const list = vi.fn()
 const create = vi.fn()
@@ -15,7 +15,7 @@ const reopen = vi.fn()
 const close = vi.fn()
 const rename = vi.fn()
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: {
     draft: { list, create, compare, apply, propose, reopen, close, rename },
   },

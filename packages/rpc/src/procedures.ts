@@ -5,17 +5,17 @@ import {
 } from 'drizzle-orm'
 import { ORPCError, os } from '@orpc/server'
 import { z } from 'zod'
-import { LOCAL_USER_ID, db, ensureLocalUser } from '@loora/db'
+import { LOCAL_USER_ID, db, ensureLocalUser } from '@sheet/db'
 import {
   design,
   designVersion,
-} from '@loora/db/schema'
+} from '@sheet/db/schema'
 import {
   allows,
   resolveDesignAccess,
   type DesignRole,
-} from '@loora/db/design-access'
-import { type CanvasElement, type CanvasPage } from '@loora/db/canvas'
+} from '@sheet/db/design-access'
+import { type CanvasElement, type CanvasPage } from '@sheet/db/canvas'
 
 /**
  * Shared plumbing for every namespace: the request context, the local user
@@ -72,7 +72,7 @@ export const draftTargetWhere = (draftId: string | null | undefined) =>
   draftId ? eq(designVersion.draftId, draftId) : isNull(designVersion.draftId)
 
 export function localUser(): LocalUser {
-  return { id: LOCAL_USER_ID, email: 'local@loora.design' }
+  return { id: LOCAL_USER_ID, email: 'local@sheet.design' }
 }
 
 const requireLocalUser = os.$context<ORPCContext>().middleware(async ({ context, next }) => {

@@ -68,10 +68,10 @@ describe('Canvas exports', () => {
     expect(html).not.toContain('/vendor/fonts/archivo-latin.woff2')
 
     const absolute = compileStandaloneHtml(document, {
-      fontOrigin: 'https://loora.design/',
+      fontOrigin: 'https://sheet.design/',
     })
     expect(absolute).toContain(
-      'https://loora.design/vendor/fonts/playfair-display-latin.woff2',
+      'https://sheet.design/vendor/fonts/playfair-display-latin.woff2',
     )
   })
 
@@ -89,18 +89,18 @@ describe('Canvas exports', () => {
     ]
     const compiled = compileCanvas(document, { nodeId: 'hero' })
     expect(compiled.html).toContain(
-      'data-loora-node="hero" data-loora-export-root="true"',
+      'data-sheet-node="hero" data-sheet-export-root="true"',
     )
-    expect(compiled.html).toContain('data-loora-node="headline"')
-    expect(compiled.html).not.toContain('data-loora-node="page"')
+    expect(compiled.html).toContain('data-sheet-node="headline"')
+    expect(compiled.html).not.toContain('data-sheet-node="page"')
     expect(compiled.css).toContain(
-      '[data-loora-export-root="true"]{position:relative;left:0;top:0}',
+      '[data-sheet-export-root="true"]{position:relative;left:0;top:0}',
     )
-    expect(compiled.css).toContain('.loora-hero{')
-    expect(compiled.css).toContain('.loora-headline{')
-    expect(compiled.css).not.toContain('.loora-page{')
-    expect(compiled.css).toContain('@keyframes loora-motion-fade-in')
-    expect(compiled.css).not.toContain('@keyframes loora-motion-pulse')
+    expect(compiled.css).toContain('.sheet-hero{')
+    expect(compiled.css).toContain('.sheet-headline{')
+    expect(compiled.css).not.toContain('.sheet-page{')
+    expect(compiled.css).toContain('@keyframes sheet-motion-fade-in')
+    expect(compiled.css).not.toContain('@keyframes sheet-motion-pulse')
   })
 
   it('prepares one immutable snapshot and reuses its compiled result', () => {
@@ -179,23 +179,23 @@ describe('Canvas exports', () => {
     })
 
     const compiled = compileCanvas(document, { nodeId: 'hero' })
-    expect(compiled.html).toContain('data-loora-component="card"')
-    expect(compiled.html).toContain('data-loora-component="icon"')
+    expect(compiled.html).toContain('data-sheet-component="card"')
+    expect(compiled.html).toContain('data-sheet-component="icon"')
     expect(compiled.html).toContain('Icon label')
-    expect(compiled.css).toContain('.loora-cardInstance-card{')
-    expect(compiled.css).toContain('.loora-nestedIcon-iconLabel{')
-    expect(compiled.css).not.toContain('.loora-unused{')
-    expect(compiled.css).not.toContain('.loora-unusedLabel{')
+    expect(compiled.css).toContain('.sheet-cardInstance-card{')
+    expect(compiled.css).toContain('.sheet-nestedIcon-iconLabel{')
+    expect(compiled.css).not.toContain('.sheet-unused{')
+    expect(compiled.css).not.toContain('.sheet-unusedLabel{')
   })
 
   it('generates one-way React and versioned JSON outputs', () => {
     const document = fixture()
     const react = compileReactComponent(document)
-    expect(react).toContain('export default function LooraDesign')
+    expect(react).toContain('export default function SheetDesign')
     expect(react).toContain("root.addEventListener('click', click)")
     expect(react).toContain('applyActions(actionsFor(target, trigger, scope)')
     expect(JSON.parse(serializeCanvasDocument(document))).toMatchObject({
-      schema: 'loora.canvas',
+      schema: 'sheet.canvas',
       version: 2,
       document: { schemaVersion: 2, id: 'doc' },
     })
@@ -206,7 +206,7 @@ describe('Canvas exports', () => {
     const jsx = compileJsxComponent(document, { nodeId: 'hero' })
     const tailwind = compileTailwindComponent(document, { nodeId: 'hero' })
 
-    expect(jsx).toContain('export default function LooraDesign')
+    expect(jsx).toContain('export default function SheetDesign')
     expect(jsx).toContain('style={{')
     expect(jsx).toContain('{"<script>alert(1)</script>"}')
     expect(jsx).not.toContain('dangerouslySetInnerHTML')
@@ -231,7 +231,7 @@ describe('Canvas exports', () => {
     const { css } = compileCanvas(document)
     const base = css
       .split('\n')
-      .find((rule) => rule.startsWith('.loora-headline{'))
+      .find((rule) => rule.startsWith('.sheet-headline{'))
 
     expect(base).toContain('font-size:32px')
     expect(css.match(/@media\(min-width:\d+px\)/g)).toEqual([
@@ -268,7 +268,7 @@ describe('Canvas exports', () => {
     }
     const { css } = compileCanvas(document)
     const rule = (id: string) =>
-      css.split('\n').find((line) => line.startsWith(`.loora-${id}{`))!
+      css.split('\n').find((line) => line.startsWith(`.sheet-${id}{`))!
 
     expect(rule('sidebar')).toContain('width:240px')
     expect(rule('sidebar')).toContain('flex-shrink:0')
@@ -303,7 +303,7 @@ describe('Canvas exports', () => {
 
     // A column stretches a filling child; a row hands it a share instead.
     expect(css).toContain('align-self:stretch')
-    expect(desktop).toContain('.loora-headline{')
+    expect(desktop).toContain('.sheet-headline{')
     expect(desktop).toContain('flex-grow:1')
     expect(desktop).toContain('flex-basis:0%')
   })
@@ -323,10 +323,10 @@ describe('Canvas exports', () => {
     const { css } = compileCanvas(document)
 
     expect(css).toContain(
-      '@media(max-width:1199.98px){.loora-headline{display:none}}',
+      '@media(max-width:1199.98px){.sheet-headline{display:none}}',
     )
     // An unbounded rule would keep hiding it past the desktop breakpoint.
-    expect(css).not.toContain('}.loora-headline{display:none}')
+    expect(css).not.toContain('}.sheet-headline{display:none}')
   })
 
   it('hides a node at one breakpoint only', () => {
@@ -343,7 +343,7 @@ describe('Canvas exports', () => {
     const { css } = compileCanvas(document)
 
     expect(css).toContain(
-      '@media(min-width:768px) and (max-width:1199.98px){.loora-headline{display:none}}',
+      '@media(min-width:768px) and (max-width:1199.98px){.sheet-headline{display:none}}',
     )
   })
 
@@ -373,7 +373,7 @@ describe('Canvas exports', () => {
         actions: [
           {
             type: 'open-url',
-            url: 'https://loora.design',
+            url: 'https://sheet.design',
             target: '_blank',
           },
         ],
@@ -381,10 +381,10 @@ describe('Canvas exports', () => {
     ]
     const html = compileStandaloneHtml(document)
     const tailwind = compileTailwindComponent(document)
-    expect(html).toContain('data-loora-interactions=')
-    expect(html).toContain('--loora-token-accent:#111111')
+    expect(html).toContain('data-sheet-interactions=')
+    expect(html).toContain('--sheet-token-accent:#111111')
     expect(html).toContain("action.type==='open-url'")
-    expect(tailwind).toContain('[--loora-token-accent:#111111]')
+    expect(tailwind).toContain('[--sheet-token-accent:#111111]')
     expect(tailwind).not.toContain('style={{')
   })
 
@@ -440,11 +440,11 @@ describe('Canvas exports', () => {
     const jsx = compileJsxComponent(document)
     const tailwind = compileTailwindComponent(document)
 
-    expect(compiled.html).toContain('data-loora-theme-values=')
+    expect(compiled.html).toContain('data-sheet-theme-values=')
     expect(compiled.runtime).toContain("action.type==='set-theme'")
     expect(react).toContain("action.type === 'set-theme'")
-    expect(jsx).toContain('data-loora-theme-values=')
-    expect(tailwind).toContain('data-loora-theme-values=')
+    expect(jsx).toContain('data-sheet-theme-values=')
+    expect(tailwind).toContain('data-sheet-theme-values=')
 
     const sandbox =
       globalThis.document.implementation.createHTMLDocument('theme-runtime')
@@ -457,14 +457,14 @@ describe('Canvas exports', () => {
     const click = sandbox.createEvent('Event')
     click.initEvent('click', true, true)
     sandbox
-      .querySelector('[data-loora-node="hero"]')!
+      .querySelector('[data-sheet-node="hero"]')!
       .dispatchEvent(click)
     const renderedPage = sandbox.querySelector<HTMLElement>(
-      '[data-loora-node="page"]',
+      '[data-sheet-node="page"]',
     )!
-    expect(renderedPage.dataset.looraTheme).toBe('focus')
+    expect(renderedPage.dataset.sheetTheme).toBe('focus')
     expect(
-      renderedPage.style.getPropertyValue('--loora-token-accent'),
+      renderedPage.style.getPropertyValue('--sheet-token-accent'),
     ).toBe('#f59e0b')
   })
 
@@ -522,16 +522,16 @@ describe('Canvas exports', () => {
     const jsx = compileJsxComponent(document)
     const tailwind = compileTailwindComponent(document)
 
-    expect(compiled.html).toContain('data-loora-states=')
+    expect(compiled.html).toContain('data-sheet-states=')
     expect(compiled.html).toContain('toggle-state')
     expect(compiled.runtime).toContain("action.type==='toggle-state'")
     expect(compiled.runtime).toContain('if(depth>20)return')
     expect(react).toContain('useState(0)')
     expect(react).toContain("handle('double-click')")
-    expect(jsx).toContain('data-loora-interactions=')
-    expect(tailwind).toContain('data-loora-states=')
-    expect(jsx).toContain('useLooraRuntime(rootRef)')
-    expect(tailwind).toContain('useLooraRuntime(rootRef)')
+    expect(jsx).toContain('data-sheet-interactions=')
+    expect(tailwind).toContain('data-sheet-states=')
+    expect(jsx).toContain('useSheetRuntime(rootRef)')
+    expect(tailwind).toContain('useSheetRuntime(rootRef)')
     expect(() => new Function(compiled.runtime)).not.toThrow()
     const transpiler = new Bun.Transpiler({ loader: 'tsx' })
     expect(() => transpiler.transformSync(react)).not.toThrow()
@@ -547,19 +547,19 @@ describe('Canvas exports', () => {
       { escape: (value: string) => value },
     )
     const headline = sandbox.querySelector<HTMLElement>(
-      '[data-loora-node="headline"]',
+      '[data-sheet-node="headline"]',
     )!
     expect(headline.hidden).toBe(true)
     const click = sandbox.createEvent('Event')
     click.initEvent('click', true, true)
     sandbox
-      .querySelector('[data-loora-node="hero"]')!
+      .querySelector('[data-sheet-node="hero"]')!
       .dispatchEvent(click)
     expect(headline.hidden).toBe(false)
     expect(
       sandbox
-        .querySelector('[data-loora-node="page"]')
-        ?.getAttribute('data-loora-state-values'),
+        .querySelector('[data-sheet-node="page"]')
+        ?.getAttribute('data-sheet-state-values'),
     ).toContain('"menuOpen":true')
   })
 
@@ -602,12 +602,12 @@ describe('Canvas exports', () => {
       },
     )
     const html = compileStandaloneHtml(document)
-    expect(html).toContain('data-loora-variant="hover"')
-    expect(html).toContain('data-loora-component-root="buttonInstance"')
+    expect(html).toContain('data-sheet-variant="hover"')
+    expect(html).toContain('data-sheet-component-root="buttonInstance"')
     expect(html).toContain('Hovered')
     expect(html).toContain('background:#0000ff')
     expect(html).toContain(
-      '[data-loora-node="buttonInstance"][data-loora-variant="hover"]',
+      '[data-sheet-node="buttonInstance"][data-sheet-variant="hover"]',
     )
     expect(html).toContain('setVariant(instance,variant)')
   })
@@ -688,14 +688,14 @@ describe('Canvas exports', () => {
     )
 
     const scopes = sandbox.querySelectorAll<HTMLElement>(
-      '[data-loora-component-root]',
+      '[data-sheet-component-root]',
     )
     expect(scopes).toHaveLength(2)
     const firstLabel = scopes[0]!.querySelector<HTMLElement>(
-      '[data-loora-node="label"]',
+      '[data-sheet-node="label"]',
     )!
     const secondLabel = scopes[1]!.querySelector<HTMLElement>(
-      '[data-loora-node="label"]',
+      '[data-sheet-node="label"]',
     )!
     expect(firstLabel.hidden).toBe(true)
     expect(secondLabel.hidden).toBe(true)
@@ -703,7 +703,7 @@ describe('Canvas exports', () => {
     const click = sandbox.createEvent('Event')
     click.initEvent('click', true, true)
     scopes[0]!
-      .querySelector('[data-loora-node="button"]')!
+      .querySelector('[data-sheet-node="button"]')!
       .dispatchEvent(click)
     expect(firstLabel.hidden).toBe(false)
     expect(secondLabel.hidden).toBe(true)
@@ -732,7 +732,7 @@ describe('Canvas exports', () => {
     const compiled = compileCanvas(document)
     const rule = compiled.css
       .split('\n')
-      .find((line) => line.startsWith('.loora-panel{'))!
+      .find((line) => line.startsWith('.sheet-panel{'))!
     expect(rule).toContain('display:flex')
     expect(rule.lastIndexOf('display:none')).toBeGreaterThan(
       rule.indexOf('display:flex'),
@@ -747,11 +747,11 @@ describe('Canvas exports', () => {
       { escape: (value: string) => value },
     )
     const panel = sandbox.querySelector<HTMLElement>(
-      '[data-loora-node="panel"]',
+      '[data-sheet-node="panel"]',
     )!
     const click = sandbox.createEvent('Event')
     click.initEvent('click', true, true)
-    sandbox.querySelector('[data-loora-node="hero"]')!.dispatchEvent(click)
+    sandbox.querySelector('[data-sheet-node="hero"]')!.dispatchEvent(click)
     expect(panel.hidden).toBe(false)
     expect(panel.style.display).toBe('')
   })

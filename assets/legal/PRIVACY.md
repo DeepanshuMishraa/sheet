@@ -4,16 +4,16 @@ Effective date: 30 July 2026
 
 Last updated: 30 July 2026
 
-This Privacy Policy explains how Lasse Vestergaard ("we", "us", or "our") collects, uses, shares, and protects personal data when you use Loora at [https://loora.design](https://loora.design) and related services such as [https://mcp.loora.design](https://mcp.loora.design) (the "Service").
+This Privacy Policy explains how Lasse Vestergaard ("we", "us", or "our") collects, uses, shares, and protects personal data when you use Sheet at [https://sheet.design](https://sheet.design) and related services such as [https://mcp.sheet.design](https://mcp.sheet.design) (the "Service").
 
 This document is a professional draft for owner and counsel review. It is not legal advice.
 
 ## 1. Who We Are
 
-- Product: Loora
+- Product: Sheet
 - Controller / operator: Lasse Vestergaard
-- Website: [https://loora.design](https://loora.design)
-- Contact: [support@loora.design](mailto:support@loora.design)
+- Website: [https://sheet.design](https://sheet.design)
+- Contact: [support@sheet.design](mailto:support@sheet.design)
 - Establishment: Denmark
 
 We have not appointed a separate DPO or EU representative. Contact us at the email above for privacy requests.
@@ -22,7 +22,7 @@ We have not appointed a separate DPO or EU representative. Contact us at the ema
 
 This policy covers:
 
-- The Loora web application and APIs
+- The Sheet web application and APIs
 - Account, billing, settings, and legal-consent surfaces
 - Design documents, branches/drafts, version history, and canvas transactions
 - Asset uploads and object storage
@@ -102,7 +102,7 @@ According to Databuddy's published materials:
 
 - **Anonymous / aggregated analytics.** IP addresses are hashed (with a rotating salt) for visitor counting; coarse location (for example country/region/city) may be derived, then the raw IP is discarded. Databuddy does not identify named individuals.
 - **No tracking cookies.** Analytics do not rely on advertising or tracking cookies. Optional local anonymous identifiers may use browser storage mechanisms other than cookies (for example localStorage) solely for anonymous continuity, not for cross-site advertising profiles.
-- **What Loora enables.** Our app configures Databuddy with web vitals, errors, hash-change tracking, attribute tracking, outgoing links, and interactions.
+- **What Sheet enables.** Our app configures Databuddy with web vitals, errors, hash-change tracking, attribute tracking, outgoing links, and interactions.
 - **Where Databuddy processes data.** Analytics databases are hosted in the EU (Hetzner, Germany per Databuddy's data policy), with additional partners for CDN/script delivery (Bunny.net), application hosting (Railway), dashboard hosting (Vercel), and ops tooling.
 - **Retention.** Most analytics data is retained while the Databuddy project/account is active; performance metrics are deleted after one year. Deleting the Databuddy project/account removes analytics data from their systems per their policy.
 
@@ -130,11 +130,11 @@ We share personal data with service providers that process it on our behalf or a
 | Analytics | Databuddy | Privacy-oriented product analytics (see §5); analytics data stored under Databuddy's EU-oriented infrastructure per their data policy |
 | Integrations | GitHub | Optional repository features |
 | MCP clients you authorize | Client of your choice (for example Claude, Cursor) | Design tools and context you allow |
-| Email / support | Your messages to support@loora.design | Support correspondence |
+| Email / support | Your messages to support@sheet.design | Support correspondence |
 
 ### Polar and payments
 
-For paid plans, Polar acts as merchant of record for applicable transactions. Polar processes customer and billing data to complete checkout, collect tax where applicable, manage subscriptions, and grant access. Polar's own privacy policy, data processing addendum, and sub-processor list apply to Polar's processing. Polar's public materials indicate that several of its infrastructure and payment sub-processors (including Stripe) process data primarily in the United States and other locations outside the EEA. Card payment details are collected by the payment stack; Loora does not store full payment card numbers.
+For paid plans, Polar acts as merchant of record for applicable transactions. Polar processes customer and billing data to complete checkout, collect tax where applicable, manage subscriptions, and grant access. Polar's own privacy policy, data processing addendum, and sub-processor list apply to Polar's processing. Polar's public materials indicate that several of its infrastructure and payment sub-processors (including Stripe) process data primarily in the United States and other locations outside the EEA. Card payment details are collected by the payment stack; Sheet does not store full payment card numbers.
 
 Providers only receive what is needed for their function. Handoff links intentionally make the linked design content available to anyone who has the link until expiry or revocation.
 
@@ -142,7 +142,7 @@ We may also disclose data if required by law, to protect rights and safety, or i
 
 ## 7. International Transfers
 
-### Primary application data (Loora-controlled infrastructure)
+### Primary application data (Sheet-controlled infrastructure)
 
 As currently configured:
 
@@ -174,7 +174,7 @@ We do **not** claim that all personal data remains exclusively in the EU while P
 - **Billing / tax records**: subscription and payment records may be retained by us and/or Polar as required for accounting, tax, dispute, and legal obligations, even after account deletion.
 - **Handoff tokens**: currently expire after 7 days by default (or sooner if revoked).
 - **Backups and logs**: may persist for a limited period until ordinary rotation/expiry. We do not promise a specific backup purge day count.
-- **Analytics (Databuddy)**: per Databuddy's published data policy, most analytics data is retained for as long as the Databuddy project/account remains active; performance metrics are deleted after one year. Removing the Databuddy project/account is the path to purge analytics from their systems. Loora does not currently offer an in-product control to wipe Databuddy history independently of that.
+- **Analytics (Databuddy)**: per Databuddy's published data policy, most analytics data is retained for as long as the Databuddy project/account remains active; performance metrics are deleted after one year. Removing the Databuddy project/account is the path to purge analytics from their systems. Sheet does not currently offer an in-product control to wipe Databuddy history independently of that.
 
 If you cancel a subscription but keep your account, your account content remains until you delete it or we close the account under the Terms.
 
@@ -192,9 +192,9 @@ If you are in the EEA/UK/Switzerland or otherwise protected by similar laws, you
 
 In Denmark, the supervisory authority is Datatilsynet ([https://www.datatilsynet.dk](https://www.datatilsynet.dk)).
 
-To exercise rights, email [support@loora.design](mailto:support@loora.design). You can also delete designs, assets, integrations, and your full account from the product where those controls exist.
+To exercise rights, email [support@sheet.design](mailto:support@sheet.design). You can also delete designs, assets, integrations, and your full account from the product where those controls exist.
 
-Export: you can export designs from the product's export features. For other personal-data export requests, email [support@loora.design](mailto:support@loora.design) and we will help you obtain a reasonable copy of the account data we hold about you.
+Export: you can export designs from the product's export features. For other personal-data export requests, email [support@sheet.design](mailto:support@sheet.design) and we will help you obtain a reasonable copy of the account data we hold about you.
 
 ## 10. Security
 
@@ -208,7 +208,7 @@ The Service is not directed to children under 16. We do not knowingly collect pe
 
 ## 12. Agents, MCP, And Related Processing
 
-Loora is designed so you can bring your own agent via MCP or handoff:
+Sheet is designed so you can bring your own agent via MCP or handoff:
 
 - When you authorize an MCP client, tool calls may read or mutate your designs using the same transaction path as the editor. The client receives the design context needed for those tools.
 - Handoff links package design data and token-scoped asset URLs for temporary access by a recipient or agent workflow.
@@ -218,7 +218,7 @@ We use these capabilities to provide the product features you request. We do not
 
 External AI clients and model providers are governed by their own terms and privacy practices. Do not send sensitive personal data to agents unless necessary.
 
-If Loora later offers first-party model inference through a specific provider, we will update this policy to describe that provider and any material data-handling details.
+If Sheet later offers first-party model inference through a specific provider, we will update this policy to describe that provider and any material data-handling details.
 
 ## 13. Changes To This Policy
 
@@ -226,4 +226,4 @@ We may update this Privacy Policy from time to time. We will post the updated po
 
 ## 14. Contact
 
-Privacy and data-protection requests: [support@loora.design](mailto:support@loora.design)
+Privacy and data-protection requests: [support@sheet.design](mailto:support@sheet.design)

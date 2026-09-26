@@ -20,6 +20,7 @@ import {
   useCanvasSelection,
   useCanvasSession,
   useCanvasTransaction,
+  type CanvasPenStroke,
   type CanvasSurfaceControls,
 } from './react'
 
@@ -176,7 +177,7 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const style = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
         .style
 
     expect(style('sidebar').width).toBe('240px')
@@ -185,6 +186,42 @@ describe('Canvas React surface', () => {
     expect(style('body').flexBasis).toBe('0%')
     expect(style('body').width).toBe('')
     expect(style('body').height).toBe('fit-content')
+  })
+
+  it('captures pen strokes inside an absolute container', () => {
+    let stroke: CanvasPenStroke | null = null
+    const view = render(
+      <CanvasProvider engine={new CanvasEngine(fixture())}>
+        <CanvasSurface
+          interactionMode="pen"
+          initialCamera={{ x: 0, y: 0, zoom: 1 }}
+          onPenStroke={(next) => {
+            stroke = next
+          }}
+        />
+      </CanvasProvider>,
+    )
+    const surface = view.container.querySelector<HTMLElement>(
+      '[data-sheet-canvas-surface]',
+    )
+    const page = view.container.querySelector<HTMLElement>(
+      '[data-sheet-node="page"]',
+    )
+    if (!surface || !page) throw new Error('Canvas surface did not render')
+    surface.setPointerCapture = () => undefined
+    stubRect(surface, { left: 0, top: 0, width: 800, height: 600 })
+    stubRect(page, { left: 100, top: 80, width: 600, height: 400 })
+
+    withHits([page], () => {
+      fireEvent.pointerDown(surface, { button: 0, pointerId: 1, clientX: 120, clientY: 110 })
+      fireEvent.pointerMove(surface, { button: 0, pointerId: 1, clientX: 150, clientY: 140 })
+      fireEvent.pointerUp(surface, { button: 0, pointerId: 1, clientX: 150, clientY: 140 })
+    })
+
+    expect(stroke).toEqual({
+      parentId: 'page',
+      points: [{ x: 20, y: 30 }, { x: 50, y: 60 }],
+    })
   })
 
   it('routes text-edit signals only to the requested node', () => {
@@ -229,7 +266,7 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const scene = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-scene]',
+      '[data-sheet-canvas-scene]',
     )!
     expect(scene.style.willChange).toBe('transform')
     await waitFor(() => expect(scene.style.willChange).toBe('auto'), {
@@ -244,7 +281,7 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )
     expect(surface?.style.backgroundColor).toBe(
       'var(--cx-canvas, #f3f3f5)',
@@ -273,7 +310,7 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const page = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="page"]',
+      '[data-sheet-node="page"]',
     )!
     expect(page.style.width).toBe('800px')
 
@@ -324,17 +361,17 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const page = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="page"]',
+      '[data-sheet-node="page"]',
     )!
     const frame = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="frame"]',
+      '[data-sheet-node="frame"]',
     )!
     const text = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="text"]',
+      '[data-sheet-node="text"]',
     )!
     const originalElementsFromPoint = document.elementsFromPoint
     Object.defineProperty(document, 'elementsFromPoint', {
@@ -347,16 +384,16 @@ describe('Canvas React surface', () => {
       fireEvent.pointerDown(surface, { button: 0, clientX: 40, clientY: 40 })
       expect(view.getByTestId('selection').textContent).toBe(':frame')
       expect(
-        view.container.querySelectorAll('[data-loora-viewport-overlay]'),
+        view.container.querySelectorAll('[data-sheet-viewport-overlay]'),
       ).toHaveLength(1)
       expect(
         view.container.querySelector(
-          '[data-loora-viewport-overlay] [data-loora-marquee]',
+          '[data-sheet-viewport-overlay] [data-sheet-marquee]',
         ),
       ).not.toBeNull()
       expect(
         view.container.querySelectorAll(
-          '[data-loora-viewport-overlay] [data-loora-guide]',
+          '[data-sheet-viewport-overlay] [data-sheet-guide]',
         ),
       ).toHaveLength(2)
 
@@ -418,7 +455,7 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     await waitFor(() =>
-      expect(view.container.querySelector('[data-loora-node="text"]')).not.toBeNull(),
+      expect(view.container.querySelector('[data-sheet-node="text"]')).not.toBeNull(),
     )
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(engine.getNode('frame')?.layout.x).toBe(1)
@@ -447,17 +484,17 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const element = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
     stubRect(element('page'), { left: 0, top: 0, width: 400, height: 300 })
     stubRect(element('first'), { left: 0, top: 0, width: 400, height: 100 })
     stubRect(element('second'), { left: 0, top: 100, width: 400, height: 100 })
     stubRect(element('third'), { left: 0, top: 200, width: 400, height: 100 })
     const dropLine = view.container.querySelector<SVGLineElement>(
-      '[data-loora-drop-line]',
+      '[data-sheet-drop-line]',
     )!
 
     withHits([element('first'), element('page')], () => {
@@ -502,11 +539,11 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const element = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
     stubRect(element('page'), { left: 100, top: 100, width: 400, height: 600 })
     stubRect(element('card'), { left: 100, top: 100, width: 400, height: 200 })
 
@@ -560,11 +597,11 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const element = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
     stubRect(element('first'), { top: 0, height: 100 })
     stubRect(element('second'), { top: 100, height: 100 })
     stubRect(element('third'), { top: 200, height: 100 })
@@ -597,11 +634,11 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const element = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
     stubRect(element('page'), { left: 100, top: 100, width: 1_440, height: 900 })
     stubRect(element('card'), { left: 140, top: 260, width: 320, height: 200 })
 
@@ -648,14 +685,14 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const page = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="page"]',
+      '[data-sheet-node="page"]',
     )!
     const card = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="card"]',
+      '[data-sheet-node="card"]',
     )!
     stubRect(page, { left: 100, top: 100, width: 800, height: 600 })
     stubRect(card, { left: 200, top: 200, width: 200, height: 100 })
@@ -674,10 +711,10 @@ describe('Canvas React surface', () => {
     })
 
     const verticalGuide = view.container.querySelector<SVGLineElement>(
-      '[data-loora-guide="vertical"]',
+      '[data-sheet-guide="vertical"]',
     )!
     const horizontalGuide = view.container.querySelector<SVGLineElement>(
-      '[data-loora-guide="horizontal"]',
+      '[data-sheet-guide="horizontal"]',
     )!
     await waitFor(() => {
       expect(verticalGuide.style.display).toBe('block')
@@ -729,14 +766,14 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     surface.setPointerCapture = () => undefined
     const page = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="page"]',
+      '[data-sheet-node="page"]',
     )!
     const card = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="card"]',
+      '[data-sheet-node="card"]',
     )!
     stubRect(page, { left: 100, top: 100, width: 800, height: 600 })
     stubRect(card, { left: 100, top: 100, width: 900, height: 700 })
@@ -798,10 +835,10 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     const element = (id: string) =>
-      view.container.querySelector<HTMLElement>(`[data-loora-node="${id}"]`)!
+      view.container.querySelector<HTMLElement>(`[data-sheet-node="${id}"]`)!
     stubRect(element('page'), { left: 0, top: 0, width: 1_440, height: 900 })
     stubRect(element('first'), { top: 0, height: 100 })
     stubRect(element('second'), { top: 100, height: 100 })
@@ -848,7 +885,7 @@ describe('Canvas React surface', () => {
     )
     const text = await waitFor(() => {
       const element = view.container.querySelector<HTMLElement>(
-        '[data-loora-node="text"]',
+        '[data-sheet-node="text"]',
       )
       expect(element).not.toBeNull()
       return element!
@@ -875,7 +912,7 @@ describe('Canvas React surface', () => {
     )
     const label = await waitFor(() => {
       const element = view.container.querySelector<SVGGElement>(
-        '[data-loora-selection-label]',
+        '[data-sheet-selection-label]',
       )
       expect(element).not.toBeNull()
       return element!
@@ -906,10 +943,10 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     const text = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="text"]',
+      '[data-sheet-node="text"]',
     )!
 
     withHits([text], () => {
@@ -927,10 +964,10 @@ describe('Canvas React surface', () => {
       </CanvasProvider>,
     )
     const surface = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-surface]',
+      '[data-sheet-canvas-surface]',
     )!
     const scene = view.container.querySelector<HTMLElement>(
-      '[data-loora-canvas-scene]',
+      '[data-sheet-canvas-scene]',
     )!
     stubRect(surface, { left: 0, top: 0, width: 1_000, height: 700 })
     const before = scene.style.transform
@@ -1004,11 +1041,11 @@ describe('Canvas React surface', () => {
     )
     await waitFor(() =>
       expect(
-        view.container.querySelector('[data-loora-node="label"]')?.textContent,
+        view.container.querySelector('[data-sheet-node="label"]')?.textContent,
       ).toBe('Hovered'),
     )
     const componentRoot = view.container.querySelector<HTMLElement>(
-      '[data-loora-node="component"][data-loora-instance-path="instance"]',
+      '[data-sheet-node="component"][data-sheet-instance-path="instance"]',
     )
     expect(componentRoot?.style.background).toBe('rgb(255, 0, 0)')
   })
@@ -1022,7 +1059,7 @@ describe('Canvas React surface', () => {
     )
     const outline = await waitFor(() => {
       const node = view.container.querySelector<SVGRectElement>(
-        '[data-loora-selection-overlay] rect',
+        '[data-sheet-selection-overlay] rect',
       )
       if (!node) throw new Error('No selection overlay')
       return node

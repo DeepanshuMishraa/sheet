@@ -50,7 +50,7 @@ function faceCss(
 
 /**
  * @font-face rules for every vendored family named in `families`.
- * `fontOrigin` makes src absolute (e.g. https://loora.design); omit for
+ * `fontOrigin` makes src absolute (e.g. https://sheet.design); omit for
  * same-origin `/vendor/fonts/…` paths (published sites on the app host).
  */
 export function vendorFontFaceCss(

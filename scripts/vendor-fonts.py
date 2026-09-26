@@ -24,13 +24,36 @@ CSS_URL = (
     "family=Inter:wght@400;500;600;700&"
     "family=Space+Grotesk:wght@400;500;600;700&"
     "family=Playfair+Display:wght@400;600;700&"
-    "family=Lora:wght@400;500;600&display=swap"
+    "family=Lora:wght@400;500;600&"
+    "family=Geist:wght@400;500;600;700&"
+    "family=Geist+Mono:wght@400;500;600;700&"
+    "family=JetBrains+Mono:wght@400;500;600;700&"
+    "family=Space+Mono:wght@400;700&"
+    "family=IBM+Plex+Sans:wght@400;500;600;700&"
+    "family=IBM+Plex+Mono:wght@400;500;600;700&"
+    "family=Fira+Code:wght@400;500;600;700&"
+    "family=Roboto+Mono:wght@400;500;600;700&"
+    "family=DM+Sans:wght@400;500;600;700&"
+    "family=Manrope:wght@400;500;600;700&"
+    "family=Outfit:wght@400;500;600;700&display=swap"
 )
 SUBSETS = ("latin", "latin-ext")
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FONT_DIR = ROOT / "apps/desktop/public/vendor/fonts"
 CSS_FILE = ROOT / "apps/desktop/public/vendor/fonts.css"
 SANDBOX_CSS_FILE = ROOT / "apps/desktop/public/vendor/fonts-sandbox.css"
+
+# Paper Mono is not on Google Fonts — it ships from its own GitHub releases
+# (paper-design/paper-mono, OFL-1.1). The variable webfont covers Thin (100)
+# through ExtraBold (800) in one file.
+PAPER_MONO_VERSION = "0.300"
+PAPER_MONO_URL = (
+    "https://github.com/paper-design/paper-mono/releases/download/"
+    f"v{PAPER_MONO_VERSION}/paper-mono-v{PAPER_MONO_VERSION}.zip"
+)
+PAPER_MONO_MEMBER = (
+    f"paper-mono-v{PAPER_MONO_VERSION}/fonts/webfonts/PaperMono[wght].woff2"
+)
 
 
 def fetch(url: str) -> bytes:
@@ -95,6 +118,32 @@ def main() -> None:
         lines.append(face(f"/vendor/fonts/{name}"))
         sandbox_lines.append(face(inline))
         count += 1
+
+    # Paper Mono rides along from GitHub releases rather than Google Fonts.
+    import io
+    import zipfile
+
+    paper_zip = zipfile.ZipFile(io.BytesIO(fetch(PAPER_MONO_URL)))
+    paper_data = paper_zip.read(PAPER_MONO_MEMBER)
+    (FONT_DIR / "paper-mono.woff2").write_bytes(paper_data)
+    paper_inline = "data:font/woff2;base64," + base64.b64encode(paper_data).decode()
+
+    def paper_face(src: str) -> str:
+        return "\n".join([
+            "/* variable Thin (100) through ExtraBold (800) */",
+            "@font-face {",
+            "  font-family: 'Paper Mono';",
+            "  font-style: normal;",
+            "  font-weight: 100 800;",
+            "  font-display: swap;",
+            f"  src: url({src}) format('woff2');",
+            "}",
+            "",
+        ])
+
+    lines.append(paper_face("/vendor/fonts/paper-mono.woff2"))
+    sandbox_lines.append(paper_face(paper_inline))
+    count += 1
 
     CSS_FILE.write_text("\n".join(lines))
     SANDBOX_CSS_FILE.write_text("\n".join(sandbox_lines))

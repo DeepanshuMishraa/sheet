@@ -1,8 +1,8 @@
-# Loora for desktop
+# Sheet for desktop
 
 A real [Tauri](https://v2.tauri.app/) application over the shared interface,
-built by Vite from the same packages (`@loora/shell`,
-`@loora/editor`, `@loora/ui`, `@loora/canvas`).
+built by Vite from the same packages (`@sheet/shell`,
+`@sheet/editor`, `@sheet/ui`, `@sheet/canvas`).
 
 Local-first: no accounts, no sign-in, no billing. One user, one SQLite file,
 and the app starts its own server on loopback for both the editor API and
@@ -21,7 +21,7 @@ bun run build:desktop    # Vite interface + compiled server sidecar + native Tau
 
 **The host** (`src-tauri/`) runs under Rust. It serves a loopback HTTP
 server, opens the window on it, and on startup spawns the compiled local
-server (`src-tauri/binaries/loora-server`, built by `build:server`) with the
+server (`src-tauri/binaries/sheet-server`, built by `build:server`) with the
 app-data SQLite path. Everything the window asks for under `/api/*` is
 forwarded to that server — `/api/asset/…` images, the event stream, and oRPC
 all behave exactly as they do over the network, except nothing leaves the
@@ -46,8 +46,8 @@ stream.
 ## Data
 
 Designs, branches, versions, the transaction log, assets, and preferences
-live in one SQLite file: the OS app-data dir (`Loora/loora.db`, `loora/loora.db`
-on Linux), overridable with `LOORA_DATA_DIR`. Back it up by copying the file.
+live in one SQLite file: the OS app-data dir (`Sheet/sheet.db`, `sheet/sheet.db`
+on Linux), overridable with `SHEET_DATA_DIR`. Back it up by copying the file.
 Handoff links are HMAC-signed with a key in `handoff.key` beside it.
 
 ## What is not here
@@ -59,18 +59,20 @@ a browser rather than followed in the window.
 
 ## Title bar
 
-The window keeps the platform's own opaque title bar so traffic lights and
-window controls never overlap the editor's top-left canvas controls.
+On macOS, the native title bar overlays the app toolbar. macOS keeps ownership
+of the traffic lights, rounded window frame, shadows, and standard window
+behavior. The app toolbar reserves their space and marks its empty areas as
+native drag regions.
 
 ## Configuration
 
 | Variable | Meaning |
 |----------|---------|
-| `LOORA_API_ORIGIN` | Local server to talk to (default `http://127.0.0.1:4100`) |
-| `LOORA_MCP_PORT` | Port the sidecar listens on (default `4100`) |
-| `LOORA_DATA_DIR` | Where `loora.db` + `handoff.key` live (default OS app-data dir) |
-| `LOORA_SERVER_BIN` | Local server binary override (default the bundled sidecar) |
-| `LOORA_DESKTOP_PORT` | Loopback port for the host (default: one the OS picks; `4300` in development) |
-| `LOORA_DESKTOP_DEV_SERVER` | Vite dev server the window is handed to |
-| `LOORA_DESKTOP_APP_PORT` | Port for that dev server (default `1421`) |
-| `VITE_LOORA_APP_ORIGIN` | Origin for links meant for a browser (default `http://127.0.0.1:4100`) |
+| `SHEET_API_ORIGIN` | Local server to talk to (default `http://127.0.0.1:4100`) |
+| `SHEET_MCP_PORT` | Port the sidecar listens on (default `4100`) |
+| `SHEET_DATA_DIR` | Where `sheet.db` + `handoff.key` live (default OS app-data dir) |
+| `SHEET_SERVER_BIN` | Local server binary override (default the bundled sidecar) |
+| `SHEET_DESKTOP_PORT` | Loopback port for the host (default: one the OS picks; `4300` in development) |
+| `SHEET_DESKTOP_DEV_SERVER` | Vite dev server the window is handed to |
+| `SHEET_DESKTOP_APP_PORT` | Port for that dev server (default `1421`) |
+| `VITE_SHEET_APP_ORIGIN` | Origin for links meant for a browser (default `http://127.0.0.1:4100`) |

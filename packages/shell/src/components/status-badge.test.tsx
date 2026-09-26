@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, vi, test } from 'vitest'
 import { render, screen, waitFor, cleanup } from '@testing-library/react'
-import { configureRuntime } from '@loora/platform'
+import { configureRuntime } from '@sheet/platform'
 import { StatusBadge } from './status-badge'
 
 const realFetch = globalThis.fetch
@@ -24,7 +24,7 @@ describe('StatusBadge', () => {
     mockSummary({ page: { status: 'UP' } })
     render(<StatusBadge />)
     await waitFor(() => expect(screen.getByText('All systems normal')).toBeTruthy())
-    expect(screen.getByRole('link').getAttribute('href')).toBe('https://loora.instatus.com')
+    expect(screen.getByRole('link').getAttribute('href')).toBe('https://sheet.instatus.com')
   })
 
   test('names the active incident when there is one', async () => {

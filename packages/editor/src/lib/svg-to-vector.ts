@@ -1,4 +1,4 @@
-import type { CanvasColor } from '@loora/canvas/model'
+import type { CanvasColor } from '@sheet/canvas/model'
 
 export interface VectorDescriptor {
   viewBox: string

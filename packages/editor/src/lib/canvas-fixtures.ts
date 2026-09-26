@@ -6,7 +6,7 @@ import {
   defaultLayout,
   defaultStyle,
   type CanvasDocument,
-} from '@loora/canvas/model'
+} from '@sheet/canvas/model'
 
 /**
  * A new document opens empty: one blank Page and nothing else. The demo

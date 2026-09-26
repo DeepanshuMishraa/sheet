@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'loora:ui-scale'
+const STORAGE_KEY = 'sheet:ui-scale'
 
 /**
  * Interface scale, applied as the root font size. Everything in the app chrome

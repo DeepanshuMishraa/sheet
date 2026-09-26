@@ -1,5 +1,5 @@
 import { createEmptyCanvas } from './canvas-fixtures'
-import { orpc } from '@loora/rpc/client'
+import { orpc } from '@sheet/rpc/client'
 
 export interface DesignSummary {
   id: string

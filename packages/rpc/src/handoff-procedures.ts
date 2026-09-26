@@ -4,8 +4,8 @@ import {
   eq,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
-import { design } from '@loora/db/schema'
+import { db } from '@sheet/db'
+import { design } from '@sheet/db/schema'
 import { getOwnedDraft } from './branches'
 import { createHandoffToken } from './handoff-token'
 import {

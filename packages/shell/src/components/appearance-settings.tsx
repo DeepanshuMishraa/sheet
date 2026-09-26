@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { PencilIcon, PlusIcon } from '@loora/ui/icons'
-import { Button } from '@loora/ui/button'
+import { PencilIcon, PlusIcon } from '@sheet/ui/icons'
+import { Button } from '@sheet/ui/button'
 import {
   Dialog,
   DialogDescription,
@@ -9,9 +9,18 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from '@loora/ui/dialog'
-import { Input } from '@loora/ui/input'
-import { cn } from '@loora/ui/utils'
+} from '@sheet/ui/dialog'
+import { Input } from '@sheet/ui/input'
+import {
+  Select,
+  SelectGroup,
+  SelectGroupLabel,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from '@sheet/ui/select'
+import { cn } from '@sheet/ui/utils'
 import {
   DARK_PRESET,
   deleteCustomTheme,
@@ -36,6 +45,20 @@ import {
   UI_SCALES,
   type UiScale,
 } from '../lib/ui-scale'
+import {
+  DEFAULT_UI_MONO,
+  DEFAULT_UI_SANS,
+  getUiMonoFont,
+  getUiSansFont,
+  setUiMonoFont,
+  setUiSansFont,
+  uiInterfaceFontMeta,
+  uiMonoStack,
+  UI_MONO_FONTS,
+  UI_SANS_FONTS,
+  type UiInterfaceFontId,
+  type UiMonoFontId,
+} from '../lib/ui-font'
 
 type ThemeOption = {
   value: ThemePreference
@@ -160,7 +183,7 @@ function ThemeEditor({
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit theme' : 'New theme'}</DialogTitle>
           <DialogDescription>
-            Saved in this browser only. Loora derives the rest of the palette — tints, inputs,
+            Saved in this browser only. Sheet derives the rest of the palette — tints, inputs,
             and focus rings — from these five colours.
           </DialogDescription>
         </DialogHeader>
@@ -280,6 +303,8 @@ const optionClassName = (selected: boolean) =>
 export function AppearanceSettings({ className }: { className?: string }) {
   const [theme, setTheme] = useState<ThemePreference>(DEFAULT_THEME)
   const [scale, setScale] = useState<UiScale>(DEFAULT_UI_SCALE)
+  const [sans, setSans] = useState<UiInterfaceFontId>(DEFAULT_UI_SANS)
+  const [mono, setMono] = useState<UiMonoFontId>(DEFAULT_UI_MONO)
 
   const [custom, setCustom] = useState<CustomTheme[]>([])
   const [editorOpen, setEditorOpen] = useState(false)
@@ -288,6 +313,8 @@ export function AppearanceSettings({ className }: { className?: string }) {
   useEffect(() => {
     setTheme(getThemePreference())
     setScale(getUiScale())
+    setSans(getUiSansFont())
+    setMono(getUiMonoFont())
     setCustom(getCustomThemes())
   }, [])
 
@@ -300,7 +327,7 @@ export function AppearanceSettings({ className }: { className?: string }) {
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">Theme</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Choose how Loora’s workspace looks. System follows your device; your own themes
+              Choose how Sheet’s workspace looks. System follows your device; your own themes
               stay in this browser.
             </p>
           </div>
@@ -377,6 +404,86 @@ export function AppearanceSettings({ className }: { className?: string }) {
           }
         }}
       />
+
+      <section className="flex flex-col gap-2">
+        <div>
+          <h2 className="text-sm font-semibold">Interface font</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The typeface for menus, panels, and text across the app. Your designs keep their
+            own fonts.
+          </p>
+        </div>
+        <Select
+          value={sans}
+          onValueChange={(next: UiInterfaceFontId | null) => {
+            if (next === null) return
+            setSans(next)
+            setUiSansFont(next)
+          }}
+        >
+          <SelectTrigger
+            aria-label="Interface font"
+            style={{ fontFamily: uiInterfaceFontMeta(sans).stack }}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            <SelectGroup>
+              <SelectGroupLabel>Sans</SelectGroupLabel>
+              {UI_SANS_FONTS.map((font) => (
+                <SelectItem key={font.id} value={font.id}>
+                  <span title={font.hint} style={{ fontFamily: font.stack }}>
+                    {font.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectGroupLabel>Monospace</SelectGroupLabel>
+              {UI_MONO_FONTS.map((font) => (
+                <SelectItem key={font.id} value={font.id}>
+                  <span title={font.hint} style={{ fontFamily: font.stack }}>
+                    {font.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectPopup>
+        </Select>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <div>
+          <h2 className="text-sm font-semibold">Monospace font</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The typeface for code, shortcuts, and numeric readouts in the chrome.
+          </p>
+        </div>
+        <Select
+          value={mono}
+          onValueChange={(next: UiMonoFontId | null) => {
+            if (next === null) return
+            setMono(next)
+            setUiMonoFont(next)
+          }}
+        >
+          <SelectTrigger
+            aria-label="Monospace font"
+            style={{ fontFamily: uiMonoStack(mono) }}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            {UI_MONO_FONTS.map((font) => (
+              <SelectItem key={font.id} value={font.id}>
+                <span title={font.hint} style={{ fontFamily: font.stack }}>
+                  {font.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+      </section>
 
       <section className="flex flex-col gap-2">
         <div>

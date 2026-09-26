@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest'
-import { createCanvasDocument } from '@loora/canvas/model'
-import { configureRuntime } from '@loora/platform'
+import { createCanvasDocument } from '@sheet/canvas/model'
+import { configureRuntime } from '@sheet/platform'
 
-vi.doMock('@loora/rpc/client', () => ({
+vi.doMock('@sheet/rpc/client', () => ({
   orpc: {
     canvas: {
       get: vi.fn(async () => ({ document: createCanvasDocument('Test', 'test'), revision: 0 })),
@@ -60,7 +60,7 @@ async function openController() {
 
 describe('presence transport', () => {
   beforeEach(() => {
-    configureRuntime({ apiOrigin: 'https://api.loora.test' })
+    configureRuntime({ apiOrigin: 'https://api.sheet.test' })
   })
 
   afterEach(() => {
@@ -79,7 +79,7 @@ describe('presence transport', () => {
     expect(
       calls.some(
         (call) =>
-          call.url === 'https://api.loora.test/api/realtime-ticket' &&
+          call.url === 'https://api.sheet.test/api/realtime-ticket' &&
           call.credentials === 'include',
       ),
     ).toBe(true)
@@ -120,11 +120,11 @@ describe('presence transport', () => {
     })
     expect(presence.at(-1)?.credentials).toBe('include')
     expect(presence.at(-1)?.url).toBe(
-      'https://api.loora.test/api/canvas-presence',
+      'https://api.sheet.test/api/canvas-presence',
     )
     expect(eventSource).toMatchObject({
       url: expect.stringContaining(
-        'https://api.loora.test/api/canvas-events?designId=design-1',
+        'https://api.sheet.test/api/canvas-events?designId=design-1',
       ),
       withCredentials: true,
     })

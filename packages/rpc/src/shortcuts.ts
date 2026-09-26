@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { BuiltInShortcutId, ShortcutConfig } from '@loora/db/shortcuts'
-import { EMPTY_SHORTCUT_CONFIG } from '@loora/db/shortcuts'
+import type { BuiltInShortcutId, ShortcutConfig } from '@sheet/db/shortcuts'
+import { EMPTY_SHORTCUT_CONFIG } from '@sheet/db/shortcuts'
 
 const BUILTIN_IDS = [
   'undo',

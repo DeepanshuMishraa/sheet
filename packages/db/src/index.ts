@@ -9,7 +9,7 @@ import * as schema from './schema'
 export const LOCAL_USER_ID = 'local'
 
 function sqlitePath() {
-  return process.env.LOORA_SQLITE_PATH?.trim() || './data/loora.db'
+  return process.env.SHEET_SQLITE_PATH?.trim() || './data/sheet.db'
 }
 
 function openDatabase() {
@@ -36,6 +36,6 @@ export async function checkDatabaseConnection() {
 export async function ensureLocalUser() {
   await db
     .insert(schema.user)
-    .values({ id: LOCAL_USER_ID, name: 'Local', email: 'local@loora.design' })
+    .values({ id: LOCAL_USER_ID, name: 'Local', email: 'local@sheet.design' })
     .onConflictDoNothing()
 }

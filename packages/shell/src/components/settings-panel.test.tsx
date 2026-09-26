@@ -5,7 +5,7 @@ import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 const TabsContext = createContext('')
 
-vi.doMock('@loora/ui/tabs', () => ({
+vi.doMock('@sheet/ui/tabs', () => ({
   Tabs: ({ value, children }: { value: string; children: ReactNode }) => (
     <TabsContext.Provider value={value}>{children}</TabsContext.Provider>
   ),
@@ -20,7 +20,7 @@ vi.doMock('@loora/ui/tabs', () => ({
 // `vi.doMock` is process-global, so this stub is what every later test file
 // in the run sees too — the canvas panels render their header buttons through
 // PanelShell. Keep the shape of the real thing: title, actions, close, body.
-vi.doMock('@loora/ui/panel-shell', () => ({
+vi.doMock('@sheet/ui/panel-shell', () => ({
   PanelShell: ({
     title,
     actions,
@@ -68,14 +68,22 @@ function renderSettings(searchParams = '') {
 
 describe('SettingsPanel', () => {
   beforeEach(() => {
-    window.localStorage.removeItem('loora:theme')
+    window.localStorage.removeItem('sheet:theme')
+    window.localStorage.removeItem('sheet:ui-sans')
+    window.localStorage.removeItem('sheet:ui-mono')
     document.documentElement.classList.remove('dark')
+    document.documentElement.style.removeProperty('--sheet-font-sans')
+    document.documentElement.style.removeProperty('--sheet-font-mono')
   })
 
   afterEach(() => {
     cleanup()
-    window.localStorage.removeItem('loora:theme')
+    window.localStorage.removeItem('sheet:theme')
+    window.localStorage.removeItem('sheet:ui-sans')
+    window.localStorage.removeItem('sheet:ui-mono')
     document.documentElement.classList.remove('dark')
+    document.documentElement.style.removeProperty('--sheet-font-sans')
+    document.documentElement.style.removeProperty('--sheet-font-mono')
   })
 
   test('opens on appearance with no account surface', async () => {
@@ -83,7 +91,7 @@ describe('SettingsPanel', () => {
 
     expect(await screen.findByRole('tab', { name: 'Appearance' })).toBeTruthy()
     expect(screen.queryByRole('tab', { name: 'Account' })).toBeNull()
-    expect(screen.queryByText('Signed in to loora.')).toBeNull()
+    expect(screen.queryByText('Signed in to sheet.')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
   })
 
@@ -100,7 +108,27 @@ describe('SettingsPanel', () => {
     fireEvent.click(dark)
 
     expect(dark.getAttribute('aria-pressed')).toBe('true')
-    expect(window.localStorage.getItem('loora:theme')).toBe('dark')
+    expect(window.localStorage.getItem('sheet:theme')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
+  })
+
+  test('picks the interface font from the grouped dropdown', async () => {
+    renderSettings()
+
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Interface font' }))
+
+    // Sans and Monospace groups, each option set in its own face.
+    expect(await screen.findByText('Sans')).toBeTruthy()
+    expect(screen.getByText('Monospace')).toBeTruthy()
+
+    // Base UI only honours a mouse click that starts on the item.
+    const option = await screen.findByRole('option', { name: 'JetBrains Mono' })
+    fireEvent.pointerDown(option)
+    fireEvent.click(option)
+
+    expect(window.localStorage.getItem('sheet:ui-sans')).toBe('jetbrains-mono')
+    expect(
+      document.documentElement.style.getPropertyValue('--sheet-font-sans'),
+    ).toContain('JetBrains Mono')
   })
 })

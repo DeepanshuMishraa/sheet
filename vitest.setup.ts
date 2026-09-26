@@ -4,7 +4,7 @@
 import { JSDOM } from 'jsdom'
 import { afterEach } from 'vitest'
 
-process.env.LOORA_SQLITE_PATH ??= ':memory:'
+process.env.SHEET_SQLITE_PATH ??= ':memory:'
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   url: 'http://localhost/',

@@ -6,8 +6,8 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
-const hostPort = process.env.LOORA_DESKTOP_PORT ?? '4300'
-const appPort = process.env.LOORA_DESKTOP_APP_PORT ?? '1421'
+const hostPort = process.env.SHEET_DESKTOP_PORT ?? '4300'
+const appPort = process.env.SHEET_DESKTOP_APP_PORT ?? '1421'
 const host = `http://127.0.0.1:${hostPort}`
 
 /** Self-hosted vendor files live with the desktop app; served + bundled. */
@@ -15,7 +15,7 @@ const fontsDirectory = fileURLToPath(new URL('./public/vendor/', import.meta.url
 
 function vendorFonts(): Plugin {
   return {
-    name: 'loora:vendor-fonts',
+    name: 'sheet:vendor-fonts',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const path = request.url?.split('?')[0]

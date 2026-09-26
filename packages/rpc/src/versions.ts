@@ -8,18 +8,18 @@ import {
   or,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@loora/db'
+import { db } from '@sheet/db'
 import {
   design,
   designDraft,
   designVersion,
-} from '@loora/db/schema'
+} from '@sheet/db/schema'
 import {
   CANVAS_SCHEMA_VERSION,
   createCanvasDocument,
   parseCanvasDocument,
-} from '@loora/canvas/model'
-import { diffDocuments } from '@loora/canvas/merge'
+} from '@sheet/canvas/model'
+import { diffDocuments } from '@sheet/canvas/merge'
 import { getOwnedDraft } from './branches'
 import { canvasTargetInput } from './canvas-procedures'
 import { sortCommitsOldestFirst, toHistoryPage } from './history'
