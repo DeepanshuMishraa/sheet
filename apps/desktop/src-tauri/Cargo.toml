@@ -1,0 +1,31 @@
+[package]
+name = "loora-desktop"
+version = "0.1.0"
+description = "Loora desktop host"
+authors = ["Loora"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+axum = { version = "0.8" }
+base64 = "0.22"
+dirs = "6"
+http-body-util = "0.1"
+mime_guess = "2"
+rand = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+subtle = "2"
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["fs", "macros", "net", "process", "rt-multi-thread", "sync"] }
+url = "2"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

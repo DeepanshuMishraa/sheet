@@ -1,0 +1,30 @@
+{
+  "name": "@loora/rpc",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/router.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "repair-layout": "bun run scripts/repair-canvas-layout.ts",
+    "backfill-asset-urls": "bun run scripts/backfill-asset-urls.ts",
+    "dump-mcp-tools": "bun run scripts/dump-mcp-tools.ts"
+  },
+  "dependencies": {
+    "@loora/agent": "workspace:*",
+    "@loora/canvas": "workspace:*",
+    "@loora/db": "workspace:*",
+    "@loora/platform": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.21.0",
+    "@orpc/client": "^1.14.8",
+    "@orpc/server": "^1.14.8",
+    "drizzle-orm": "catalog:",
+    "playwright-core": "^1.61.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/bun": "^1.3.14"
+  }
+}

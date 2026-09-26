@@ -1,0 +1,53 @@
+# `@loora/mcp`
+
+The Loora local server. One Bun process serves everything over SQLite:
+
+| Route | Purpose |
+|-------|---------|
+| `POST` `/mcp` | MCP JSON-RPC (Streamable HTTP), all 33 tools, no auth |
+| `/api/rpc/*` | oRPC router for the desktop editor |
+| `/api/asset/:id` | Image bytes from the asset table |
+| `/api/handoff/:token` | Agent handoff payloads (+ `/asset/:id`) |
+| `/api/canvas-events` | Live canvas/branch/agent events over SSE |
+| `GET` `/ready`, `/health` | Liveness |
+
+Tools execute in-process through the canonical `createLooraToolExecutor`
+from `@loora/rpc/mcp-server` — the same Canvas engine, branch/history
+persistence, exporter, screenshot renderer, and asset handling the editor
+uses. There is exactly one implementation of Loora's document semantics,
+one user (`local`), no accounts, no meters.
+
+## Run
+
+```sh
+bun run dev              # server on :4100 (LOORA_MCP_PORT)
+```
+
+Point any MCP client at `http://127.0.0.1:4100/mcp`:
+
+```sh
+claude mcp add --transport http loora http://127.0.0.1:4100/mcp
+```
+
+Stdio mode for clients that spawn a process:
+
+```sh
+bun run dev:stdio
+```
+
+Environment: `LOORA_SQLITE_PATH` (default `./data/loora.db`,
+`:memory:` for tests), `LOORA_HANDOFF_SECRET` (handoffs only),
+`REDIS_URL` (optional rate-limit counters, else in-memory).
+
+Compile a self-contained sidecar binary for the desktop app:
+
+```sh
+bun run build:server   # apps/mcp/dist/loora-server
+```
+
+## Validate
+
+```sh
+bun run test apps/mcp
+bunx tsc --noEmit
+```

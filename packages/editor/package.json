@@ -1,0 +1,34 @@
+{
+  "name": "@loora/editor",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./lib/canvas-capture": "./src/lib/canvas-capture.tsx",
+    "./lib/*": "./src/lib/*.ts",
+    "./*": "./src/components/*.tsx"
+  },
+  "dependencies": {
+    "@hugeicons/core-free-icons": "^4.2.3",
+    "@loora/canvas": "workspace:*",
+    "@loora/db": "workspace:*",
+    "@loora/platform": "workspace:*",
+    "@loora/rpc": "workspace:*",
+    "@loora/ui": "workspace:*",
+    "@tanstack/react-router": "latest",
+    "lucide": "^0.544.0",
+    "motion": "^12.42.2"
+  },
+  "peerDependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "catalog:"
+  }
+}

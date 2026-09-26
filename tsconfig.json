@@ -1,0 +1,49 @@
+{
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx"],
+  "exclude": ["apps/desktop/dist"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "paths": {
+      "#app/*": ["./apps/desktop/src/*"],
+      "@loora/platform": ["./packages/platform/src/runtime.ts"],
+      "@loora/platform/*": ["./packages/platform/src/*"],
+      "@loora/shell/lib/*": ["./packages/shell/src/lib/*.ts"],
+      "@loora/shell/*": ["./packages/shell/src/components/*.tsx"],
+      "@loora/db": ["./packages/db/src/index.ts"],
+      "@loora/db/*": ["./packages/db/src/*"],
+      "@loora/canvas": ["./packages/canvas/src/index.ts"],
+      "@loora/canvas/*": ["./packages/canvas/src/*"],
+      "@loora/agent/*": ["./packages/agent/src/*"],
+      "@loora/realtime/*": ["./packages/realtime/src/*"],
+      "@loora/rpc": ["./packages/rpc/src/router.ts"],
+      "@loora/rpc/*": ["./packages/rpc/src/*"],
+      "@loora/editor/lib/canvas-capture": [
+        "./packages/editor/src/lib/canvas-capture.tsx"
+      ],
+      "@loora/editor/lib/*": ["./packages/editor/src/lib/*.ts"],
+      "@loora/editor/*": ["./packages/editor/src/components/*.tsx"],
+      "@loora/ui/utils": ["./packages/ui/src/lib/utils.ts"],
+      "@loora/ui/icons": ["./packages/ui/src/icons/index.tsx"],
+      "@loora/ui/hooks/*": ["./packages/ui/src/hooks/*.ts"],
+      "@loora/ui/*": ["./packages/ui/src/components/*.tsx"]
+    },
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "bun"],
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    /* Linting */
+    "skipLibCheck": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  }
+}
