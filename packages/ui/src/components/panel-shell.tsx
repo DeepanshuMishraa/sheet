@@ -27,7 +27,7 @@ export function PanelShell({
 }) {
   return (
     <aside className={cn('flex h-full min-h-0 w-full flex-col bg-surface', className)}>
-      <header className="flex min-h-9 items-center justify-between gap-2 border-b border-line px-3 py-2">
+      <header className="flex min-h-9 items-center justify-between gap-2 border-b border-line px-3 py-2 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
         <div className="min-w-0">
           <h2 className="font-heading text-xs font-semibold tracking-tight">
             {title}

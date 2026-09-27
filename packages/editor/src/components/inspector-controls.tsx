@@ -3,7 +3,7 @@ import { ChevronDownIcon, ChevronRightIcon } from '@sheet/ui/icons'
 import { cn } from '@sheet/ui/utils'
 
 const control =
-  'h-7 w-full min-w-0 rounded-md border bg-background text-xs outline-none focus-within:border-ring'
+  'h-7 w-full min-w-0 rounded-md border border-line bg-surface text-xs outline-none shadow-xs transition-all duration-150 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring'
 const MIXED = 'Mixed'
 
 function round(value: number, places = 2) {
@@ -24,11 +24,11 @@ export function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="border-b px-2 py-1.5">
+    <section className="border-b border-line px-2 py-1.5">
       <div className="flex h-6 items-center gap-1">
         <button
           type="button"
-          className="flex h-6 flex-1 items-center gap-1 rounded px-1 text-xs text-muted-foreground hover:text-foreground"
+          className="flex h-6 flex-1 items-center gap-1 rounded px-1 text-xs text-muted-foreground transition-all duration-150 hover:bg-surface-2/60 hover:text-foreground active:scale-[0.98]"
           onClick={() => setOpen((current) => !current)}
         >
           {open ? <ChevronDownIcon className="size-3" /> : <ChevronRightIcon className="size-3" />}

@@ -204,10 +204,10 @@ export function IntegrationsSettings() {
                 type="button"
                 onClick={() => setSelectedAgent(agent.key)}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all select-none',
+                  'inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ease-out select-none active:scale-[0.97]',
                   isSelected
                     ? 'border border-line/80 bg-surface-2 text-foreground font-semibold shadow-xs'
-                    : 'border border-transparent text-muted-foreground hover:bg-surface-2/60 hover:text-foreground',
+                    : 'border border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
                 )}
               >
                 <Icon
@@ -248,21 +248,21 @@ export function IntegrationsSettings() {
 
               {selectedAgent === 'cursor' ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2/30 p-4">
+                  <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-4 shadow-xs transition-all duration-150 hover:shadow-sm hover:border-line/90">
                     <span className="text-sm text-foreground">
                       Add through the Cursor Marketplace
                     </span>
                     <button
                       type="button"
                       onClick={handleAddToCursor}
-                      className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-3 transition-colors border border-line/60"
+                      className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-3 transition-all duration-150 ease-out border border-line/80 shadow-xs hover:shadow-sm active:scale-95"
                     >
                       <CursorIcon className="size-3.5" />
                       <span>{addedToCursor ? 'Opening...' : 'Add to Cursor'}</span>
                     </button>
                   </div>
 
-                  <div className="rounded-xl border border-line bg-surface-2/30 overflow-hidden">
+                  <div className="rounded-xl border border-line bg-surface shadow-xs overflow-hidden transition-all duration-150 hover:border-line/90">
                     <button
                       type="button"
                       onClick={() => setManualOpen(!manualOpen)}
@@ -288,7 +288,7 @@ export function IntegrationsSettings() {
                 </div>
               ) : selectedAgent === 'vscode' ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2/30 p-4">
+                  <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-4 shadow-xs transition-all duration-150 hover:shadow-sm hover:border-line/90">
                     <span className="text-sm text-foreground">
                       Install through VS Code Marketplace
                     </span>
@@ -297,13 +297,13 @@ export function IntegrationsSettings() {
                       onClick={() => {
                         window.location.href = 'vscode:extension/sheet'
                       }}
-                      className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-3 transition-colors border border-line/60"
+                      className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-3 transition-all duration-150 ease-out border border-line/80 shadow-xs hover:shadow-sm active:scale-95"
                     >
                       <VSCodeIcon className="size-3.5" />
                       <span>Install in VS Code</span>
                     </button>
                   </div>
-                  <div className="rounded-xl border border-line bg-surface-2/30 overflow-hidden">
+                  <div className="rounded-xl border border-line bg-surface shadow-xs overflow-hidden transition-all duration-150 hover:border-line/90">
                     <button
                       type="button"
                       onClick={() => setManualOpen(!manualOpen)}
@@ -357,7 +357,7 @@ export function IntegrationsSettings() {
 
           {/* Step 3 */}
           <div className="flex items-start gap-3.5">
-            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-muted-foreground border border-line">
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-muted-foreground border border-line shadow-xs">
               3
             </div>
             <div className="flex-1 min-w-0">
@@ -377,7 +377,7 @@ export function IntegrationsSettings() {
                     key={prompt}
                     type="button"
                     onClick={() => void copyPrompt(prompt)}
-                    className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/30 px-4 py-3 text-xs text-foreground hover:bg-surface-2 transition-colors text-start group shadow-xs"
+                    className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-xs text-foreground hover:bg-surface-2/70 hover:border-line/90 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-150 ease-out text-start group shadow-xs"
                   >
                     <CopyIcon className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                     <span className="flex-1 truncate">{prompt}</span>

@@ -165,7 +165,7 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 transition-all duration-200 hover:border-muted-foreground/30 hover:bg-surface-2 shadow-panel">
+    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-md hover:border-line/90 active:translate-y-0 active:scale-[0.99]">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
@@ -192,12 +192,14 @@ function FileCard({
           name={design.name}
           onRename={onRename}
           onArchive={onArchive}
-          className="relative z-10 shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+          className="relative z-10 shrink-0 opacity-0 transition-all duration-150 group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 hover:scale-105 active:scale-95"
         />
       </div>
 
       <div className="pointer-events-none mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line bg-cx-canvas relative flex items-center justify-center shadow-inner">
-        <FileCardPreview designId={design.id} />
+        <div className="size-full transition-transform duration-300 ease-out group-hover:scale-[1.015]">
+          <FileCardPreview designId={design.id} />
+        </div>
       </div>
     </div>
   )
@@ -215,14 +217,14 @@ function FileRow({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 transition-colors hover:bg-surface-2">
+    <div className="group relative flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 transition-all duration-150 ease-out hover:bg-surface-2 active:scale-[0.998]">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
         aria-label={`Open ${design.name}`}
         className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
       />
-      <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md border border-line bg-cx-canvas">
+      <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md border border-line bg-cx-canvas shadow-xs">
         <FileCardPreview designId={design.id} />
       </div>
       <div className="pointer-events-none min-w-0 flex-1">
@@ -245,7 +247,7 @@ function FileRow({
         name={design.name}
         onRename={onRename}
         onArchive={onArchive}
-        className="relative z-10 shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+        className="relative z-10 shrink-0 opacity-0 transition-all duration-150 group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 hover:scale-105 active:scale-95"
       />
     </div>
   )
@@ -419,7 +421,7 @@ export function DesignsDashboard({
               type="button"
               onClick={() => void newFile()}
               disabled={creating}
-              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity shadow-sm hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs hover:shadow-sm hover:opacity-95 active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
             >
               {creating ? (
                 <Spinner className="size-3.5" />
@@ -429,16 +431,16 @@ export function DesignsDashboard({
               <span>New file</span>
             </button>
 
-            <div className="flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5">
+            <div className="flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5 shadow-xs">
               <button
                 type="button"
                 aria-label="Grid view"
                 aria-pressed={view === 'grid'}
                 onClick={() => setView('grid')}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-colors',
+                  'flex size-7 items-center justify-center rounded-md transition-all duration-150 ease-out active:scale-95',
                   view === 'grid'
-                    ? 'bg-surface text-foreground shadow-sm'
+                    ? 'bg-surface text-foreground shadow-xs font-medium'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -450,9 +452,9 @@ export function DesignsDashboard({
                 aria-pressed={view === 'list'}
                 onClick={() => setView('list')}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-colors',
+                  'flex size-7 items-center justify-center rounded-md transition-all duration-150 ease-out active:scale-95',
                   view === 'list'
-                    ? 'bg-surface text-foreground shadow-sm'
+                    ? 'bg-surface text-foreground shadow-xs font-medium'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >

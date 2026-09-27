@@ -91,10 +91,17 @@
   --sheet-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --sheet-font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --line: #e6e6e6;
-  --panel-shadow: 0 1px 2px --alpha(var(--color-black) / 6%);
+  --panel-shadow: 0 1px 2px 0 --alpha(var(--color-black) / 5%);
   --panel-shadow-lg:
-    0 10px 15px -3px --alpha(var(--color-black) / 10%),
-    0 0 0 0.5px --alpha(var(--color-black) / 8%);
+    0 8px 16px -2px --alpha(var(--color-black) / 8%),
+    0 2px 4px -1px --alpha(var(--color-black) / 4%),
+    0 0 0 0.5px --alpha(var(--color-black) / 6%);
+  --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 4%);
+  --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%);
+  --shadow-md: 0 4px 8px -1px --alpha(var(--color-black) / 7%), 0 2px 4px -2px --alpha(var(--color-black) / 4%);
+  --shadow-lg: 0 10px 20px -3px --alpha(var(--color-black) / 8%), 0 4px 6px -4px --alpha(var(--color-black) / 4%);
+  --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%), inset 0 1px 0 0 --alpha(var(--color-white) / 60%);
+  --shadow-elevated-hover: 0 6px 14px -2px --alpha(var(--color-black) / 8%), 0 2px 4px -1px --alpha(var(--color-black) / 4%), inset 0 1px 0 0 --alpha(var(--color-white) / 80%);
   color-scheme: light;
 }
 
@@ -195,6 +202,14 @@
      `.dark` override. `-lg` is for detached chrome: floating bars, popovers. */
   --shadow-panel: inset 0 0 0 1px var(--line), var(--panel-shadow);
   --shadow-panel-lg: inset 0 0 0 1px var(--line), var(--panel-shadow-lg);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-elevated-hover: var(--shadow-elevated-hover);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
   @keyframes skeleton {
   to {
     background-position: -200% 0;
@@ -653,11 +668,18 @@ body {
   --surface: #212121;
   --surface-2: #303030;
   --line: #424242;
-  --panel-shadow: 0 1px 2px --alpha(var(--color-black) / 28%);
+  --panel-shadow: 0 1px 2px 0 --alpha(var(--color-black) / 40%), inset 0 1px 0 0 --alpha(var(--color-white) / 4%);
   /* Measured off the kit's project menu. */
   --panel-shadow-lg:
-    0 10px 15px -3px --alpha(var(--color-black) / 20%),
-    0 0 0 0.5px --alpha(var(--color-white) / 12%);
+    0 12px 24px -4px --alpha(var(--color-black) / 60%),
+    0 4px 8px -2px --alpha(var(--color-black) / 40%),
+    0 0 0 0.5px --alpha(var(--color-white) / 8%);
+  --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 30%);
+  --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%);
+  --shadow-md: 0 4px 8px -1px --alpha(var(--color-black) / 50%), 0 2px 4px -2px --alpha(var(--color-black) / 40%);
+  --shadow-lg: 0 10px 20px -3px --alpha(var(--color-black) / 60%), 0 4px 6px -4px --alpha(var(--color-black) / 40%);
+  --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%), inset 0 1px 0 0 --alpha(var(--color-white) / 6%);
+  --shadow-elevated-hover: 0 6px 14px -2px --alpha(var(--color-black) / 50%), 0 2px 4px -1px --alpha(var(--color-black) / 30%), inset 0 1px 0 0 --alpha(var(--color-white) / 10%);
   color-scheme: dark;
 }
 

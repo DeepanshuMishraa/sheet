@@ -12,7 +12,7 @@ export function Card({
 }: useRender.ComponentProps<"div">): React.ReactElement {
   const defaultProps = {
     className: cn(
-      "relative flex flex-col rounded-xl border bg-card text-card-foreground",
+      "relative flex flex-col rounded-xl border border-line bg-card text-card-foreground shadow-xs transition-all duration-200",
       className,
     ),
     "data-slot": "card",

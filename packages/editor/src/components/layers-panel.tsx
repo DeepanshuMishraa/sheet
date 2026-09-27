@@ -952,14 +952,14 @@ export function CanvasLayersPanel({
 
       {/* Segmented Switcher: Design | Theme */}
       <div className="border-b border-line p-2">
-        <div className="flex rounded-lg bg-surface-2 p-0.5">
+        <div className="flex rounded-lg border border-line/60 bg-surface-2 p-0.5 shadow-xs">
           <button
             type="button"
             onClick={() => setSidebarTab('design')}
             className={cn(
-              'flex-1 rounded-md py-1 text-center text-xs font-medium transition-colors',
+              'flex-1 rounded-md py-1 text-center text-xs font-medium transition-all duration-150 ease-out active:scale-[0.98]',
               sidebarTab === 'design'
-                ? 'bg-surface text-foreground shadow-sm'
+                ? 'bg-surface text-foreground shadow-xs font-semibold'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
@@ -969,9 +969,9 @@ export function CanvasLayersPanel({
             type="button"
             onClick={() => setSidebarTab('theme')}
             className={cn(
-              'flex-1 rounded-md py-1 text-center text-xs font-medium transition-colors',
+              'flex-1 rounded-md py-1 text-center text-xs font-medium transition-all duration-150 ease-out active:scale-[0.98]',
               sidebarTab === 'theme'
-                ? 'bg-surface text-foreground shadow-sm'
+                ? 'bg-surface text-foreground shadow-xs font-semibold'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
@@ -1211,10 +1211,10 @@ function LayerRow({
     <>
       <div
         className={cn(
-          'group relative flex h-7 items-center gap-0.5 pe-1 text-xs',
+          'group relative flex h-7 items-center gap-0.5 pe-1 text-xs rounded-sm mx-1 transition-all duration-100 ease-out select-none',
           selectedKeys.has(key)
-            ? 'bg-secondary text-foreground'
-            : 'hover:bg-secondary/60',
+            ? 'bg-secondary font-medium text-foreground shadow-xs'
+            : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
           drag.draggedIds.includes(node.id) && 'opacity-40',
           dropInside && 'bg-cx-accent/12 ring-1 ring-cx-accent ring-inset',
         )}

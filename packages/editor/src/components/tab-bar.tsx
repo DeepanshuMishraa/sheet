@@ -25,10 +25,10 @@ export function DocumentTabBar({
       <Link
         to="/app"
         className={cn(
-          'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-normal transition-colors',
+          'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-normal transition-all duration-150 ease-out active:scale-[0.985]',
           isDashboard
-            ? 'border border-line/60 bg-surface-2 text-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-surface-2/60 hover:text-foreground',
+            ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+            : 'text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
         )}
         aria-label="Back to dashboard"
       >
@@ -47,16 +47,16 @@ export function DocumentTabBar({
             <div
               key={tab.id}
               className={cn(
-                'group flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-normal transition-colors',
+                'group flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-normal transition-all duration-150 ease-out',
                 isActive
-                  ? 'border border-line/60 bg-surface-2 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-surface-2/60 hover:text-foreground',
+                  ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
               )}
             >
               <Link
                 to="/design/$id"
                 params={{ id: tab.id }}
-                className="flex items-center gap-2 min-w-0"
+                className="flex items-center gap-2 min-w-0 transition-opacity active:opacity-70"
               >
                 <File01Icon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="max-w-44 truncate">{tab.name}</span>
@@ -70,7 +70,7 @@ export function DocumentTabBar({
                   e.stopPropagation()
                   closeTab(tab.id)
                 }}
-                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
+                className="rounded p-0.5 text-muted-foreground/60 transition-all duration-150 hover:bg-surface-3 hover:text-foreground hover:scale-110 active:scale-95 group-hover:text-muted-foreground"
               >
                 <XIcon className="size-3" />
               </button>
@@ -83,8 +83,8 @@ export function DocumentTabBar({
       <Link
         to="/app/new"
         className={cn(
-          'flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground',
-          isLauncher && 'border border-line/60 bg-surface-2 text-foreground',
+          'flex size-6 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 ease-out hover:bg-surface-2 hover:text-foreground hover:scale-105 active:scale-95',
+          isLauncher && 'border border-line/80 bg-surface-2 text-foreground shadow-xs',
         )}
         aria-label="New tab"
         title="New tab"

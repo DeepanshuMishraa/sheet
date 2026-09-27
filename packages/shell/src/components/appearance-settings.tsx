@@ -287,10 +287,10 @@ function ThemeEditor({
 
 const optionClassName = (selected: boolean) =>
   cn(
-    'flex min-w-0 flex-col items-center gap-1.5 rounded-md border px-2 py-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+    'flex min-w-0 flex-col items-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium outline-none transition-all duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]',
     selected
-      ? 'border-ring bg-secondary text-foreground'
-      : 'border-border bg-background/60 text-muted-foreground hover:bg-accent hover:text-foreground',
+      ? 'border-ring bg-secondary text-foreground shadow-xs font-medium'
+      : 'border-line/70 bg-surface text-muted-foreground shadow-xs hover:border-line hover:bg-surface-2 hover:text-foreground hover:-translate-y-0.5 hover:shadow-sm',
   )
 
 /**

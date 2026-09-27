@@ -226,8 +226,10 @@ function CanvasDockedPanel({
   return (
     <div
       data-tour={tourId}
-      className={`pointer-events-auto relative flex h-full shrink-0 bg-surface ${
-        side === 'left' ? 'border-e border-line' : 'border-s border-line'
+      className={`pointer-events-auto relative flex h-full shrink-0 bg-surface transition-shadow ${
+        side === 'left'
+          ? 'border-e border-line shadow-[1px_0_4px_rgba(0,0,0,0.02),2px_0_12px_rgba(0,0,0,0.02)]'
+          : 'border-s border-line shadow-[-1px_0_4px_rgba(0,0,0,0.02),-2px_0_12px_rgba(0,0,0,0.02)]'
       }`}
       style={{ width }}
     >
@@ -1066,7 +1068,7 @@ function CanvasShell({
       <div className="pointer-events-none absolute inset-0 z-20 flex flex-col">
         <header
           data-tauri-drag-region
-          className="pointer-events-auto flex h-10 shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20"
+          className="pointer-events-auto flex h-10 shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.02)] z-20"
         >
           <DocumentTabBar activeDocument={{ id: controller.target?.designId ?? '', name }} />
 
@@ -1086,7 +1088,7 @@ function CanvasShell({
                   <button
                     type="button"
                     aria-label="Reset zoom"
-                    className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-2 tabular-nums"
+                    className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-foreground transition-all duration-150 ease-out hover:bg-surface-2 active:scale-95 tabular-nums"
                     onClick={() => controlsRef.current?.zoomReset()}
                   >
                     <span>{Math.round(zoom * 100)}%</span>
@@ -1105,7 +1107,7 @@ function CanvasShell({
             <Button
               size="xs"
               variant="default"
-              className="h-7 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+              className="h-7 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-xs hover:bg-primary/90 hover:shadow-sm active:scale-95 transition-all duration-150 ease-out"
               onClick={() => setExportOpen(true)}
             >
               Share
@@ -2324,7 +2326,7 @@ function CanvasToolButton({
             disabled={disabled}
             aria-pressed={active}
             data-active={active || undefined}
-            className="shrink-0 rounded-md sm:[&_svg:not([class*='size-'])]:size-4 data-active:bg-accent data-active:text-foreground"
+            className="shrink-0 rounded-lg sm:[&_svg:not([class*='size-'])]:size-4 transition-all duration-150 ease-out hover:scale-[1.05] active:scale-[0.95] data-active:bg-accent data-active:text-foreground data-active:scale-100 data-active:shadow-xs"
             onClick={onClick}
           >
             <Icon />
@@ -2533,7 +2535,7 @@ function CanvasToolStrip({
         aria-label="Tools"
         aria-orientation="vertical"
         data-tour="tools"
-        className="pointer-events-auto absolute top-3 left-3 z-20 flex flex-col items-center gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-panel-lg"
+        className="pointer-events-auto absolute top-3 left-3 z-20 flex flex-col items-center gap-0.5 rounded-xl border border-line/80 bg-surface/95 backdrop-blur-xs p-1 shadow-md transition-all"
       >
         <CanvasToolButton
           icon={MousePointer2Icon}
@@ -2621,7 +2623,7 @@ function CanvasToolStrip({
         />
       </div>
 
-      <div className="pointer-events-auto absolute bottom-3 end-3 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 shadow-panel-lg max-md:hidden">
+      <div className="pointer-events-auto absolute bottom-3 end-3 z-10 flex items-center gap-0.5 rounded-lg border border-line/80 bg-surface/95 backdrop-blur-xs p-0.5 shadow-md max-md:hidden transition-all">
         <CanvasToolButton
           icon={ZoomOutIcon}
           label="Zoom out"

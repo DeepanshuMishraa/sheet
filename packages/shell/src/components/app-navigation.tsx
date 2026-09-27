@@ -74,9 +74,9 @@ export function AppNavigation({
           <button
             type="button"
             aria-label={`Menu for ${firstName}`}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-ring"
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-all duration-150 ease-out hover:bg-surface-2 active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-ring"
           >
-            <Avatar className="size-6 shrink-0 rounded-full bg-surface-2 text-2xs font-semibold">
+            <Avatar className="size-6 shrink-0 rounded-full bg-surface-2 text-2xs font-semibold shadow-xs">
               {profile?.imageUrl ? (
                 <AvatarImage src={profile.imageUrl} alt={firstName} />
               ) : null}
@@ -87,7 +87,7 @@ export function AppNavigation({
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
               {firstName}
             </span>
-            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-colors" />
+            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-150" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-52">
@@ -109,7 +109,7 @@ export function AppNavigation({
           placeholder="Search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="w-full rounded-lg border border-line bg-surface-2 py-1.5 pe-3 ps-8 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-line bg-surface-2/60 py-1.5 pe-3 ps-8 text-xs text-foreground placeholder:text-muted-foreground transition-all duration-150 ease-out shadow-xs focus:bg-surface focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring focus:shadow-sm"
         />
       </div>
 
@@ -121,10 +121,10 @@ export function AppNavigation({
           preload="intent"
           aria-current={active === 'recents' ? 'page' : undefined}
           className={cn(
-            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-all duration-150 ease-out active:scale-[0.985]',
             active === 'recents'
-              ? 'bg-surface-2 font-medium text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+              ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+              : 'border border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
           )}
         >
           <ClockIcon className="size-4 shrink-0" />
@@ -137,10 +137,10 @@ export function AppNavigation({
           preload="intent"
           aria-current={active === 'files' ? 'page' : undefined}
           className={cn(
-            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-all duration-150 ease-out active:scale-[0.985]',
             active === 'files'
-              ? 'bg-surface-2 font-medium text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+              ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+              : 'border border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
           )}
         >
           <LayoutGridIcon className="size-4 shrink-0" />
@@ -153,10 +153,10 @@ export function AppNavigation({
           preload="intent"
           aria-current={active === 'appearance' ? 'page' : undefined}
           className={cn(
-            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-all duration-150 ease-out active:scale-[0.985]',
             active === 'appearance'
-              ? 'bg-surface-2 font-medium text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+              ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+              : 'border border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
           )}
         >
           <SunIcon className="size-4 shrink-0" />
@@ -169,27 +169,15 @@ export function AppNavigation({
           preload="intent"
           aria-current={active === 'integrations' ? 'page' : undefined}
           className={cn(
-            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+            'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-all duration-150 ease-out active:scale-[0.985]',
             active === 'integrations'
-              ? 'bg-surface-2 font-medium text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+              ? 'border border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
+              : 'border border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
           )}
         >
           <LinkIcon className="size-4 shrink-0" />
           <span>Integrations</span>
         </Link>
-
-        {/* Settings item */}
-        {onSettings ? (
-          <button
-            type="button"
-            onClick={onSettings}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-start text-xs text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-          >
-            <SettingsIcon className="size-4 shrink-0" />
-            <span>Settings</span>
-          </button>
-        ) : null}
       </nav>
     </div>
   )
