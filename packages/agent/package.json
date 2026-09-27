@@ -4,10 +4,13 @@
   "type": "module",
   "exports": {
     "./canvas-tools": "./src/canvas-tools.ts",
+    "./icon-library": "./src/icon-library.ts",
     "./repair-layout": "./src/repair-layout.ts"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.2.3",
     "@sheet/canvas": "workspace:*",
+    "lucide": "^0.544.0",
     "zod": "catalog:"
   },
   "devDependencies": {

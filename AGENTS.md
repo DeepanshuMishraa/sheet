@@ -36,7 +36,7 @@ packages/realtime Realtime wire protocol plus the in-process local event bus (`@
 
 One Bun process is the whole backend, and the only backend there is. With
 `SHEET_SQLITE_PATH` set (default `./data/sheet.db`) it serves MCP
-(`POST /mcp`, all 33 tools, no auth), the oRPC API the editor talks to
+(`POST /mcp`, all 35 tools, no auth), the oRPC API the editor talks to
 (`/api/rpc/*`), assets (`/api/asset/:id`), handoffs (`/api/handoff/*`), and
 the live event stream (`/api/canvas-events`, SSE over the in-process bus).
 `GET /ready` is the health check. `bun run build:server` compiles it to a
@@ -243,7 +243,7 @@ These are easy to break and expensive to fix. Treat them as hard rules.
 
 Keep MCP tools and handoff consumers aligned on the shared `@sheet/agent` vocabulary:
 
-`createPage` · `insertNodes` · `patchNodes` · `moveNodes` · `deleteNodes` · `readNode` · `readTree` · `searchNodes` · `createComponent` · `createInstance` · `setTokens` · `setAnimations` · `animateNodes` · `viewNode` · `viewPage` · `viewCanvas`
+`createPage` · `insertNodes` · `insertIcon` · `patchNodes` · `moveNodes` · `deleteNodes` · `readNode` · `readTree` · `searchNodes` · `searchIcons` · `createComponent` · `createInstance` · `setTokens` · `setAnimations` · `animateNodes` · `viewNode` · `viewPage` · `viewCanvas`
 
 Implementation: `packages/agent/src/canvas-tools.ts`, canonical MCP execution in `packages/rpc/src/mcp-server.ts`, and local transport in `apps/mcp/src/`.
 

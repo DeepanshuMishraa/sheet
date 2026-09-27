@@ -28,6 +28,7 @@ import {
   animateNodesOperations,
   animationOperations,
   insertDescriptorOperations,
+  insertIconInputSchema,
   insertNodesInputSchema,
   moveNodesInputSchema,
   normalizeDeletionNodeIds,
@@ -37,6 +38,7 @@ import {
   readNodeInputSchema,
   readTreeInputSchema,
   searchCanvasNodes,
+  searchIconsInputSchema,
   searchNodesInputSchema,
   semanticTree,
   setAnimationsInputSchema,
@@ -47,6 +49,7 @@ import {
   viewNodeInputSchema,
   viewPageInputSchema,
 } from '@sheet/agent/canvas-tools'
+import { iconSuggestions, resolveIcon, searchIcons } from '@sheet/agent/icon-library'
 import {
   MAX_NAME_LENGTH,
   CanvasUnavailableError,
@@ -481,6 +484,19 @@ function createSheetRuntime(
   )
 
   server.registerTool(
+    'searchIcons',
+    {
+      description:
+        'Search every bundled Hugeicons and Lucide icon by name before calling insertIcon.',
+      inputSchema: searchIconsInputSchema.shape,
+      annotations: { readOnlyHint: true },
+    },
+    tool('searchIcons', async (args: z.infer<typeof searchIconsInputSchema>) => ({
+      matches: searchIcons(args.query, args.library, args.limit),
+    })),
+  )
+
+  server.registerTool(
     'createPage',
     {
       description:
@@ -542,6 +558,62 @@ function createSheetRuntime(
         return {
           refs: built.refs,
           nodeIds: built.nodeIds,
+          revision: result.revision,
+          changedNodeIds: result.changedNodeIds,
+        }
+      },
+    ),
+  )
+
+  server.registerTool(
+    'insertIcon',
+    {
+      description:
+        'Insert any bundled Hugeicons or Lucide icon as an editable Canvas vector. Use the icon name from its library; common Hugeicons names resolve to the 01 variant. The result uses structured paths, not font glyphs or source code.',
+      inputSchema: { ...targetShape, ...insertIconInputSchema.shape },
+    },
+    tool('insertIcon',
+      async (args: z.infer<typeof insertIconInputSchema> & {
+        designId: string
+        draftId?: string
+      }) => {
+        const icon = resolveIcon(args.library, args.name, args.color)
+        if (!icon) {
+          const suggestions = iconSuggestions(args.library, args.name)
+          throw new Error(
+            suggestions.length > 0
+              ? `Icon "${args.name}" was not found in ${args.library}. Try: ${suggestions.join(', ')}`
+              : `Icon "${args.name}" was not found in ${args.library}`,
+          )
+        }
+
+        const found = await getCanvasTarget(userId, args)
+        const parent = sourceContainerForRef(found.document, args.parent)
+        const built = insertDescriptorOperations(found.document, parent.id, [{
+          type: 'vector',
+          name: icon.name,
+          layout: {
+            width: { unit: 'px', value: args.size },
+            height: { unit: 'px', value: args.size },
+            ...args.layout,
+          },
+          viewBox: icon.viewBox,
+          paths: icon.paths,
+        }])
+        const result = await applyCanvasTransactions(
+          userId,
+          args,
+          [{
+            id: canvasId('tx'),
+            label: `MCP inserted ${icon.name} icon`,
+            operations: built.operations,
+          }],
+          found,
+        )
+        return {
+          library: args.library,
+          name: icon.name,
+          nodeId: built.nodeIds[0],
           revision: result.revision,
           changedNodeIds: result.changedNodeIds,
         }

@@ -250,6 +250,40 @@
     }
   },
   {
+    "name": "searchIcons",
+    "description": "Search every bundled Hugeicons and Lucide icon by name before calling insertIcon.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "library": {
+          "type": "string",
+          "enum": [
+            "hugeicons",
+            "lucide"
+          ]
+        },
+        "limit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
     "name": "createPage",
     "description": "Create an editable responsive Page with typed local state and nested structured nodes in one engine transaction. Event interactions can set, toggle, or increment state, switch any named visual theme, and react through conditional state-change rules. Model normal Tailwind layouts with flex/grid, gap, padding, fill, and hug; use absolute positioning only intentionally.",
     "inputSchema": {
@@ -2917,6 +2951,329 @@
               "required": [
                 "type",
                 "themeId"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "insertIcon",
+    "description": "Insert any bundled Hugeicons or Lucide icon as an editable Canvas vector. Use the icon name from its library; common Hugeicons names resolve to the 01 variant. The result uses structured paths, not font glyphs or source code.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "parent": {
+          "$ref": "#/definitions/CanvasNodeRef"
+        },
+        "library": {
+          "type": "string",
+          "enum": [
+            "hugeicons",
+            "lucide"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "color": {
+          "default": "#111827",
+          "allOf": [
+            {
+              "$ref": "#/definitions/CanvasColor"
+            }
+          ]
+        },
+        "size": {
+          "default": 24,
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10000
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CanvasLayoutPatch"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "designId",
+        "parent",
+        "library",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CanvasNodeRef": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "nodeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "instancePath": {
+                  "default": [],
+                  "maxItems": 32,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              },
+              "required": [
+                "nodeId"
+              ]
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "CanvasColor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^(?:#[0-9a-f]{3,8}|[a-z]+|(?:rgb|rgba|hsl|hsla|oklab|oklch|lab|lch)\\([0-9a-z.%+,\\s/-]+\\))$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "token"
+              ]
+            }
+          ]
+        },
+        "CanvasLayoutPatch": {
+          "type": "object",
+          "properties": {
+            "position": {
+              "type": "string",
+              "enum": [
+                "flow",
+                "absolute"
+              ]
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "width": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/CanvasLength"
+                }
+              ]
+            },
+            "height": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/CanvasLength"
+                }
+              ]
+            },
+            "minWidth": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maxWidth": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "minHeight": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maxHeight": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "aspectRatio": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "absolute",
+                "flex",
+                "grid"
+              ]
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "row",
+                "column"
+              ]
+            },
+            "wrap": {
+              "type": "boolean"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0
+            },
+            "padding": {
+              "type": "object",
+              "properties": {
+                "top": {
+                  "type": "number"
+                },
+                "right": {
+                  "type": "number"
+                },
+                "bottom": {
+                  "type": "number"
+                },
+                "left": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ]
+            },
+            "align": {
+              "type": "string",
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "type": "string",
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "space-between",
+                "space-around"
+              ]
+            },
+            "columns": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "alignSelf": {
+              "description": "Cross-axis alignment for this child alone, overriding the parent's align.",
+              "type": "string",
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "grow": {
+              "description": "Share of free main-axis space this child takes against its siblings. Defaults to 1 for a fill width/height, 0 otherwise.",
+              "type": "number",
+              "minimum": 0
+            },
+            "shrink": {
+              "description": "How much this child gives back main-axis space when the line overflows. Defaults to 1 for a fill width/height, 0 otherwise.",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "CanvasLength": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "const": "px"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "unit",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "const": "percent"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "unit",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "const": "fill"
+                }
+              },
+              "required": [
+                "unit"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "const": "hug"
+                }
+              },
+              "required": [
+                "unit"
               ]
             }
           ]

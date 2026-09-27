@@ -65,7 +65,9 @@
     "packages/agent": {
       "name": "@sheet/agent",
       "dependencies": {
+        "@hugeicons/core-free-icons": "^4.2.3",
         "@sheet/canvas": "workspace:*",
+        "lucide": "^0.544.0",
         "zod": "catalog:",
       },
       "devDependencies": {

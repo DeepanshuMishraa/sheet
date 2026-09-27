@@ -23,6 +23,7 @@ const TOOL_LABELS: Record<string, string> = {
   exportCode: 'Exporting code',
   createPage: 'Adding a page',
   insertNodes: 'Adding elements',
+  insertIcon: 'Adding an icon',
   patchNodes: 'Editing elements',
   moveNodes: 'Moving elements',
   deleteNodes: 'Deleting elements',

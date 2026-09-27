@@ -156,6 +156,8 @@ describe('MCP agent workflow', () => {
       expect(names.has('exportCode')).toBe(true)
       expect(names.has('getScreenshot')).toBe(true)
       expect(names.has('getUsage')).toBe(true)
+      expect(names.has('insertIcon')).toBe(true)
+      expect(names.has('searchIcons')).toBe(true)
       const createPage = tools.tools.find(
         (tool) => tool.name === 'createPage',
       )

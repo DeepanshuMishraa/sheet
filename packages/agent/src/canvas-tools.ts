@@ -705,6 +705,23 @@ export const insertNodesInputSchema = z.object({
   nodes: jsonText(z.array(canvasNodeDescriptorSchema).min(1).max(5_000)),
 })
 
+const iconLibrarySchema = z.enum(['hugeicons', 'lucide'])
+
+export const searchIconsInputSchema = z.object({
+  query: z.string().trim().min(1).max(200),
+  library: iconLibrarySchema.optional(),
+  limit: z.number().int().min(1).max(100).default(20),
+})
+
+export const insertIconInputSchema = z.object({
+  parent: nodeRefSchema,
+  library: iconLibrarySchema,
+  name: z.string().trim().min(1).max(200),
+  color: colorSchema.default('#111827'),
+  size: z.number().finite().positive().max(10_000).default(24),
+  layout: jsonText(canvasLayoutPatchSchema).optional(),
+})
+
 export const patchNodesInputSchema = z.object({
   changes: jsonText(
     z.array(z.object({ ref: nodeRefSchema, patch: canvasNodePatchSchema }))
@@ -1558,6 +1575,11 @@ export function createCanvasAgentTools({
         'Insert one or more nested structured nodes into a Page, frame, group, or component. Temporary refs are returned as permanent ids. Never send HTML, JSX, CSS, classes, or source code.',
       inputSchema: insertNodesInputSchema,
     },
+    insertIcon: {
+      description:
+        'Insert any bundled Hugeicons or Lucide icon as an editable vector node. Names accept PascalCase, kebab-case, or spaces.',
+      inputSchema: insertIconInputSchema,
+    },
     patchNodes: {
       description:
         'Patch structured layout, style, text, visibility, responsive properties, variants, typed Page/component states, or declarative event interactions. Events can switch any named visual theme. State values and selected runtime themes are ephemeral; definitions and rules stay transactional. NodeRefs can address descendants inside component instances.',
@@ -1584,6 +1606,10 @@ export function createCanvasAgentTools({
     searchNodes: {
       description: 'Search node names and text content.',
       inputSchema: searchNodesInputSchema,
+    },
+    searchIcons: {
+      description: 'Search the bundled Hugeicons and Lucide catalogs by name.',
+      inputSchema: searchIconsInputSchema,
     },
     createComponent: {
       description:

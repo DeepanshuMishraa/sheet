@@ -1152,19 +1152,6 @@ export function CanvasLayersPanel({
           </div>
         </>
       )}
-
-      {/* Footer */}
-      <div className="mt-auto flex h-9 shrink-0 items-center justify-between border-t border-line px-3 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="cursor-pointer transition-colors hover:text-foreground">
-            What's new
-          </span>
-          <span>•</span>
-          <span className="cursor-pointer transition-colors hover:text-foreground">
-            Feedback
-          </span>
-        </div>
-      </div>
     </div>
   )
 }

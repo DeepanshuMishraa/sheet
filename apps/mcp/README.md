@@ -4,7 +4,7 @@ The Sheet local server. One Bun process serves everything over SQLite:
 
 | Route | Purpose |
 |-------|---------|
-| `POST` `/mcp` | MCP JSON-RPC (Streamable HTTP), all 33 tools, no auth |
+| `POST` `/mcp` | MCP JSON-RPC (Streamable HTTP), all 35 tools, no auth |
 | `/api/rpc/*` | oRPC router for the desktop editor |
 | `/api/asset/:id` | Image bytes from the asset table |
 | `/api/handoff/:token` | Agent handoff payloads (+ `/asset/:id`) |

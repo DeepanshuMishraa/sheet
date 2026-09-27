@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
   Dialog,
@@ -41,24 +41,17 @@ export function IconPickerDialog({
   const [svglLoading, setSvglLoading] = useState(false)
   const [svglError, setSvglError] = useState<string | null>(null)
 
-  // Load svgl icons on demand when the tab is first selected
-  useEffect(() => {
-    if (library !== 'svgl' || svglIcons.length > 0 || svglLoading) return
-    let cancelled = false
+  const loadSvgl = () => {
+    if (svglIcons.length > 0 || svglLoading) return
     setSvglLoading(true)
     setSvglError(null)
-    getSvgl()
-      .then((entries) => {
-        if (!cancelled) setSvglIcons(entries)
+    void getSvgl()
+      .then(setSvglIcons)
+      .catch((error) => {
+        setSvglError(error instanceof Error ? error.message : 'Failed to load')
       })
-      .catch((err) => {
-        if (!cancelled) setSvglError(err instanceof Error ? err.message : 'Failed to load')
-      })
-      .finally(() => {
-        if (!cancelled) setSvglLoading(false)
-      })
-    return () => { cancelled = true }
-  }, [library, svglIcons.length, svglLoading])
+      .finally(() => setSvglLoading(false))
+  }
 
   const icons = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -75,25 +68,6 @@ export function IconPickerDialog({
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const visible = icons.slice(0, visibleCount)
-  // Callback refs, not ref objects: the dialog mounts its popup after this
-  // effect would first run, and a ref object would still be null then.
-  const [scrollArea, setScrollArea] = useState<HTMLDivElement | null>(null)
-  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null)
-
-  // Load the next page as the end of the list comes into view.
-  useEffect(() => {
-    if (!sentinel || visibleCount >= icons.length) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisibleCount((count) => count + PAGE_SIZE)
-        }
-      },
-      { root: scrollArea, rootMargin: '240px' },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [sentinel, scrollArea, visibleCount, icons.length])
 
   return (
     <Dialog
@@ -121,8 +95,10 @@ export function IconPickerDialog({
             <Tabs
               value={library}
               onValueChange={(value) => {
-                setLibrary(value as IconLibraryId)
+                const next = value as IconLibraryId
+                setLibrary(next)
                 setVisibleCount(PAGE_SIZE)
+                if (next === 'svgl') loadSvgl()
               }}
             >
               <TabsList>
@@ -142,7 +118,18 @@ export function IconPickerDialog({
               placeholder="Search icons…"
             />
           </div>
-          <div ref={setScrollArea} className="h-[min(50svh,24rem)] overflow-y-auto">
+          <div
+            className="h-[min(50svh,24rem)] overflow-y-auto"
+            onScroll={(event) => {
+              const area = event.currentTarget
+              if (
+                visibleCount < icons.length &&
+                area.scrollTop + area.clientHeight >= area.scrollHeight - 240
+              ) {
+                setVisibleCount((count) => count + PAGE_SIZE)
+              }
+            }}
+          >
             {library === 'svgl' && svglLoading ? (
               <div className="flex h-32 items-center justify-center">
                 <Spinner className="size-6" />
@@ -182,9 +169,6 @@ export function IconPickerDialog({
                 ))}
               </div>
             )}
-            {visibleCount < icons.length ? (
-              <div ref={setSentinel} aria-hidden="true" className="h-px" />
-            ) : null}
           </div>
         </DialogPanel>
         <DialogFooter className="border-t px-4 py-2.5">

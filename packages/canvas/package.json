@@ -13,7 +13,8 @@
     "./motion": "./src/motion.ts",
     "./motion-css": "./src/motion-css.ts",
     "./motion-presets": "./src/motion-presets.ts",
-    "./style-css": "./src/style-css.ts"
+    "./style-css": "./src/style-css.ts",
+    "./vector": "./src/vector.ts"
   },
   "scripts": {
     "embed-preflight": "bun run scripts/embed-tailwind-preflight.ts"

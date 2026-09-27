@@ -12,7 +12,7 @@ import {
 describe('MCP tool manifest', () => {
   test('embeds the complete TypeScript tool manifest', () => {
     const names = toolNames()
-    expect(names).toHaveLength(33)
+    expect(names).toHaveLength(35)
     expect(names[0]).toBe('getUsage')
     expect(names).toContain('getScreenshot')
     expect(names.at(-1)).toBe('listAssets')
