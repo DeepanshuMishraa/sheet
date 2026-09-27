@@ -60,6 +60,18 @@ export default defineConfig({
     host: '127.0.0.1',
     port: Number(appPort),
     strictPort: true,
+    // `tauri dev` spends seconds compiling the Rust host before the window
+    // exists. Warming the entry, every route and the stylesheet here moves
+    // that work into that gap, so the first paint finds a transformed module
+    // graph instead of compiling 240 modules while the window sits on the
+    // boot splash. Warmup runs in the background and does not delay `ready`.
+    warmup: {
+      clientFiles: [
+        './src/main.tsx',
+        './src/styles.css',
+        './src/routes/**/*.tsx',
+      ],
+    },
     watch: { ignored: ['**/src-tauri/**'] },
     // The Tauri window stays on the Rust host (:4300) and reverse-proxies this
     // server. HMR still talks to Vite directly so the host does not have to

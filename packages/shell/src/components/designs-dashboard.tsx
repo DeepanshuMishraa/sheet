@@ -165,7 +165,7 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-md hover:border-line/90 active:translate-y-0 active:scale-[0.99]">
+    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm transition-[box-shadow,border-color] duration-base ease-out hover:border-ring/40 hover:shadow-panel-lg focus-within:border-ring/40 focus-within:shadow-panel-lg">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
@@ -196,8 +196,8 @@ function FileCard({
         />
       </div>
 
-      <div className="pointer-events-none mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line bg-cx-canvas relative flex items-center justify-center shadow-inner">
-        <div className="size-full transition-transform duration-300 ease-out group-hover:scale-[1.015]">
+      <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line bg-cx-canvas shadow-inner">
+        <div className="size-full">
           <FileCardPreview designId={design.id} />
         </div>
       </div>
@@ -217,7 +217,7 @@ function FileRow({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 transition-all duration-150 ease-out hover:bg-surface-2 active:scale-[0.998]">
+    <div className="group relative flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 transition-colors duration-fast ease-out hover:bg-surface-2 active:scale-[0.998] motion-reduce:transition-none">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
@@ -254,6 +254,31 @@ function FileRow({
 }
 
 const GRID_CLASSES = 'grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+
+/**
+ * The empty state, drawn in the same language as the canvas it invites you
+ * onto: the dot ground, a plate, and the bar of a frame waiting to be filled.
+ * It is chrome, not an illustration — no gradient, no accent, nothing that
+ * competes with the first real card for attention.
+ */
+function EmptyCanvasPlate() {
+  return (
+    <div
+      aria-hidden="true"
+      className="relative mb-6 h-28 w-44 shrink-0 overflow-hidden rounded-xl border border-line bg-cx-canvas shadow-inner"
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, var(--cx-dot) 1px, transparent 1px)',
+          backgroundSize: '14px 14px',
+        }}
+      />
+      <div className="absolute inset-x-6 top-6 h-2 w-14 rounded-full bg-cx-ink/15" />
+      <div className="absolute inset-x-6 top-11 h-10 rounded-md border border-dashed border-cx-ink/20" />
+    </div>
+  )
+}
 
 function FilesLoading({ view }: { view: FilesView }) {
   const rows = Array.from({ length: view === 'grid' ? 6 : 6 }, (_, index) => index)
@@ -412,7 +437,7 @@ export function DesignsDashboard({
 
         {/* Dashboard Header matching screenshot */}
         <header className="flex flex-wrap items-center justify-between gap-4 px-8 pb-6 pt-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance">
             {title}
           </h1>
 
@@ -421,7 +446,7 @@ export function DesignsDashboard({
               type="button"
               onClick={() => void newFile()}
               disabled={creating}
-              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs hover:shadow-sm hover:opacity-95 active:scale-[0.97] transition-all duration-150 ease-out disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs transition-[transform,box-shadow,opacity] duration-fast ease-spring hover:-translate-y-px hover:shadow-sm hover:opacity-95 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
             >
               {creating ? (
                 <Spinner className="size-3.5" />
@@ -431,14 +456,18 @@ export function DesignsDashboard({
               <span>New file</span>
             </button>
 
-            <div className="flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5 shadow-xs">
+            <div
+              role="group"
+              aria-label="Layout"
+              className="flex items-center gap-0.5 rounded-lg border border-line bg-well p-0.5 shadow-xs"
+            >
               <button
                 type="button"
                 aria-label="Grid view"
                 aria-pressed={view === 'grid'}
                 onClick={() => setView('grid')}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-all duration-150 ease-out active:scale-95',
+                  'flex size-7 items-center justify-center rounded-md transition-all duration-fast ease-spring active:scale-95',
                   view === 'grid'
                     ? 'bg-surface text-foreground shadow-xs font-medium'
                     : 'text-muted-foreground hover:text-foreground',
@@ -452,7 +481,7 @@ export function DesignsDashboard({
                 aria-pressed={view === 'list'}
                 onClick={() => setView('list')}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-all duration-150 ease-out active:scale-95',
+                  'flex size-7 items-center justify-center rounded-md transition-all duration-fast ease-spring active:scale-95',
                   view === 'list'
                     ? 'bg-surface text-foreground shadow-xs font-medium'
                     : 'text-muted-foreground hover:text-foreground',
@@ -480,11 +509,12 @@ export function DesignsDashboard({
           {designs === null ? (
             <FilesLoading view={view} />
           ) : visible.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-16 text-center">
+            <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-line bg-surface px-6 py-12 text-center shadow-panel">
+              <EmptyCanvasPlate />
               <p className="text-sm font-medium">
                 {designs.length === 0 ? 'No design files yet' : 'No files match that search'}
               </p>
-              <p className="mx-auto mt-1.5 max-w-xs text-xs text-muted-foreground">
+              <p className="mt-1.5 max-w-xs text-pretty text-xs text-muted-foreground">
                 {designs.length === 0
                   ? 'Start a file and open it on the canvas.'
                   : 'Try a different name.'}
@@ -494,7 +524,7 @@ export function DesignsDashboard({
                   type="button"
                   onClick={() => void newFile()}
                   disabled={creating}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity shadow-sm hover:opacity-90 disabled:opacity-50"
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs transition-[transform,box-shadow,opacity] duration-fast ease-spring hover:-translate-y-px hover:shadow-sm hover:opacity-95 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
                 >
                   {creating ? <Spinner className="size-3.5" /> : <PlusIcon className="size-3.5 stroke-[2.5]" />}
                   <span>New file</span>

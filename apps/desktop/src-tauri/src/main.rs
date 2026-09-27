@@ -1,7 +1,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, OnceLock},
     time::Duration,
 };
 
@@ -52,7 +52,7 @@ struct AppState {
     port: u16,
     bridge_token: String,
     sidecar: Arc<Mutex<Option<Child>>>,
-    profile: Arc<LocalProfile>,
+    profile: Arc<OnceLock<Arc<LocalProfile>>>,
 }
 
 struct LocalProfile {
@@ -60,6 +60,7 @@ struct LocalProfile {
     picture: Option<ProfilePicture>,
 }
 
+#[derive(Clone)]
 enum ProfilePicture {
     Jpeg(Vec<u8>),
     File(PathBuf),
@@ -235,6 +236,33 @@ impl LocalProfile {
             picture,
         }
     }
+}
+
+impl LocalProfile {
+    fn fallback() -> Self {
+        Self {
+            first_name: "Local user".to_owned(),
+            picture: None,
+        }
+    }
+}
+
+/// The account name and avatar come from macOS directory service, and each
+/// `dscl` call costs ~100ms. Nothing between the process starting and the
+/// window painting needs them, so they are read on the first request that
+/// asks, off the runtime's async threads, and cached from then on.
+async fn local_profile(state: &AppState) -> Arc<LocalProfile> {
+    if let Some(profile) = state.profile.get() {
+        return profile.clone();
+    }
+    let profile = Arc::new(
+        tokio::task::spawn_blocking(LocalProfile::read)
+            .await
+            .unwrap_or_else(|_| LocalProfile::fallback()),
+    );
+    // A concurrent first request may have won the race; either value is the
+    // same one, so the loser keeps what is already stored.
+    state.profile.get_or_init(|| profile).clone()
 }
 
 /// The compiled local server (`bun build --compile`), bundled beside the app.
@@ -456,10 +484,10 @@ async fn require_bridge(State(state): State<AppState>, request: Request, next: N
 }
 
 async fn desktop_profile(State(state): State<AppState>) -> Response {
+    let profile = local_profile(&state).await;
     Json(json!({
-        "firstName": &state.profile.first_name,
-        "imageUrl": state
-            .profile
+        "firstName": &profile.first_name,
+        "imageUrl": profile
             .picture
             .as_ref()
             .map(|picture| match picture {
@@ -471,7 +499,8 @@ async fn desktop_profile(State(state): State<AppState>) -> Response {
 }
 
 async fn desktop_profile_image(State(state): State<AppState>) -> Response {
-    let Some(picture) = &state.profile.picture else {
+    let profile = local_profile(&state).await;
+    let Some(picture) = profile.picture.clone() else {
         return StatusCode::NOT_FOUND.into_response();
     };
     match picture {
@@ -480,7 +509,7 @@ async fn desktop_profile_image(State(state): State<AppState>) -> Response {
             bytes.clone(),
         )
             .into_response(),
-        ProfilePicture::File(path) => match fs::read(path).await {
+        ProfilePicture::File(path) => match fs::read(&path).await {
             Ok(bytes) => (
                 [
                     (
@@ -747,7 +776,7 @@ fn main() {
                     port,
                     bridge_token: bridge_token.clone(),
                     sidecar: Arc::new(Mutex::new(None)),
-                    profile: Arc::new(LocalProfile::read()),
+                    profile: Arc::new(OnceLock::new()),
                 };
                 spawn_sidecar(&state).await;
                 handle.manage(state.clone());
@@ -815,10 +844,7 @@ mod tests {
             port: 4300,
             bridge_token: "test-bridge-token".to_owned(),
             sidecar: Arc::new(Mutex::new(None)),
-            profile: Arc::new(LocalProfile {
-                first_name: "Local".to_owned(),
-                picture: None,
-            }),
+            profile: Arc::new(OnceLock::new()),
         }
     }
 
@@ -923,6 +949,15 @@ mod tests {
     fn reads_the_first_account_name() {
         assert_eq!(first_name("Deepanshu Mishra").as_deref(), Some("Deepanshu"));
         assert_eq!(first_name("  Deepanshu  ").as_deref(), Some("Deepanshu"));
+    }
+
+    #[tokio::test]
+    async fn reads_the_profile_once_and_then_from_cache() {
+        let state = test_state();
+        let first = local_profile(&state).await;
+        let second = local_profile(&state).await;
+        assert!(Arc::ptr_eq(&first, &second));
+        assert!(!first.first_name.is_empty());
     }
 
     #[test]

@@ -91,17 +91,28 @@
   --sheet-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --sheet-font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --line: #e6e6e6;
-  --panel-shadow: 0 1px 2px 0 --alpha(var(--color-black) / 5%);
+  /* A tight contact shadow says the panel touches the surface; a wide ambient
+     one says how far above it floats. One shadow alone reads as a smudge. */
+  --panel-shadow:
+    0 1px 1px 0 --alpha(var(--color-black) / 4%),
+    0 1px 2px 0 --alpha(var(--color-black) / 4%);
   --panel-shadow-lg:
-    0 8px 16px -2px --alpha(var(--color-black) / 8%),
-    0 2px 4px -1px --alpha(var(--color-black) / 4%),
-    0 0 0 0.5px --alpha(var(--color-black) / 6%);
+    0 0 0 0.5px --alpha(var(--color-black) / 5%),
+    0 1px 2px -1px --alpha(var(--color-black) / 6%),
+    0 12px 24px -8px --alpha(var(--color-black) / 12%),
+    0 24px 48px -24px --alpha(var(--color-black) / 10%);
+  /* Durations. Three steps, so a hover, a disclosure, and a dialog entrance
+     cannot drift apart — the shortest is still legible as motion rather than as
+     a jump, the longest still reads as one gesture. */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
   --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 4%);
   --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%);
-  --shadow-md: 0 4px 8px -1px --alpha(var(--color-black) / 7%), 0 2px 4px -2px --alpha(var(--color-black) / 4%);
-  --shadow-lg: 0 10px 20px -3px --alpha(var(--color-black) / 8%), 0 4px 6px -4px --alpha(var(--color-black) / 4%);
+  --shadow-md: 0 2px 4px -1px --alpha(var(--color-black) / 6%), 0 6px 12px -4px --alpha(var(--color-black) / 8%);
+  --shadow-lg: 0 4px 8px -2px --alpha(var(--color-black) / 6%), 0 16px 32px -8px --alpha(var(--color-black) / 12%);
   --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%), inset 0 1px 0 0 --alpha(var(--color-white) / 60%);
-  --shadow-elevated-hover: 0 6px 14px -2px --alpha(var(--color-black) / 8%), 0 2px 4px -1px --alpha(var(--color-black) / 4%), inset 0 1px 0 0 --alpha(var(--color-white) / 80%);
+  --shadow-elevated-hover: 0 2px 4px -1px --alpha(var(--color-black) / 6%), 0 10px 20px -6px --alpha(var(--color-black) / 12%), inset 0 1px 0 0 --alpha(var(--color-white) / 80%);
   color-scheme: light;
 }
 
@@ -134,9 +145,20 @@
   --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
   /* The kit's search / shell easing, measured off the page CSS. */
   --ease-kit: cubic-bezier(0.19, 1, 0.22, 1);
+  /* The durations, exposed as utilities so a panel entrance and a hover are
+     drawn from one scale instead of each inventing a number. The values live in
+     `:root` above and are mapped here under the namespace Tailwind reads, so a
+     hand-written rule and a `duration-*` class can never disagree. */
+  --transition-duration-fast: var(--duration-fast);
+  --transition-duration-base: var(--duration-base);
+  --transition-duration-slow: var(--duration-slow);
   --color-cx-canvas: var(--cx-canvas);
   --color-cx-dot: var(--cx-dot);
   --color-cx-accent: var(--cx-accent);
+  /* The fourth canvas token. Without it `bg-cx-ink/10` — the only way to draw a
+     faint block that still tracks the theme's ink — compiles to nothing, and
+     the illustration in the welcome dialog renders as an empty grid. */
+  --color-cx-ink: var(--cx-ink);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -293,12 +315,37 @@ body,
   height: 100%;
 }
 
+/* Text rendering, once, for the whole window. Dense 12–14px chrome only reads
+   as set type when the rasterizer is not inventing strokes and kerning pairs:
+   grayscale smoothing plus `optimizeLegibility` is the difference between
+   "letters" and "pixels", and neither pays off if it is opt-in per surface.
+
+   It sits on `html` rather than `body` so the two things a `body` rule misses
+   get it too — anything portalled in (menus, dialogs, toasts) and the nodes
+   the canvas renderer mounts inside the document. Inter is a variable font, so
+   `auto` optical sizing picks the right grade per size and the ligature set
+   keeps pairs like "fi" and "//" from drifting apart. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
+  /* A window is a desktop app, not a web page: the grey flash on a click and
+     the blue text-callout box on a drag are both web affordances. */
+  -webkit-tap-highlight-color: transparent;
+  /* Native form controls, scrollbars, and carets take their colour from the
+     theme rather than the OS accent, so a purple accent stays the only chroma
+     on screen. */
+  accent-color: var(--cx-accent);
+  caret-color: var(--cx-accent);
+}
+
 body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 .cx-shimmer {
@@ -555,6 +602,56 @@ body {
     color: var(--foreground);
     font-family: var(--sheet-font-sans);
   }
+
+  /* Focus, defined once for every control that has not asked for its own ring.
+     `:where` holds this at zero specificity, and `base` sits under `utilities`,
+     so a component's own `focus-visible:*` still wins — this is the floor that
+     makes focus visible everywhere, never a replacement. The offset keeps the
+     ring off the control's own hairline, where it would read as a border. */
+  :where(a, button, input, select, textarea, summary, [role='button']):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Selection is the one place text inverts against a fill, and the OS default
+     (a hard blue) is the loudest thing on a neutral screen. Tinting it with the
+     accent keeps the hue count at one. */
+  ::selection {
+    background: --alpha(var(--cx-accent) / 26%);
+  }
+
+  /* Native scrollbars follow the theme. They are chrome, so they get the same
+     hairline discipline as everything else: a thumb that only appears against
+     the surface it moves over, and a track that is not a surface. Firefox takes
+     the pair directly; WebKit needs the pseudo-elements. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: --alpha(var(--foreground) / 20%) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    /* The border is the trick: it eats 3px of the 10px track, so the thumb
+       reads as a 4px pill that keeps its radius at every length. */
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: --alpha(var(--foreground) / 18%);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: --alpha(var(--foreground) / 32%);
+    background-clip: content-box;
+  }
 }
 
 /* These live in `utilities` on purpose. Unlayered rules beat every layered one
@@ -586,6 +683,24 @@ body {
 
   .border-line {
     border-color: var(--line);
+  }
+
+  /* A strip of icons or chips that scrolls sideways but has no scrollbar of its
+     own — the affordance is the overflow itself. Needed in both engines: the
+     WebKit bar is `display: none`-able, `scrollbar-width` is the Firefox half. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* A hairline that sits on top of a fill rather than inside it. Used where a
+     border would change the box's metrics — an overlay over the canvas, a
+     floating bar's top edge, a full-bleed header. */
+  .ring-hairline {
+    box-shadow: inset 0 1px 0 var(--line);
   }
 }
 
@@ -668,18 +783,24 @@ body {
   --surface: #212121;
   --surface-2: #303030;
   --line: #424242;
+  /* Dark inverts which of the two shadows does the work. On a light surface the
+     contact shadow darkens what is under the panel; on a dark one the panel is
+     already darker than its ground, so the edge has to come from a catch of
+     light on top instead, and the ambient shadow only has to seat it. */
   --panel-shadow: 0 1px 2px 0 --alpha(var(--color-black) / 40%), inset 0 1px 0 0 --alpha(var(--color-white) / 4%);
   /* Measured off the kit's project menu. */
   --panel-shadow-lg:
-    0 12px 24px -4px --alpha(var(--color-black) / 60%),
-    0 4px 8px -2px --alpha(var(--color-black) / 40%),
-    0 0 0 0.5px --alpha(var(--color-white) / 8%);
+    0 0 0 0.5px --alpha(var(--color-white) / 8%),
+    0 2px 6px -2px --alpha(var(--color-black) / 50%),
+    0 16px 32px -8px --alpha(var(--color-black) / 60%),
+    0 32px 64px -32px --alpha(var(--color-black) / 50%),
+    inset 0 1px 0 0 --alpha(var(--color-white) / 6%);
   --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 30%);
   --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%);
-  --shadow-md: 0 4px 8px -1px --alpha(var(--color-black) / 50%), 0 2px 4px -2px --alpha(var(--color-black) / 40%);
-  --shadow-lg: 0 10px 20px -3px --alpha(var(--color-black) / 60%), 0 4px 6px -4px --alpha(var(--color-black) / 40%);
+  --shadow-md: 0 2px 4px -1px --alpha(var(--color-black) / 45%), 0 8px 16px -6px --alpha(var(--color-black) / 50%);
+  --shadow-lg: 0 4px 8px -2px --alpha(var(--color-black) / 50%), 0 20px 40px -12px --alpha(var(--color-black) / 60%);
   --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%), inset 0 1px 0 0 --alpha(var(--color-white) / 6%);
-  --shadow-elevated-hover: 0 6px 14px -2px --alpha(var(--color-black) / 50%), 0 2px 4px -1px --alpha(var(--color-black) / 30%), inset 0 1px 0 0 --alpha(var(--color-white) / 10%);
+  --shadow-elevated-hover: 0 2px 4px -1px --alpha(var(--color-black) / 45%), 0 12px 24px -8px --alpha(var(--color-black) / 55%), inset 0 1px 0 0 --alpha(var(--color-white) / 10%);
   color-scheme: dark;
 }
 
@@ -813,4 +934,21 @@ html[data-theme='dracula'] {
   --well: #21222c;
   --tooltip: #f8f8f2;
   --tooltip-foreground: #282a36;
+}
+
+/* Reduced motion, as a floor rather than a list. Every component above opts out
+   where its motion carries meaning (the agent scan, the typing dots), but an
+   opt-out nobody remembers to add is a person's vestibular trigger. This is
+   unlayered and last, so it reaches the components that never thought about
+   it. Durations collapse to a single frame; end states still resolve, so
+   anything waiting on `transitionend` or `animationend` still runs. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

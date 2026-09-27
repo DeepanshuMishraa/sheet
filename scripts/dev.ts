@@ -61,14 +61,17 @@ process.on('SIGTERM', () => void shutdown(143))
 
 async function waitForServer() {
   const deadline = Date.now() + 30_000
-  for (;;) {
-    if (await serverUp()) return
-    if (Date.now() > deadline) {
-      console.error('[dev] local server never became ready')
-      await shutdown(1)
+    // The server is usually ready in about a second, and every millisecond of
+    // this loop is dead time in front of the window: poll tightly at first and
+    // back off, so the desktop starts the moment the API answers.
+    for (let attempt = 0; ; attempt += 1) {
+      if (await serverUp()) return
+      if (Date.now() > deadline) {
+        console.error('[dev] local server never became ready')
+        await shutdown(1)
+      }
+      await Bun.sleep(Math.min(25 * 2 ** Math.floor(attempt / 4), 250))
     }
-    await Bun.sleep(250)
-  }
 }
 
 if (!desktopOnly) {
