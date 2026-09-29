@@ -706,6 +706,162 @@
     }
   },
   {
+    "name": "listShaders",
+    "description": "List the available Paper shaders with their params: type, range or options, and default. Use the names and params with insertShader and styleShader.",
+    "inputSchema": {
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "insertShader",
+    "description": "Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. Defaults to the first root as parent.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "shader": {
+          "type": "string",
+          "enum": [
+            "mesh-gradient",
+            "static-mesh-gradient",
+            "swirl",
+            "grain-gradient"
+          ],
+          "description": "mesh-gradient: Flowing color spots moving along distinct trajectories with organic distortion. | static-mesh-gradient: Multi-point mesh gradient with two-direction warping. Renders one still frame. | swirl: Animated bands of color twisting into spirals, arcs and circular flows. | grain-gradient: Multi-color gradient with noise-textured distortion in seven abstract forms."
+        },
+        "parentId": {
+          "description": "Element to insert into; defaults to the first root",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "width": {
+          "description": "Width in px, default 400",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "height": {
+          "description": "Height in px, default 300",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "params": {
+          "description": "Shader params, for example { colors: [\"#111\",\"#f0f\"], speed: 0.5, distortion: 0.8 }. Unknown keys are dropped and numbers are clamped to range; omitted keys keep their default.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 64
+                }
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "designId",
+        "shader"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "styleShader",
+    "description": "Change a shader inserted with insertShader: params (merged over the current ones), width and height in one atomic edit. Only the fields you pass change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "nodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The shader node id returned by insertShader"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "params": {
+          "description": "Shader params, for example { colors: [\"#111\",\"#f0f\"], speed: 0.5, distortion: 0.8 }. Unknown keys are dropped and numbers are clamped to range; omitted keys keep their default.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 64
+                }
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "designId",
+        "nodeId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
     "name": "listAssets",
     "description": "List the local uploaded image assets.",
     "inputSchema": {

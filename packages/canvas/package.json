@@ -16,7 +16,8 @@
     "./web-react": "./src/web-react.tsx",
     "./legacy-model": "./src/legacy-model.ts",
     "./web-icons": "./src/web-icons.ts",
-    "./web-icon-style": "./src/web-icon-style.ts"
+    "./web-icon-style": "./src/web-icon-style.ts",
+    "./web-shaders": "./src/web-shaders.ts"
   },
   "scripts": {
     "embed-preflight": "bun run scripts/embed-tailwind-preflight.ts"
@@ -36,6 +37,7 @@
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.3.5",
+    "@paper-design/shaders": "^0.0.81",
     "lucide": "^1.48.0",
     "tailwindcss": "4.3.3"
   }

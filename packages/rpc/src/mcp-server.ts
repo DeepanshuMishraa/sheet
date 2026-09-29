@@ -12,6 +12,14 @@ import {
   type IconLibrary,
 } from '@sheet/canvas/web-icons'
 import {
+  SHADERS,
+  SHADER_NAMES,
+  isShaderNode,
+  shaderNode,
+  shaderPatchOperation,
+  type ShaderName,
+} from '@sheet/canvas/web-shaders'
+import {
   applyWebCanvasTransactionToStore,
   readWebCanvasStore,
 } from './web-canvas-procedures'
@@ -92,6 +100,13 @@ const iconStyleShape = {
   size: z.number().positive().max(2_048).optional().describe('Width and height in px'),
   strokeWidth: z.number().positive().max(8).optional().describe('Outline weight in the 24px viewBox'),
 }
+const shaderName = z
+  .enum(SHADER_NAMES)
+  .describe(SHADER_NAMES.map((name) => `${name}: ${SHADERS[name].description}`).join(' | '))
+const shaderParamsShape = z
+  .record(z.string(), z.union([z.number(), z.string(), z.array(z.string().max(64)).max(10)]))
+  .optional()
+  .describe('Shader params, for example { colors: ["#111","#f0f"], speed: 0.5, distortion: 0.8 }. Unknown keys are dropped and numbers are clamped to range; omitted keys keep their default.')
 const targetShape = {
   designId,
   draftId: draftId.optional().describe('Branch target; omit for Main'),
@@ -724,6 +739,119 @@ function createSheetRuntime(
         args.designId,
         found.revision,
         { id: `icon-${crypto.randomUUID()}`, label: 'Style icon', operations: [operation] },
+        args.draftId ?? null,
+      )
+      return requireApplied(result)
+    }),
+  )
+
+  server.registerTool(
+    'listShaders',
+    {
+      description:
+        'List the available Paper shaders with their params: type, range or options, and default. Use the names and params with insertShader and styleShader.',
+      annotations: { readOnlyHint: true },
+    },
+    tool('listShaders', async (_args: unknown) =>
+      SHADER_NAMES.map((name) => ({
+        name,
+        label: SHADERS[name].label,
+        description: SHADERS[name].description,
+        params: SHADERS[name].params,
+      })),
+    ),
+  )
+
+  server.registerTool(
+    'insertShader',
+    {
+      description:
+        'Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. Defaults to the first root as parent.',
+      inputSchema: {
+        ...targetShape,
+        shader: shaderName,
+        parentId: z.string().min(1).max(200).optional().describe('Element to insert into; defaults to the first root'),
+        width: z.number().positive().max(8_192).optional().describe('Width in px, default 400'),
+        height: z.number().positive().max(8_192).optional().describe('Height in px, default 300'),
+        params: shaderParamsShape,
+      },
+    },
+    tool('insertShader', async (args: {
+      designId: string
+      draftId?: string
+      shader: ShaderName
+      parentId?: string
+      width?: number
+      height?: number
+      params?: Record<string, number | string | string[]>
+    }) => {
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
+      const document = found.document
+      const parentId = args.parentId ?? document.roots[0] ?? null
+      if (parentId && document.nodes[parentId]?.kind !== 'element') {
+        throw new Error(`Parent "${parentId}" is not an element in this design.`)
+      }
+      const siblings = Object.values(document.nodes).filter((node) => node.parentId === parentId)
+      const node = shaderNode(args.shader, {
+        parentId,
+        order: siblings.reduce((max, sibling) => Math.max(max, sibling.order), 0) + 1_024,
+        width: args.width,
+        height: args.height,
+        params: args.params,
+      })
+      const result = await applyWebCanvasTransactionToStore(
+        userId,
+        userId,
+        args.designId,
+        found.revision,
+        {
+          id: `shader-${crypto.randomUUID()}`,
+          label: `Insert ${args.shader} shader`,
+          operations: [{ type: 'node.insert', node }],
+        },
+        args.draftId ?? null,
+      )
+      requireApplied(result)
+      return { nodeId: node.id, result }
+    }),
+  )
+
+  server.registerTool(
+    'styleShader',
+    {
+      description:
+        'Change a shader inserted with insertShader: params (merged over the current ones), width and height in one atomic edit. Only the fields you pass change.',
+      inputSchema: {
+        ...targetShape,
+        nodeId: z.string().min(1).max(200).describe('The shader node id returned by insertShader'),
+        width: z.number().positive().max(8_192).optional(),
+        height: z.number().positive().max(8_192).optional(),
+        params: shaderParamsShape,
+      },
+    },
+    tool('styleShader', async (args: {
+      designId: string
+      draftId?: string
+      nodeId: string
+      width?: number
+      height?: number
+      params?: Record<string, number | string | string[]>
+    }) => {
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
+      const node = found.document.nodes[args.nodeId]
+      if (!isShaderNode(node)) {
+        throw new Error(`Node "${args.nodeId}" is not a shader. Pass the nodeId insertShader returned; nothing was changed.`)
+      }
+      const operation = shaderPatchOperation(node, args)
+      if (!operation) throw new Error('Pass at least one of params, width or height. Nothing was changed.')
+      const result = await applyWebCanvasTransactionToStore(
+        userId,
+        userId,
+        args.designId,
+        found.revision,
+        { id: `shader-${crypto.randomUUID()}`, label: 'Style shader', operations: [operation] },
         args.draftId ?? null,
       )
       return requireApplied(result)

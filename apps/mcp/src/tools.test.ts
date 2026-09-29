@@ -12,7 +12,7 @@ import {
 describe('MCP tool manifest', () => {
   test('embeds the complete TypeScript tool manifest', () => {
     const names = toolNames()
-    expect(names).toHaveLength(22)
+    expect(names).toHaveLength(26)
     expect(names[0]).toBe('getUsage')
     expect(names).not.toContain('getScreenshot')
     expect(names).not.toContain('createPage')
@@ -24,6 +24,9 @@ describe('MCP tool manifest', () => {
     expect(names).toContain('searchIcons')
     expect(names).toContain('insertIcon')
     expect(names).toContain('styleIcon')
+    expect(names).toContain('listShaders')
+    expect(names).toContain('insertShader')
+    expect(names).toContain('styleShader')
     expect(names).toContain('applyWebTransaction')
     expect(names).toContain('createBranch')
     expect(names).toContain('applyBranch')

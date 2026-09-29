@@ -33,8 +33,10 @@ import {
 } from '@sheet/ui/icons'
 import { ConnectAgent } from './connect-agent'
 import { IconsPanel } from './icon-panel'
+import { ShadersList } from './shader-panel'
 import { documentFonts, firstFamily, SYSTEM_FONT_STACKS, type DocumentFont } from '../lib/fonts'
 import { iconInfo, iconStyleOperation, isIconNode, type IconLibrary } from '@sheet/canvas/web-icon-style'
+import { shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
 import { Button } from '@sheet/ui/button'
 import { cn } from '@sheet/ui/utils'
 import {
@@ -849,8 +851,43 @@ function WebInspector({
     }
   }
 
+  const shader = shaderInfo(node)
+  const styleShader = (change: { params?: Record<string, string | number | string[]> }) => {
+    const operation = shaderPatchOperation(node, change)
+    if (operation?.type === 'node.patch' && operation.patch.kind === 'element') {
+      onPatch({ styles: operation.patch.styles, attributes: operation.patch.attributes })
+    }
+  }
+
   return (
     <div>
+      {shader && !bound ? (
+        <section className="space-y-2.5 border-b border-line p-3">
+          <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span>Shader</span>
+            <span className="min-w-0 truncate font-mono text-[10px] lowercase">{shader.name}</span>
+          </div>
+          <InspectorInput
+            label="Colors"
+            layout="stack"
+            value={Array.isArray(shader.params.colors) ? shader.params.colors.join(', ') : ''}
+            placeholder="#111111, #ff00aa"
+            onCommit={(val) => {
+              const colors = val.split(',').map((color) => color.trim()).filter(Boolean)
+              if (colors.length) styleShader({ params: { colors } })
+            }}
+          />
+          <InspectorInput
+            label="Speed"
+            layout="stack"
+            value={String(shader.params.speed ?? '')}
+            onCommit={(val) => {
+              const speed = Number(val)
+              if (val.trim() !== '' && Number.isFinite(speed)) styleShader({ params: { speed } })
+            }}
+          />
+        </section>
+      ) : null}
       {icon && !bound ? (
         <section className="space-y-2.5 border-b border-line p-3">
           <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -1799,6 +1836,17 @@ export function WebCanvasEditor({
     setLeftTab('design')
   }, [setTool, transact])
 
+  const insertShader = useCallback((name: ShaderName) => {
+    const parentId = documentRef.current.roots[0] ?? null
+    const node = shaderNode(name, { parentId, order: nextOrder(documentRef.current, parentId) })
+    selectedRef.current = node.id
+    setSelectedId(node.id)
+    setPageSelected(false)
+    transact(`Insert ${name} shader`, [{ type: 'node.insert', node }])
+    setTool('select')
+    setLeftTab('design')
+  }, [setTool, transact])
+
   const insertPenPath = useCallback((point: { x: number; y: number }, stroke?: { x: number; y: number }[]) => {
     const draft = penDraftRef.current
     if (draft && !stroke) {
@@ -2641,7 +2689,10 @@ export function WebCanvasEditor({
                 setTool('select')
               }} />
             ) : leftTab === 'icons' ? (
-              <IconsPanel onInsert={insertLibraryIcon} />
+              <>
+                <ShadersList onInsert={insertShader} />
+                <IconsPanel onInsert={insertLibraryIcon} />
+              </>
             ) : (
               /* Theme Tab */
               <div className="min-h-0 flex-1 overflow-y-auto flex flex-col">
