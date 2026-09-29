@@ -34,6 +34,8 @@ export type BuiltInShortcutId =
   | 'tool.comment'
   | 'tool.text'
   | 'tool.box'
+  | 'tool.frame'
+  | 'tool.pen'
   | 'tool.image'
   | 'tool.hand'
   | 'delete'

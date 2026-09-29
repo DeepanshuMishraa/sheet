@@ -3,16 +3,9 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import mcpToolManifest from '../../../apps/mcp/src/tools.json'
 import {
-  createCanvasDocument,
-  createPageNode,
-  createTextNode,
-  defaultLayout,
-} from '@sheet/canvas/model'
-import {
   appUrl,
   createSheetServer,
   createSheetToolExecutor,
-  exportCanvasCode,
 } from './mcp-server'
 import type { McpUsageController } from './mcp-server'
 
@@ -22,23 +15,6 @@ afterEach(() => {
   if (originalAppUrl === undefined) delete process.env.SHEET_APP_URL
   else process.env.SHEET_APP_URL = originalAppUrl
 })
-
-function documentFixture() {
-  const document = createCanvasDocument('MCP fixture', 'doc-test')
-  const page = createPageNode('Home', {
-    id: 'page-home',
-    layout: defaultLayout(800, 600),
-    viewport: { width: 800, minHeight: 600 },
-  })
-  const text = createTextNode('Hello MCP', {
-    id: 'text-title',
-    parentId: page.id,
-    layout: defaultLayout(320, 48, { x: 32, y: 32 }),
-  })
-  document.nodes[page.id] = page
-  document.nodes[text.id] = text
-  return document
-}
 
 function usageController(): McpUsageController {
   const snapshot = {
@@ -83,58 +59,7 @@ describe('MCP agent workflow', () => {
     )
   })
 
-  test('exports the first Page as Tailwind, JSX, or standalone HTML', () => {
-    const document = documentFixture()
-    const page = document.nodes['page-home']
-    if (page?.type !== 'page') throw new Error('Fixture Page is missing')
-    page.states = {
-      active: {
-        id: 'active',
-        name: 'Active',
-        type: 'boolean',
-        initial: false,
-      },
-    }
-    document.nodes['text-title']!.interactions = [
-      {
-        trigger: 'click',
-        actions: [{ type: 'toggle-state', stateId: 'active' }],
-      },
-    ]
-
-    const tailwind = exportCanvasCode(document, {
-      format: 'tailwind',
-      width: 800,
-    })
-    const jsx = exportCanvasCode(document, {
-      format: 'jsx',
-      pageId: 'page-home',
-      width: 800,
-    })
-    const html = exportCanvasCode(document, {
-      format: 'html',
-      ref: { nodeId: 'text-title', instancePath: [] },
-      width: 800,
-    })
-
-    expect(tailwind.pageId).toBe('page-home')
-    expect(tailwind.code).toContain('className=')
-    expect(tailwind.code).toContain('[font-size:16px]')
-    expect(tailwind.code).toContain('useSheetRuntime(rootRef)')
-    expect(jsx.code).toContain('style={{')
-    expect(html.code).toMatch(/^<!doctype html>/)
-    expect(html.nodeId).toBe('text-title')
-    expect(() =>
-      exportCanvasCode(document, {
-        format: 'tailwind',
-        pageId: 'page-home',
-        ref: { nodeId: 'text-title', instancePath: [] },
-        width: 800,
-      }),
-    ).toThrow('Choose either pageId or ref')
-  })
-
-  test('advertises context, code export, and a real screenshot tool', async () => {
+  test('advertises web tools and a real screenshot tool', async () => {
     let reservations = 0
     const usage = usageController()
     const server = createSheetServer('user-test', {
@@ -152,29 +77,28 @@ describe('MCP agent workflow', () => {
     try {
       const tools = await client.listTools()
       const names = new Set(tools.tools.map((tool) => tool.name))
-      expect(names.has('getDesignContext')).toBe(true)
-      expect(names.has('exportCode')).toBe(true)
-      expect(names.has('getScreenshot')).toBe(true)
+      expect(names.has('getWebDocument')).toBe(true)
+      expect(names.has('getWebHTML')).toBe(true)
+      expect(names.has('getWebCSS')).toBe(true)
+      expect(names.has('applyWebTransaction')).toBe(true)
+      expect(names.has('getWebScreenshot')).toBe(true)
       expect(names.has('getUsage')).toBe(true)
-      expect(names.has('insertIcon')).toBe(true)
-      expect(names.has('searchIcons')).toBe(true)
-      const createPage = tools.tools.find(
-        (tool) => tool.name === 'createPage',
+      expect(names.has('exportCode')).toBe(false)
+      expect(names.has('getScreenshot')).toBe(false)
+      expect(names.has('insertNodes')).toBe(false)
+      const applyWebTransaction = tools.tools.find(
+        (tool) => tool.name === 'applyWebTransaction',
       )
-      expect(createPage?.description).toContain('typed local state')
-      expect(JSON.stringify(createPage?.inputSchema)).toContain(
-        'toggle-state',
+      expect(applyWebTransaction?.description).toContain('WebTransaction')
+      expect(JSON.stringify(applyWebTransaction?.inputSchema)).toContain(
+        'expectedRevision',
       )
-      expect(JSON.stringify(createPage?.inputSchema)).toContain(
-        'set-theme',
+      const getWebScreenshot = tools.tools.find(
+        (tool) => tool.name === 'getWebScreenshot',
       )
-      const setTokens = tools.tools.find(
-        (tool) => tool.name === 'setTokens',
-      )
-      expect(JSON.stringify(setTokens?.inputSchema)).toContain('themes')
-      expect(setTokens?.description).toContain('named visual themes')
+      expect(getWebScreenshot?.description).toContain('PNG')
       expect(
-        tools.tools.find((tool) => tool.name === 'getScreenshot')
+        tools.tools.find((tool) => tool.name === 'getWebScreenshot')
           ?.annotations?.readOnlyHint,
       ).toBe(true)
       const usageResult = await client.callTool({
@@ -210,24 +134,16 @@ describe('MCP agent workflow', () => {
     await client.connect(clientTransport)
     try {
       const { tools } = await client.listTools()
-      expect(tools as unknown).toEqual(mcpToolManifest)
-      expect(tools.length).toBeGreaterThanOrEqual(30)
-      // The raw zod conversion inlined every shared shape into every tool
-      // (~156KB total, patchNodes alone 43KB). The custom tools/list handler
-      // hoists registered shapes into named definitions instead.
-      const patchNodes = tools.find((tool) => tool.name === 'patchNodes')
-      const schema = patchNodes?.inputSchema as {
-        definitions?: Record<string, unknown>
-      }
-      expect(schema.definitions?.CanvasStylePatch).toBeDefined()
-      expect(schema.definitions?.CanvasNodePatch).toBeDefined()
-      expect(JSON.stringify(patchNodes).length).toBeLessThan(20_000)
+      expect(JSON.parse(JSON.stringify(tools))).toEqual(mcpToolManifest)
+      expect(tools.length).toBeGreaterThanOrEqual(15)
       expect(JSON.stringify(tools).length).toBeLessThan(100_000)
-      // Conversion still keeps the vocabulary the agents rely on.
-      const insertNodes = tools.find((tool) => tool.name === 'insertNodes')
-      const insertText = JSON.stringify(insertNodes?.inputSchema)
-      expect(insertText).toContain('CanvasNodeDescriptor')
-      expect(insertText).toContain('linear-gradient')
+      // Conversion still keeps the vocabulary the agents rely on. Operation
+      // payloads stay z.unknown (validated by parseWebTransaction, not the
+      // manifest), so the op list lives in the tool description.
+      const applyWebTransaction = tools.find((tool) => tool.name === 'applyWebTransaction')
+      expect(applyWebTransaction?.description).toContain('node.patch')
+      expect(applyWebTransaction?.description).toContain('instance.setOverride')
+      expect(applyWebTransaction?.description).toContain('component.define')
     } finally {
       await client.close()
       await server.close()

@@ -13,7 +13,6 @@ COPY package.json bun.lock bunfig.toml ./
 COPY apps/desktop/package.json apps/desktop/
 COPY apps/mcp/package.json apps/mcp/
 COPY packages/db/package.json packages/db/
-COPY packages/agent/package.json packages/agent/
 COPY packages/canvas/package.json packages/canvas/
 COPY packages/platform/package.json packages/platform/
 COPY packages/shell/package.json packages/shell/
@@ -43,7 +42,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/mcp/node_modules ./apps/mcp/node_modules
 COPY --from=deps /app/apps/desktop/node_modules ./apps/desktop/node_modules
 COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
-COPY --from=deps /app/packages/agent/node_modules ./packages/agent/node_modules
 COPY --from=deps /app/packages/canvas/node_modules ./packages/canvas/node_modules
 COPY --from=deps /app/packages/platform/node_modules ./packages/platform/node_modules
 COPY --from=deps /app/packages/shell/node_modules ./packages/shell/node_modules
@@ -57,7 +55,6 @@ COPY apps/mcp ./apps/mcp
 # directly on Bun (no bundling step), so the whole backend import chain ships.
 COPY packages/db ./packages/db
 COPY packages/rpc ./packages/rpc
-COPY packages/agent ./packages/agent
 COPY packages/canvas ./packages/canvas
 COPY packages/platform ./packages/platform
 COPY packages/realtime ./packages/realtime

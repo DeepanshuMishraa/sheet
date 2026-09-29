@@ -6,7 +6,7 @@ import type {
   CanvasPaint,
   CanvasStylePatch,
   LayoutMode,
-} from './model'
+} from './legacy-model'
 
 /**
  * Turning style values into CSS values.

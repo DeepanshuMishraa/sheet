@@ -236,45 +236,48 @@ export function AssetsPanel({
   return (
     <div
       ref={rootRef}
-      className="relative flex h-full min-h-0 flex-col gap-3 p-4"
+      className="relative flex h-full min-h-0 min-w-0 flex-col gap-3 p-3"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1">
+      <div className="flex shrink-0 flex-col gap-2.5">
+        <div className="min-w-0">
           <h2 className="text-sm font-semibold">Assets</h2>
           <p className="text-xs text-muted-foreground">
-            Click an image to place it, or drop files anywhere here.
+            Click an image to place it, or drop files here.
           </p>
         </div>
-        <div className="relative w-44">
+        <div className="relative min-w-0">
           <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             aria-label="Search assets"
             placeholder="Search"
-            className="ps-6"
+            className="w-full ps-6"
             size="sm"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <select
-          aria-label="Sort assets"
-          value={sort}
-          className="h-7 rounded-md border bg-background px-2 text-xs outline-none"
-          onChange={(event) => setSort(event.target.value as SortKey)}
-        >
-          <option value="newest">Newest</option>
-          <option value="name">Name</option>
-          <option value="size">Largest</option>
-        </select>
-        <Button
-          size="sm"
-          disabled={progress !== null}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <ImagePlusIcon data-slot="icon" />
-          {progress ? `Uploading ${progress.done}/${progress.total}` : 'Upload'}
-        </Button>
+        <div className="flex min-w-0 items-center gap-2">
+          <select
+            aria-label="Sort assets"
+            value={sort}
+            className="h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs outline-none"
+            onChange={(event) => setSort(event.target.value as SortKey)}
+          >
+            <option value="newest">Newest</option>
+            <option value="name">Name</option>
+            <option value="size">Largest</option>
+          </select>
+          <Button
+            size="sm"
+            className="shrink-0"
+            disabled={progress !== null}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlusIcon data-slot="icon" />
+            {progress ? `Uploading ${progress.done}/${progress.total}` : 'Upload'}
+          </Button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -306,7 +309,7 @@ export function AssetsPanel({
       ) : visible.length === 0 ? (
         <button
           type="button"
-          className="flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground hover:bg-secondary/50"
+          className="flex min-h-32 flex-1 cursor-pointer items-center justify-center rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground hover:bg-secondary/50"
           onClick={() => fileInputRef.current?.click()}
         >
           {assets.length === 0
@@ -314,7 +317,7 @@ export function AssetsPanel({
             : 'No assets match that search.'}
         </button>
       ) : (
-        <div className="grid flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3 overflow-y-auto">
+        <div className="grid flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-3 overflow-y-auto overflow-x-hidden">
           {visible.map((asset) => {
             const used = usage?.[asset.id] ?? 0
             return (

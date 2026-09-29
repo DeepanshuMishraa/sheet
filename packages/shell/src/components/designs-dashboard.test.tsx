@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest'
+import { assertWebDocument, createWebDocument, createWebElement } from '@sheet/canvas/web-model'
 
 const list = vi.fn()
 const listShared = vi.fn()
@@ -9,8 +10,10 @@ const archive = vi.fn()
 const restore = vi.fn()
 const deleteDesign = vi.fn()
 const create = vi.fn()
+const createWeb = vi.fn()
 const rename = vi.fn()
 const getPreferences = vi.fn()
+const getWebCanvas = vi.fn()
 
 vi.doMock('@sheet/rpc/client', () => ({
   orpc: {
@@ -23,6 +26,7 @@ vi.doMock('@sheet/rpc/client', () => ({
       delete: deleteDesign,
     },
     canvas: { create, rename },
+    webCanvas: { create: createWeb, get: getWebCanvas },
     // The dashboard renders the upgrade button, which reads billing status.
     billing: { status: vi.fn(async () => ({ required: false, plan: null })) },
     preferences: {
@@ -101,6 +105,8 @@ describe('DesignsDashboard', () => {
     navigate.mockReset().mockResolvedValue(undefined)
     getPreferences.mockReset().mockResolvedValue({ shortcuts: null })
     create.mockReset().mockResolvedValue({ revision: 1 })
+    createWeb.mockReset().mockResolvedValue({ revision: 0 })
+    getWebCanvas.mockReset().mockResolvedValue({ status: 'empty' })
     rename.mockReset()
     deleteDesign.mockReset().mockResolvedValue({ deleted: true })
     archive.mockReset().mockResolvedValue({ archivedAt: Date.now() })
@@ -128,6 +134,19 @@ describe('DesignsDashboard', () => {
     expect(screen.getByText('Edited 2 hours ago')).toBeTruthy()
   })
 
+  test('renders the fetched web document inside its thumbnail', async () => {
+    const document = createWebDocument('Preview', 'preview')
+    document.nodes.root = createWebElement('main', {
+      id: 'root', order: 1_024, styles: { background: '#123456', width: '800px', height: '600px' },
+    })
+    document.roots = ['root']
+    getWebCanvas.mockResolvedValue({ status: 'ready', document: assertWebDocument(document) })
+    list.mockResolvedValue([{ id: 'thumbnail-fixture', name: 'Thumbnail', revision: 1, updatedAt: Date.now() }])
+    const view = render(<DesignsDashboard />)
+    await waitFor(() => expect(view.container.querySelectorAll('[data-sheet-node="root"]')).toHaveLength(1))
+    expect(view.container.querySelector('[data-sheet-node="root"]')?.getAttribute('style')).toContain('background: rgb(18, 52, 86)')
+  })
+
   test('filters the list by name', async () => {
     render(<DesignsDashboard />)
     await screen.findByText('Ideal pine')
@@ -146,8 +165,8 @@ describe('DesignsDashboard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'New file' }))
 
-    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
-    const created = create.mock.calls[0]?.[0] as { designId: string; name: string }
+    await waitFor(() => expect(createWeb).toHaveBeenCalledTimes(1))
+    const created = createWeb.mock.calls[0]?.[0] as { designId: string; name: string }
     expect(created.name).toBe('Untitled')
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith({

@@ -16,7 +16,7 @@ import {
   type CanvasLayout,
   type CanvasPaint,
   type CanvasStylePatch,
-} from './model'
+} from './legacy-model'
 
 const document = createCanvasDocument('Test', 'doc')
 

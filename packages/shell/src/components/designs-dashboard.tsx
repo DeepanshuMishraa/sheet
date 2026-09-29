@@ -32,10 +32,11 @@ import { Skeleton } from '@sheet/ui/skeleton'
 import { Spinner } from '@sheet/ui/spinner'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
-import { CanvasDocumentPreview } from '@sheet/editor/canvas-preview'
-import type { CanvasDocument } from '@sheet/canvas/model'
+import { WebDocumentPreview } from '@sheet/editor/web-preview'
+import type { WebDocument } from '@sheet/canvas/web-model'
 import { cn } from '@sheet/ui/utils'
 import { useDashboardSearchQuery } from '../lib/dashboard-search'
+import { subscribeCanvasChanges } from '@sheet/editor/lib/canvas-events'
 
 const VIEW_STORAGE_KEY = 'sheet:files-view'
 
@@ -102,11 +103,12 @@ function FileActions({
   )
 }
 
-const previewCache = new Map<string, CanvasDocument | null>()
+const previewCache = new Map<string, WebDocument | null>()
 
-function FileCardPreview({ designId }: { designId: string }) {
-  const [doc, setDoc] = useState<CanvasDocument | null>(() => previewCache.get(designId) ?? null)
-  const [loaded, setLoaded] = useState(() => previewCache.has(designId))
+function FileCardPreview({ designId, revision }: { designId: string; revision: number }) {
+  const cacheKey = `${designId}:${revision}`
+  const [doc, setDoc] = useState<WebDocument | null>(() => previewCache.get(cacheKey) ?? null)
+  const [loaded, setLoaded] = useState(() => previewCache.has(cacheKey))
   // Local fetches usually resolve in a frame or two; only show the mark when
   // the wait is long enough to notice.
   const [showLoader, setShowLoader] = useState(false)
@@ -118,37 +120,39 @@ function FileCardPreview({ designId }: { designId: string }) {
   }, [loaded])
 
   useEffect(() => {
-    if (typeof orpc.canvas?.get !== 'function') return
-    if (previewCache.has(designId)) return
+    if (typeof orpc.webCanvas?.get !== 'function') return
+    if (previewCache.has(cacheKey)) return
     let active = true
-    void orpc.canvas
+    void orpc.webCanvas
       .get({ designId })
       .then((res) => {
-        const document = res.document ?? null
-        previewCache.set(designId, document)
+        const document = res.status === 'ready' ? res.document : null
+        previewCache.set(cacheKey, document)
         if (active) {
           setDoc(document)
           setLoaded(true)
         }
       })
       .catch(() => {
-        previewCache.set(designId, null)
         if (active) setLoaded(true)
       })
     return () => {
       active = false
     }
-  }, [designId])
+  }, [cacheKey, designId])
 
   return (
     <span className="relative flex size-full items-center justify-center">
       {!loaded && showLoader ? (
         <DotMatrixLoader className="size-5 text-muted-foreground" />
       ) : null}
-      <CanvasDocumentPreview
+      <WebDocumentPreview
         document={doc}
         className="size-full"
       />
+      {loaded && !doc ? (
+        <span className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No preview</span>
+      ) : null}
     </span>
   )
 }
@@ -165,7 +169,7 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm transition-[box-shadow,border-color] duration-base ease-out hover:border-ring/40 hover:shadow-panel-lg focus-within:border-ring/40 focus-within:shadow-panel-lg">
+    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-xs transition-[box-shadow,border-color,transform] duration-base ease-out hover:border-line hover:shadow-md hover:-translate-y-0.5 focus-within:border-ring/40 focus-within:shadow-md">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
@@ -198,7 +202,7 @@ function FileCard({
 
       <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line bg-cx-canvas shadow-inner">
         <div className="size-full">
-          <FileCardPreview designId={design.id} />
+          <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
         </div>
       </div>
     </div>
@@ -225,7 +229,7 @@ function FileRow({
         className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
       />
       <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md border border-line bg-cx-canvas shadow-xs">
-        <FileCardPreview designId={design.id} />
+        <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
       </div>
       <div className="pointer-events-none min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -332,7 +336,6 @@ export function DesignsDashboard({
 
   const loadDesigns = useCallback(async () => {
     setError(null)
-    setDesigns(null)
     try {
       const own = await orpc.design.list()
       setDesigns([...own].sort(byRecent))
@@ -346,6 +349,7 @@ export function DesignsDashboard({
 
   useEffect(() => {
     void loadDesigns()
+    return subscribeCanvasChanges(null, () => void loadDesigns())
   }, [loadDesigns])
 
   useEffect(() => {
@@ -378,10 +382,9 @@ export function DesignsDashboard({
     if (!target || !name || renaming) return
     setRenaming(true)
     try {
-      const renamed = await orpc.canvas.rename({
+      const renamed = await orpc.webCanvas.rename({
         designId: target.id,
         name,
-        expectedRevision: target.revision,
       })
       setDesigns((current) =>
         (current ?? [])
@@ -395,11 +398,7 @@ export function DesignsDashboard({
       setRenameTarget(null)
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'The file could not be renamed'
-      setError(
-        message.includes('UNSUPPORTED_CANVAS')
-          ? 'This file uses an unsupported legacy Canvas format.'
-          : message,
-      )
+      setError(message)
       setRenameTarget(null)
     } finally {
       setRenaming(false)
@@ -424,7 +423,7 @@ export function DesignsDashboard({
 
   return (
     <>
-      <main className="app-page-enter flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface">
+      <main className="app-page-enter flex min-w-0 flex-1 flex-col overflow-y-auto bg-background">
         {/* Hidden accessible search input for screen readers / tests */}
         <input
           ref={searchRef}

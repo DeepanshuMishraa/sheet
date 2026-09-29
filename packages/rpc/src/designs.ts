@@ -10,10 +10,9 @@ import {
 import { z } from 'zod'
 import { db } from '@sheet/db'
 import { design } from '@sheet/db/schema'
+import { publishCanvasRealtimeEvent } from '@sheet/db/canvas-realtime'
 import {
   localProcedure,
-  pageSchema,
-  shapeSchema,
 } from './procedures'
 
 /**
@@ -69,9 +68,14 @@ export const archiveDesign = localProcedure
           isNull(design.archivedAt),
         ),
       )
-      .returning({ id: design.id, archivedAt: design.archivedAt })
+      .returning({ id: design.id, revision: design.revision, archivedAt: design.archivedAt })
 
     if (!archived) throw new ORPCError('NOT_FOUND')
+    void publishCanvasRealtimeEvent(
+      context.user.id,
+      { designId: archived.id },
+      { type: 'canvas.changed', revision: archived.revision, nodeIds: [] },
+    )
     return { archivedAt: (archived.archivedAt ?? new Date()).getTime() }
   })
 
@@ -88,90 +92,15 @@ export const restoreDesign = localProcedure
           isNotNull(design.archivedAt),
         ),
       )
-      .returning({ id: design.id })
+      .returning({ id: design.id, revision: design.revision })
 
     if (!restored) throw new ORPCError('NOT_FOUND')
+    void publishCanvasRealtimeEvent(
+      context.user.id,
+      { designId: restored.id },
+      { type: 'canvas.changed', revision: restored.revision, nodeIds: [] },
+    )
     return { restored: true }
-  })
-
-export const getDesign = localProcedure
-  .input(z.object({ id: z.string().min(1).max(128) }))
-  .handler(async ({ context, input }) => {
-    const [found] = await db
-      .select({
-        id: design.id,
-        name: design.name,
-        shapes: design.shapes,
-        pages: design.pages,
-        revision: design.revision,
-        updatedAt: design.updatedAt,
-      })
-      .from(design)
-      .where(and(eq(design.id, input.id), eq(design.userId, context.user.id)))
-      .limit(1)
-
-    if (!found) throw new ORPCError('NOT_FOUND')
-    return { ...found, updatedAt: found.updatedAt.getTime() }
-  })
-
-export const saveDesign = localProcedure
-  .input(
-    z.object({
-      id: z.string().min(1).max(128),
-      name: z.string().trim().min(1).max(200),
-      shapes: z.array(shapeSchema).max(10_000),
-      pages: z.array(pageSchema).max(1_000).default([]),
-      expectedRevision: z.number().int().nonnegative().optional(),
-    }),
-  )
-  .handler(async ({ context, input }) => {
-    const { expectedRevision, ...values } = input
-    const [existing] = await db
-      .select({ revision: design.revision })
-      .from(design)
-      .where(and(eq(design.id, input.id), eq(design.userId, context.user.id)))
-      .limit(1)
-
-    if (!existing) {
-      const [created] = await db
-        .insert(design)
-        .values({ ...values, userId: context.user.id })
-        .returning({
-          id: design.id,
-          revision: design.revision,
-          updatedAt: design.updatedAt,
-        })
-      return { ...created, updatedAt: created.updatedAt.getTime() }
-    }
-
-    if (expectedRevision !== undefined && expectedRevision !== existing.revision) {
-      throw new ORPCError('CONFLICT', { message: 'Main changed since it was loaded.' })
-    }
-
-    const [saved] = await db
-      .update(design)
-      .set({
-        name: input.name,
-        shapes: input.shapes,
-        pages: input.pages,
-        revision: existing.revision + 1,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(design.id, input.id),
-          eq(design.userId, context.user.id),
-          eq(design.revision, existing.revision),
-        ),
-      )
-      .returning({
-        id: design.id,
-        revision: design.revision,
-        updatedAt: design.updatedAt,
-      })
-
-    if (!saved) throw new ORPCError('CONFLICT', { message: 'Main changed while it was saving.' })
-    return { ...saved, updatedAt: saved.updatedAt.getTime() }
   })
 
 /**

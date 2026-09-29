@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { CanvasApp } from '@sheet/editor/app'
-import { renderEditorSettings } from '@sheet/shell/editor-settings-slot'
 import { designValidateSearch } from '@sheet/shell/lib/url-state'
 
 export const Route = createFileRoute('/design/$id')({
@@ -23,6 +22,6 @@ function DesignPage() {
 
   return (
     /* Remount on switch so the sync controller opens the new target cleanly. */
-    <CanvasApp key={id} designId={id} renderSettings={renderEditorSettings} />
+    <CanvasApp key={id} designId={id} />
   )
 }

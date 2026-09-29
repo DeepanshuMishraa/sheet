@@ -56,7 +56,7 @@ export function messageTargetsRoom(
   designId: string,
   draftId: string | null,
 ) {
-  if (message.target.designId !== designId) return false
-  if (draftId) return true
+  if (designId && message.target.designId !== designId) return false
+  if (!designId || draftId) return true
   return !message.target.draftId
 }

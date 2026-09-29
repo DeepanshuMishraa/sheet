@@ -25,14 +25,19 @@
     "db:generate": "bun run --cwd packages/db generate",
     "db:migrate": "bun run --cwd packages/db migrate",
     "db:studio": "bun run --cwd packages/db studio",
-    "canvas:repair-layout": "bun run --cwd packages/rpc repair-layout",
     "assets:backfill-urls": "bun run --cwd packages/rpc backfill-asset-urls",
     "mcp:tools": "bun run --cwd packages/rpc dump-mcp-tools"
   },
-  "trustedDependencies": ["esbuild", "lightningcss"],
+  "trustedDependencies": [
+    "esbuild",
+    "lightningcss"
+  ],
   "type": "module",
   "workspaces": {
-    "packages": ["apps/*", "packages/*"],
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
     "catalog": {
       "drizzle-orm": "^0.45.2",
       "zod": "^4.4.3",

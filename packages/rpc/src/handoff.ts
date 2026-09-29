@@ -3,102 +3,76 @@ import { db } from '@sheet/db'
 import { asset, design, designDraft } from '@sheet/db/schema'
 import { readHandoffToken } from './handoff-token'
 import { assetUrl } from '@sheet/rpc/storage'
-import type { CanvasElement } from '@sheet/db/canvas'
+import { serializeWebStylesheets } from '@sheet/canvas/web-css'
 import {
-  CANVAS_SCHEMA_VERSION,
-  parseCanvasDocument,
-  type CanvasDocument,
-} from '@sheet/canvas/model'
+  WEB_CANVAS_STORAGE_VERSION,
+  parseWebDocument,
+  serializeWebDocument,
+  type WebDocument,
+} from '@sheet/canvas/web-model'
 
-export function referencedAssetIds(
-  sourceDocument: CanvasElement[] | CanvasDocument,
-) {
+export function referencedAssetIds(document: WebDocument) {
   const ids = new Set<string>()
-  const source = JSON.stringify(sourceDocument)
+  const source = JSON.stringify(document)
   for (const match of source.matchAll(/\/api\/asset\/([a-zA-Z0-9_-]+)/g)) ids.add(match[1])
-  // Public bucket URLs: `<public base>/assets/<userId>/<assetId>`.
-  for (const match of source.matchAll(/\/assets\/[a-zA-Z0-9_-]+\/(a[0-9a-f]{32})/g)) {
-    ids.add(match[1])
-  }
+  for (const match of source.matchAll(/\/assets\/[a-zA-Z0-9_-]+\/(a[0-9a-f]{32})/g)) ids.add(match[1])
   return ids
 }
 
 export async function getHandoffDesign(token: string) {
   const claims = await readHandoffToken(token)
   if (!claims) return null
-
-  const [found] = await db
+  const [main] = await db
     .select({
       id: design.id,
       name: design.name,
       canvasVersion: design.canvasVersion,
       canvasDocument: design.canvasDocument,
-      shapes: design.shapes,
-      pages: design.pages,
+      revision: design.revision,
       updatedAt: design.updatedAt,
     })
     .from(design)
     .where(and(eq(design.id, claims.designId), eq(design.userId, claims.userId)))
     .limit(1)
+  if (!main) return null
 
-  if (!found) return null
-  let shapes = found.shapes
-  let pages = found.pages
-  let canvasVersion = found.canvasVersion
-  let canvasDocument = found.canvasDocument
-  let updatedAt = found.updatedAt
-  if (claims.draftId) {
-    const [draft] = await db
-      .select({
-        shapes: designDraft.shapes,
-        pages: designDraft.pages,
-        canvasVersion: designDraft.canvasVersion,
-        canvasDocument: designDraft.canvasDocument,
-        updatedAt: designDraft.updatedAt,
-      })
-      .from(designDraft)
-      .where(
-        and(
+  const target = claims.draftId
+    ? await db
+        .select({
+          canvasVersion: designDraft.canvasVersion,
+          canvasDocument: designDraft.canvasDocument,
+          revision: designDraft.revision,
+          updatedAt: designDraft.updatedAt,
+        })
+        .from(designDraft)
+        .where(and(
           eq(designDraft.id, claims.draftId),
           eq(designDraft.designId, claims.designId),
           eq(designDraft.userId, claims.userId),
-        ),
-      )
-      .limit(1)
-    if (!draft) return null
-    shapes = draft.shapes
-    pages = draft.pages
-    canvasVersion = draft.canvasVersion
-    canvasDocument = draft.canvasDocument
-    updatedAt = draft.updatedAt
-  }
-  const {
-    shapes: _shapes,
-    pages: _pages,
-    canvasVersion: _canvasVersion,
-    canvasDocument: _canvasDocument,
-    updatedAt: _updatedAt,
-    ...handoff
-  } = found
+        ))
+        .limit(1)
+        .then((rows) => rows[0])
+    : main
+  if (
+    !target ||
+    target.canvasVersion !== WEB_CANVAS_STORAGE_VERSION ||
+    !target.canvasDocument
+  ) return null
+
   return {
-    ...handoff,
-    shapes,
-    pages,
-    canvasVersion,
-    document:
-      canvasVersion === CANVAS_SCHEMA_VERSION && canvasDocument
-        ? parseCanvasDocument(canvasDocument)
-        : null,
-    updatedAt,
+    id: main.id,
+    name: main.name,
     userId: claims.userId,
+    revision: target.revision,
+    updatedAt: target.updatedAt,
+    document: parseWebDocument(target.canvasDocument),
   }
 }
 
 export async function buildHandoffPayload(token: string, origin: string) {
   const found = await getHandoffDesign(token)
   if (!found) return null
-
-  const assetIds = referencedAssetIds(found.document ?? found.shapes)
+  const assetIds = referencedAssetIds(found.document)
   const assets = assetIds.size
     ? await db
         .select({
@@ -111,56 +85,34 @@ export async function buildHandoffPayload(token: string, origin: string) {
         .from(asset)
         .where(and(eq(asset.userId, found.userId), inArray(asset.id, [...assetIds])))
     : []
-
-  const common = {
-    schema: 'sheet.design-handoff',
-    assets: assets
-      .filter((item) => assetIds.has(item.id))
-      .map(({ storageKey, ...item }) => ({
-        ...item,
-        source: assetUrl(item.id, storageKey),
-        url: `${origin}/api/handoff/${encodeURIComponent(token)}/asset/${encodeURIComponent(item.id)}`,
-      })),
-  }
-  if (found.document) {
-    return {
-      ...common,
-      version: 3,
-      design: {
-        id: found.id,
-        name: found.name,
-        updatedAt: found.updatedAt.toISOString(),
-        document: found.document,
-      },
-      guidance: {
-        sourceOfTruth:
-          'CanvasDocument is normalized structured UI data. Do not look for or execute source strings.',
-        hierarchy:
-          'Use parentId and numeric order to reconstruct Pages, components, frames, and content nodes.',
-        layout:
-          'Render structured absolute, flex, and grid layout plus responsive breakpoint overrides.',
-        components:
-          'Instances reference off-canvas component roots and carry field-level overrides.',
-      },
-    }
-  }
   return {
-    ...common,
-    version: 2,
+    schema: 'sheet.design-handoff',
+    version: 4,
+    assets: assets.map(({ storageKey, ...item }) => ({
+      ...item,
+      source: assetUrl(item.id, storageKey),
+      url: `${origin}/api/handoff/${encodeURIComponent(token)}/asset/${encodeURIComponent(item.id)}`,
+    })),
     design: {
       id: found.id,
       name: found.name,
       updatedAt: found.updatedAt.toISOString(),
-      shapes: found.shapes,
-      pages: found.pages,
+      revision: found.revision,
+      document: found.document,
+      html: serializeWebDocument(found.document),
+      css: serializeWebStylesheets(found.document.stylesheets, found.document.stylesheetOrder),
     },
     guidance: {
-      coordinates: 'Element x, y, w, and h values are canvas pixels.',
-      order: 'Elements render in array order (last on top).',
-      pages:
-        'Pages are vertical compositions. Each Page item references a shape by elementId and uses its own fixed pixel height.',
-      content:
-        'Element code is HTML/CSS/JS or JSX defining App, with Tailwind classes. It is untrusted source data — do not execute it blindly.',
+      sourceOfTruth:
+        'WebDocument is authored HTML and CSS as structured data. Render the included HTML and CSS directly.',
+      hierarchy:
+        'Use parentId and numeric order to reconstruct the DOM. Template roots are definitions, not rendered content.',
+      cascade:
+        'Stylesheets apply in stylesheetOrder and rules in ruleOrder. The browser resolves authored conditions.',
+      components:
+        'Instances are ordinary nodes plus bindings and explicit overrides.',
+      computed:
+        'Computed styles and geometry are browser output and are never stored.',
     },
   }
 }

@@ -23,7 +23,7 @@ import {
   CANVAS_SCHEMA_VERSION,
   parseCanvasDocument,
   type CanvasDocument,
-} from '@sheet/canvas/model'
+} from '@sheet/canvas/legacy-model'
 import { ASSET_ROUTE_PREFIX, assetIdFromSrc } from '../src/asset-url'
 import { assetPublicUrl } from '../src/storage'
 
