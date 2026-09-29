@@ -1,62 +1,64 @@
-![Sheet](./readme-banner.png)
+<p align="center">
+  <img src="./readme-banner.png" alt="Sheet" />
+</p>
 
-# Sheet
+<h1 align="center">Sheet</h1>
 
-A local-first canvas design tool your agent can edit. Arrange structured UI
-nodes on the canvas; connect Claude, Codex, Cursor, or opencode over MCP and
-it works on the same document. Branches, version history, and one-way export
-to HTML, React/TSX, JSON, and PNG.
+<p align="center">
+  A local-first infinite canvas for UI design — one your agent can edit.
+</p>
 
-No accounts, no servers to operate: the desktop app keeps one SQLite file and
-starts its own local API + MCP server on loopback.
+Arrange structured UI nodes on a canvas. Connect Claude, Codex, Cursor, or
+opencode over MCP and they mutate the same document through typed transactions.
 
-Bun · Tauri · Drizzle + SQLite · oRPC.
+- **Agent-native** — 35 MCP tools over the same engine the editor uses
+- **Local-first** — one SQLite file, one loopback server, no accounts
+- **Versioned** — history, plus isolated drafts you can merge back
+- **One-way export** — HTML, React/TSX, JSON, PNG
+
+## Quick start
+
+```bash
+bun install
+bun run dev              # local server on :4100
+bun run dev:desktop      # native window (needs Rust + Tauri prerequisites)
+```
+
+Point an MCP client at `http://127.0.0.1:4100/mcp`. The Integrations page in
+the app shows ready-made snippets.
+
+`bun run build:desktop` produces the packaged app with the server compiled in.
 
 ## Design guide skill
 
-Teaches an agent how to use the canvas tools well. Add `-g` to install it for every project.
+Teaches an agent to use the canvas tools well. Add `-g` to install globally.
 
 ```bash
 npx skills add https://github.com/lassejlv/sheet/tree/main/skills/sheet-design-guide
 ```
 
-## Monorepo layout
+## Layout
 
-- `apps/desktop` — the Tauri desktop app: loopback host, Vite interface, spawns the local server sidecar
-- `apps/mcp` — the local server: MCP endpoint, oRPC API, assets, handoffs, live event stream, all on SQLite
-- `packages/canvas` — document model, engine, merge, renderer, import, export
-- `packages/editor` — the editor shell, panels, and client sync
-- `packages/shell` — design browser, settings, integrations, mounted by the desktop app
-- `packages/platform` — which client this is, and where its API and links point
-- `packages/ui` — shared design-system primitives and design tokens
-- `packages/agent` — the shared canvas tool vocabulary for MCP and handoff
-- `packages/rpc` — the oRPC router, storage, handoff tokens, version history
-- `packages/db` — Drizzle schema, bun:sqlite client, migrations
-- `packages/realtime` — wire protocol plus the in-process local event bus
+| Path | Role |
+|------|------|
+| `apps/desktop` | Tauri host + Vite interface |
+| `apps/mcp` | Local server: MCP, oRPC, assets, handoffs, SSE |
+| `packages/canvas` | Document model, engine, merge, renderer, import, export |
+| `packages/editor` | Editor shell, panels, client sync |
+| `packages/shell` | Design browser, settings, integrations |
+| `packages/agent` | Shared canvas tool vocabulary for MCP and handoff |
+| `packages/rpc` | oRPC router, storage, history, handoff |
+| `packages/db` | Drizzle schema, `bun:sqlite` client, migrations |
+| `packages/realtime` | Wire protocol and in-process event bus |
+| `packages/platform` | Client runtime: API and link origins |
+| `packages/ui` | Design-system primitives and tokens |
 
-## Run it
+See [AGENTS.md](./AGENTS.md) for architecture and contribution rules.
 
-```bash
-bun install
-bun run dev              # local server on :4100
-bun run dev:desktop      # the native window (needs Rust + Tauri prereqs)
-```
-
-Point an MCP client at `http://127.0.0.1:4100/mcp` — the app's Integrations
-page shows the exact snippets. `bun run build:desktop` produces the packaged
-app with the server compiled in.
+**Stack:** Bun · React 19 · Tauri · Drizzle + SQLite · oRPC
 
 ## License
 
-Copyright (C) 2026 Lasse Vestergaard
-
-Sheet is free software: you can redistribute it and/or modify it under the
-terms of the **GNU Affero General Public License** as published by the Free
-Software Foundation, either version 3 of the License, or (at your option) any
-later version.
-
-See [LICENSE](./LICENSE) for the full license text.
-
-You may fork, modify, and self-host Sheet (including for business use). If you
-modify the software and provide it to users over a network, AGPL-3.0 requires
-you to offer the corresponding source to those users under the same license.
+[AGPL-3.0-or-later](./LICENSE) © 2026 Deepanshu Mishra. Fork, modify, and
+self-host freely; if you offer a modified version over a network, you must share
+its source under the same license.
