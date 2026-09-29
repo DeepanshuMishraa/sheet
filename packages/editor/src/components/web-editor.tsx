@@ -22,6 +22,7 @@ import {
   LayoutGridIcon,
   MousePointer2Icon,
   PanelLeftIcon,
+  PanelRightIcon,
   PencilIcon,
   PenTool01Icon,
   PlusCircleIcon,
@@ -55,6 +56,7 @@ import { boundNodeIndex, type WebOverride } from '@sheet/canvas/web-components'
 import { WebDocumentView } from '@sheet/canvas/web-react'
 import { AssetsPanel, assetSrc } from './assets-panel'
 import { DocumentTabBar } from './tab-bar'
+import { ExportMenu } from './export-menu'
 import { orpc } from '@sheet/rpc/client'
 import {
   Dialog,
@@ -1405,6 +1407,7 @@ export function WebCanvasEditor({
     return /^#[\da-f]{6}$/i.test(value) ? value : '#ffffff'
   })
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
+  const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [leftTab, setLeftTab] = useState<'design' | 'theme' | 'assets' | 'icons'>('design')
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [notice, setNotice] = useState<string | null>(null)
@@ -1419,6 +1422,8 @@ export function WebCanvasEditor({
   const hoveredRef = useRef(hoveredId)
   const cameraRef = useRef(camera)
   const savingRef = useRef(false)
+  const staleRef = useRef(false)
+  const syncLatestRef = useRef<() => void>(() => {})
   const pendingSavesRef = useRef<{ transaction: WebTransaction; snapshot: WebDocument }[]>([])
   const dragRef = useRef<DragState | null>(null)
   const drawingRef = useRef<DrawingDraft | null>(null)
@@ -1485,8 +1490,13 @@ export function WebCanvasEditor({
         if (active) setShortcutConfig(normalizeConfig(preferences.shortcuts))
       }).catch(() => undefined)
     }
-    const stop = subscribeCanvasChanges(designId, (announcedRevision) => {
-      if (announcedRevision <= revisionRef.current || pendingSavesRef.current.length > 0) return
+    const sync = () => {
+      if (pendingSavesRef.current.length > 0) {
+        // Local edits are mid-flight; resync as soon as they land.
+        staleRef.current = true
+        return
+      }
+      staleRef.current = false
       void orpc.webCanvas.get({
         designId,
         ...(draftId ? { draftId } : {}),
@@ -1505,7 +1515,11 @@ export function WebCanvasEditor({
         setSaveStatus('saved')
         scheduleMeasure()
       }).catch(() => undefined)
-    })
+    }
+    syncLatestRef.current = sync
+    // Any announcement triggers a sync (the revision check happens on the
+    // fetched result), and every (re)connect resyncs what a dropped stream missed.
+    const stop = subscribeCanvasChanges(designId, sync, { draftId, onReady: sync })
     return () => {
       active = false
       stop()
@@ -1555,6 +1569,7 @@ export function WebCanvasEditor({
     savingRef.current = false
     setSaveStatus('saved')
     scheduleMeasure()
+    if (staleRef.current) syncLatestRef.current()
   }, [designId, draftId, scheduleMeasure])
 
   const saveTransaction = useCallback((
@@ -2401,7 +2416,7 @@ export function WebCanvasEditor({
               <PanelLeftIcon className="size-3.5" />
             </button>
           ) : null}
-          <DocumentTabBar activeDocument={{ id: designId, name: name || 'Untitled' }} />
+          <DocumentTabBar activeDocument={{ id: designId, name: document.name || name || 'Untitled' }} />
         </div>
 
         {/* Draggable header area */}
@@ -2422,14 +2437,26 @@ export function WebCanvasEditor({
             ) : null}
           </div>
         ) : null}
+        <ExportMenu designId={designId} draftId={draftId} onError={setNotice} />
+        <button
+          type="button"
+          aria-label={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
+          aria-pressed={rightPanelOpen}
+          title={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-muted-foreground shadow-xs transition-colors hover:bg-surface/80 hover:text-foreground"
+          onClick={() => setRightPanelOpen((open) => !open)}
+        >
+          <PanelRightIcon className="size-3.5" />
+        </button>
       </header>
 
       {/* Main Workspace Layout */}
       <div className={cn(
         'grid min-h-0 min-w-0',
-        leftPanelOpen
-          ? 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)_clamp(15rem,22vw,19rem)]'
-          : 'grid-cols-[minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
+        leftPanelOpen && rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
+        leftPanelOpen && !rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)]',
+        !leftPanelOpen && rightPanelOpen && 'grid-cols-[minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
+        !leftPanelOpen && !rightPanelOpen && 'grid-cols-[minmax(0,1fr)]',
       )}>
         {/* Left Sidebar: Pages, Layers, Theme */}
         {leftPanelOpen ? (
@@ -2981,6 +3008,7 @@ export function WebCanvasEditor({
         </main>
 
         {/* Right Inspector Panel: Design (Image 2 & 4) */}
+        {rightPanelOpen ? (
         <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3 text-xs font-medium text-foreground">
             <span>Design</span>
@@ -3028,6 +3056,7 @@ export function WebCanvasEditor({
             />
           </div>
         </aside>
+        ) : null}
       </div>
 
       {/* Connect Agent Dialog */}

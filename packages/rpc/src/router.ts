@@ -7,6 +7,7 @@ import {
 } from './designs'
 import {
   applyWebCanvasTransaction,
+  exportWebCanvas,
   createWebCanvasDesign,
   getWebCanvas,
   migrateWebCanvas,
@@ -49,6 +50,7 @@ export const appRouter = {
     rename: renameWebCanvasDesign,
     migrate: migrateWebCanvas,
     applyTransaction: applyWebCanvasTransaction,
+    export: exportWebCanvas,
   },
   draft: {
     list: listDrafts,

@@ -181,11 +181,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  /* Small controls 6, buttons and inputs 8, menus and dialogs 12, cards 16. */
+  /* Nothing rounder than 8px: lg and up all collapse to md. */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.5rem;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -932,6 +934,19 @@ html[data-theme='dracula'] {
   --well: #21222c;
   --tooltip: #f8f8f2;
   --tooltip-foreground: #282a36;
+}
+
+/* Named themes restate the palette but not the sidebar, which `.dark` would
+   otherwise pin to #181818 for the sidebar and title bar. Follow the theme. */
+html[data-theme] {
+  --sidebar: var(--cx-canvas);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--cx-accent);
+  --sidebar-primary-foreground: var(--cx-canvas);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 /* Reduced motion, as a floor rather than a list. Every component above opts out

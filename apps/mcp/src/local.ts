@@ -175,7 +175,11 @@ await ensureLocalUser()
 
 const server = Bun.serve({
   port: config.port,
-  fetch: (request) => route(request, state),
+  fetch: (request, server) => {
+    // Bun closes connections idle for 10s; a quiet event stream is idle by design.
+    if (new URL(request.url).pathname === '/api/canvas-events') server.timeout(request, 0)
+    return route(request, state)
+  },
 })
 
 console.info(`Sheet local server listening on http://localhost:${server.port}`)

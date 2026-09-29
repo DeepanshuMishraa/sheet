@@ -169,12 +169,12 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-xs transition-[box-shadow,border-color,transform] duration-base ease-out hover:border-line hover:shadow-md hover:-translate-y-0.5 focus-within:border-ring/40 focus-within:shadow-md">
+    <div className="group relative flex flex-col rounded-md border border-line bg-surface p-4 shadow-xs transition-[box-shadow,border-color,transform] duration-base ease-out hover:border-line hover:shadow-md hover:-translate-y-0.5 focus-within:border-ring/40 focus-within:shadow-md">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
         aria-label={`Open ${design.name}`}
-        className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="absolute inset-0 rounded-md focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       />
       <div className="flex items-start justify-between min-w-0">
         <div className="min-w-0 flex-1 pe-2">
@@ -301,7 +301,7 @@ function FilesLoading({ view }: { view: FilesView }) {
   return (
     <div className={GRID_CLASSES} aria-busy="true">
       {rows.map((row) => (
-        <div key={row} className="flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-panel">
+        <div key={row} className="flex flex-col rounded-md border border-line bg-surface p-4 shadow-panel">
           <div className="flex flex-col gap-1.5 pb-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-3 w-20" />
@@ -508,7 +508,7 @@ export function DesignsDashboard({
           {designs === null ? (
             <FilesLoading view={view} />
           ) : visible.length === 0 ? (
-            <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-line bg-surface px-6 py-12 text-center shadow-panel">
+            <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-md border border-line bg-surface px-6 py-12 text-center shadow-panel">
               <EmptyCanvasPlate />
               <p className="text-sm font-medium">
                 {designs.length === 0 ? 'No design files yet' : 'No files match that search'}

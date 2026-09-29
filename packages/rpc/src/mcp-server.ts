@@ -33,6 +33,7 @@ import {
   proposeDraft,
 } from './mcp-designs'
 import { trackAgentActivity } from './mcp-agent-activity'
+import { exportOptionsShape, exportWebDocument, type ExportOptions } from './design-export'
 
 export interface McpIncludedUsage {
   metric: string
@@ -96,12 +97,15 @@ const targetShape = {
   draftId: draftId.optional().describe('Branch target; omit for Main'),
 }
 
+/** The desktop host's default loopback origin; the app sets SHEET_APP_URL to its real one. */
+const DEFAULT_APP_URL = 'http://127.0.0.1:4300'
+
 export function appUrl(
   design: string,
   branch?: string,
   extra: Record<string, string | undefined> = {},
 ) {
-  const origin = (process.env.SHEET_APP_URL?.trim() || 'https://sheet.design').replace(/\/+$/, '')
+  const origin = (process.env.SHEET_APP_URL?.trim() || DEFAULT_APP_URL).replace(/\/+$/, '')
   const path = branch
     ? `/design/${encodeURIComponent(design)}/b/${encodeURIComponent(branch)}`
     : `/design/${encodeURIComponent(design)}`
@@ -410,6 +414,21 @@ function createSheetRuntime(
     ),
   )
 
+
+  server.registerTool(
+    'exportDesign',
+    {
+      description:
+        'Export a design. format "html" returns the complete self-contained page (all DOM and CSS in one file, ready to save as .html); "png"/"jpg" return a rendered image as base64; "json" returns the authored web document. The result carries filename, mimeType, encoding ("utf8" or "base64") and data.',
+      inputSchema: { designId, ...exportOptionsShape },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    tool('exportDesign', async (args: { designId: string } & ExportOptions) => {
+      const found = await requireWebDocument(userId, args.designId)
+      const exported = await exportWebDocument(userId, found.document, args)
+      return { revision: found.revision, openUrl: appUrl(args.designId), ...exported }
+    }),
+  )
 
   server.registerTool(
     'createDesign',

@@ -46,3 +46,31 @@ export function compileWebStandaloneHtml(
     '</html>',
   ].join('')
 }
+
+/**
+ * The complete, portable page: one self-contained HTML file with the authored
+ * CSS inlined and the DOM serialized without editor identity attributes.
+ * Same serializers as `compileWebStandaloneHtml`, minus the capture wrapper.
+ */
+export function compileWebCodeHtml(
+  document: WebDocument,
+  options: WebStandaloneHtmlOptions = {},
+): string {
+  const source = assertWebDocument(document)
+  const css = serializeWebStylesheets(source.stylesheets, source.stylesheetOrder)
+  const body = serializeWebDocument(source)
+  const title = escapeHtml(options.title ?? source.name)
+  return [
+    '<!doctype html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    `<title>${title}</title>`,
+    `<style>\n${css}\n</style>`,
+    '</head>',
+    `<body>\n${body}\n</body>`,
+    '</html>',
+    '',
+  ].join('\n')
+}

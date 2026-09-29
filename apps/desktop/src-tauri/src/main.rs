@@ -370,6 +370,7 @@ async fn spawn_sidecar(state: &AppState) {
     command
         .env("SHEET_SQLITE_PATH", &db_path)
         .env("SHEET_MCP_PORT", state.config.mcp_port.to_string())
+        .env("SHEET_APP_URL", format!("http://127.0.0.1:{}", state.port))
         .env(
             "MCP_PUBLIC_URL",
             format!("http://127.0.0.1:{}", state.config.mcp_port),

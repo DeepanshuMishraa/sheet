@@ -76,7 +76,7 @@ export function AppNavigation({
             aria-label={`Menu for ${firstName}`}
             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors duration-fast ease-out hover:bg-surface active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            <Avatar className="size-6 shrink-0 rounded-full bg-surface-2 text-2xs font-semibold shadow-xs">
+            <Avatar className="size-6 shrink-0 rounded-md bg-surface-2 text-2xs font-semibold shadow-xs">
               {profile?.imageUrl ? (
                 <AvatarImage src={profile.imageUrl} alt={firstName} />
               ) : null}

@@ -81,10 +81,14 @@ export interface WebScreenshotOptions {
   rootId?: string
   width?: number
   pixelRatio?: number
+  format?: 'png' | 'jpeg'
+  /** JPEG only, 1-100. */
+  quality?: number
 }
 
 export interface WebScreenshot {
   png: Uint8Array
+  mimeType: 'image/png' | 'image/jpeg'
   width: number
   height: number
   rootId: string | null
@@ -188,18 +192,23 @@ async function renderWebScreenshotWithBrowser(
     )
     const bounds = await handle.boundingBox()
     if (!bounds) throw new Error('Web screenshot target has no visible bounds')
+    const format = options.format ?? 'png'
     const png = await handle.screenshot({
-      type: 'png',
+      type: format,
+      ...(format === 'jpeg'
+        ? { quality: Math.round(Math.max(1, Math.min(options.quality ?? 90, 100))) }
+        : {}),
       animations: 'disabled',
       caret: 'hide',
     })
     if (png.byteLength > MAX_PNG_BYTES) {
       throw new Error(
-        'The PNG is too large for one MCP response. Use a smaller width, pixelRatio, or rootId.',
+        'The image is too large for one response. Use a smaller width, pixelRatio, or rootId.',
       )
     }
     return {
       png,
+      mimeType: format === 'jpeg' ? ('image/jpeg' as const) : ('image/png' as const),
       width: Math.max(1, Math.round(bounds.width * pixelRatio)),
       height: Math.max(1, Math.round(bounds.height * pixelRatio)),
       rootId: options.rootId ?? null,

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from '@tanstack/react-router'
+import { orpc } from '@sheet/rpc/client'
+import { subscribeCanvasChanges } from './canvas-events'
 
 export interface OpenTab {
   id: string
@@ -73,6 +75,30 @@ export function useOpenTabs(activeDocument?: { id: string; name: string }) {
     return () => {
       window.removeEventListener(EVENT_KEY, update)
       window.removeEventListener('storage', update)
+    }
+  }, [])
+
+  // Keep every tab's title live: any design event (an MCP rename included)
+  // refreshes names from the source of truth, and drops tabs whose design
+  // was archived or deleted.
+  useEffect(() => {
+    let active = true
+    const refresh = () => {
+      void orpc.design.list().then((designs) => {
+        if (!active) return
+        const names = new Map(designs.map((item) => [item.id, item.name]))
+        const current = getStoredTabs()
+        const next = current.map((tab) => {
+          const name = names.get(tab.id)
+          return name && name !== tab.name ? { ...tab, name } : tab
+        })
+        if (next.some((tab, index) => tab !== current[index])) saveStoredTabs(next)
+      }).catch(() => undefined)
+    }
+    const stop = subscribeCanvasChanges(null, refresh, { onReady: refresh })
+    return () => {
+      active = false
+      stop()
     }
   }, [])
 

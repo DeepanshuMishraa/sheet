@@ -22,6 +22,7 @@ import {
 import { publishBranchChanged, publishCanvasRealtimeEvent } from '@sheet/db/canvas-realtime'
 import { canvasTransactionPruneBefore } from '@sheet/db/canvas-transactions'
 import { localProcedure, optionalDraftIdSchema, requireDesignAccess } from './procedures'
+import { exportOptionsShape, exportWebDocument } from './design-export'
 
 function parseStoredLegacyDocument(
   version: number,
@@ -677,4 +678,21 @@ export const applyWebCanvasTransaction = localProcedure
       input.transaction,
       input.draftId ?? null,
     )
+  })
+
+export const exportWebCanvas = localProcedure
+  .input(
+    z.object({
+      designId: z.string().min(1).max(128),
+      draftId: optionalDraftIdSchema,
+      ...exportOptionsShape,
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    const access = await requireDesignAccess(context.user, input.designId, 'view')
+    const found = await readWebCanvasStore(access.ownerUserId, input.designId, input.draftId ?? null)
+    if (found.status !== 'ready') {
+      throw new ORPCError('CONFLICT', { message: 'UNSUPPORTED_CANVAS' })
+    }
+    return exportWebDocument(access.ownerUserId, found.document, input)
   })
