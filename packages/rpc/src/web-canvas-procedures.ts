@@ -420,7 +420,7 @@ export async function applyWebCanvasTransactionToStore(
   const targetKey = draftId ? `draft:${draftId}` : 'main'
   const result = await db.transaction(async (tx) => {
     const duplicate = await tx
-      .select({ revision: canvasTransaction.revision })
+      .select({ revision: canvasTransaction.revision, transaction: canvasTransaction.transaction })
       .from(canvasTransaction)
       .where(
         and(
@@ -433,6 +433,11 @@ export async function applyWebCanvasTransactionToStore(
       .limit(1)
       .then((rows) => rows[0])
     if (duplicate) {
+      if (JSON.stringify(duplicate.transaction) !== JSON.stringify(transaction)) {
+        throw new ORPCError('CONFLICT', {
+          message: `Transaction id "${transaction.id}" was already used for a different change. Nothing was applied; retry with a new id.`,
+        })
+      }
       const current = draftId
         ? await tx
           .select({

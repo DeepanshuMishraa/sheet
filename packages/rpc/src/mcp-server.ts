@@ -73,6 +73,16 @@ function fail(error: unknown, usage?: McpIncludedUsage) {
 
 const designId = z.string().min(1).max(128).describe('Design id')
 const draftId = z.string().min(1).max(128).describe('Branch id')
+/** A stale write comes back as a value, not an error; tools must not report it as success. */
+function requireApplied<T extends { applied: boolean; reason?: string; revision: number }>(result: T) {
+  if (!result.applied) {
+    throw new Error(
+      `The design changed (now at revision ${result.revision}) so nothing was applied. Read it again and retry.`,
+    )
+  }
+  return result
+}
+
 const iconLibrary = z
   .enum(ICON_LIBRARIES.map((entry) => entry.id) as [IconLibrary, ...IconLibrary[]])
   .describe('Icon set: hugeicons or lucide')
@@ -658,6 +668,7 @@ function createSheetRuntime(
         },
         args.draftId ?? null,
       )
+      requireApplied(result)
       return { nodeId: nodes[0]?.id, result }
     }),
   )
@@ -688,7 +699,7 @@ function createSheetRuntime(
       }
       const operation = iconStyleOperation(args.nodeId, args)
       if (!operation) throw new Error('Pass at least one of color, size or strokeWidth. Nothing was changed.')
-      return applyWebCanvasTransactionToStore(
+      const result = await applyWebCanvasTransactionToStore(
         userId,
         userId,
         args.designId,
@@ -696,6 +707,7 @@ function createSheetRuntime(
         { id: `icon-${crypto.randomUUID()}`, label: 'Style icon', operations: [operation] },
         args.draftId ?? null,
       )
+      return requireApplied(result)
     }),
   )
 

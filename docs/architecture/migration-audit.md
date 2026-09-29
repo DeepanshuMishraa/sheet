@@ -125,9 +125,10 @@ Crossings are one-way (`migrateLegacyNodes`, now with a `designVersion`
 backup) or parallel (dual MCP vocabularies on shared store helpers). Nothing
 converts `WebDocument` back into legacy concepts.
 
-Migration debt (missing web capability, not leakage): drafts/branches,
-versions commit/compare/restore, screenshots, and handoff documents are all
-legacy-only. Branching a migrated Main yields an empty legacy draft.
+Migration debt: none outstanding for drafts/branches, versions
+commit/compare/restore, screenshots, or handoff documents; each has a web
+implementation next to its legacy one. Branching a migrated Main creates a
+WebDocument draft.
 
 ## 4. Schema
 

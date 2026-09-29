@@ -76,6 +76,8 @@ export function validStyleName(name: string) {
 export function validStyleValue(value: string) {
   return (
     value.length <= 10_000 &&
+    // `</style>` would close an exported <style> block and let markup through.
+    !/<\/?style|<script|<!--/i.test(value) &&
     !/expression\s*\(|-moz-binding|url\s*\(\s*(['"]?)\s*javascript:/i.test(value)
   )
 }

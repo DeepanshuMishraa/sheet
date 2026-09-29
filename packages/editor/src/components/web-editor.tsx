@@ -1399,7 +1399,11 @@ export function WebCanvasEditor({
   const [quickInsertOpen, setQuickInsertOpen] = useState(false)
   const [connectAgentOpen, setConnectAgentOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(true)
-  const [pageBackground, setPageBackground] = useState('#ffffff')
+  const [pageBackground, setPageBackground] = useState(() => {
+    const root = initialDocument.nodes[initialDocument.roots[0] ?? '']
+    const value = root?.kind === 'element' ? (root.styles.background ?? root.styles['background-color'] ?? '') : ''
+    return /^#[\da-f]{6}$/i.test(value) ? value : '#ffffff'
+  })
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
   const [leftTab, setLeftTab] = useState<'design' | 'theme' | 'assets' | 'icons'>('design')
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
@@ -1984,7 +1988,7 @@ export function WebCanvasEditor({
             order: sibling.order,
             top: rect?.top ?? 0,
             left: rect?.left ?? 0,
-            bottom: rect?.right ?? 0,
+            bottom: rect?.bottom ?? 0,
             right: rect?.right ?? 0,
           }
         })

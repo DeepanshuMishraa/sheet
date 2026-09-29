@@ -149,7 +149,7 @@ export function CanvasApp({
             <div className="mt-4 flex items-center justify-center gap-2">
               {activeId ? (
                 <Button
-                  onClick={() => void openTarget({ designId: activeId, draftId: null })}
+                  onClick={() => void openTarget({ designId: activeId, draftId: branchId ?? null })}
                 >
                   <RefreshCwIcon />
                   Retry

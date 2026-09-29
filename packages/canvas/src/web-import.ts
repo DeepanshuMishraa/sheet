@@ -104,6 +104,8 @@ function walkRules(
   warnings: string[],
 ) {
   for (let index = 0; index < rules.length; index += 1) {
+    // One past the cap is enough for the caller to warn about truncation.
+    if (pending.length > MAX_WEB_RULES_PER_SHEET) return
     const rule = rules.item(index)
     if (!rule) continue
     if (rule.type === STYLE_RULE) {

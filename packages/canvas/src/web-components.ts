@@ -392,14 +392,39 @@ export function assertWebComponents(value: unknown): {
       stylesheets as Record<string, { id: string }>,
     )
   }
+  // A template root belongs to exactly one component, or templateOwner is ambiguous.
+  const rootOwners = new Map<WebNodeId, string>()
+  for (const component of Object.values(parsedComponents)) {
+    for (const rootId of component.templateRootIds) {
+      const other = rootOwners.get(rootId)
+      if (other !== undefined) {
+        throw new Error(`components.${component.id} shares template root ${rootId} with components.${other}`)
+      }
+      rootOwners.set(rootId, component.id)
+    }
+  }
   const parsedInstances: Record<string, WebInstance> = {}
+  // A live node is bound by at most one instance, or propagation and bound-node protection collide.
+  // The one exception is a nested placeholder, which its outer and inner instance both bind at the inner root.
+  const instanceRoots = new Set(
+    instanceEntries.flatMap(([, instance]) => (record(instance) && typeof instance.rootId === 'string' ? [instance.rootId] : [])),
+  )
+  const boundBy = new Map<WebNodeId, string>()
   for (const [id, instance] of instanceEntries) {
-    parsedInstances[id] = assertWebInstance(
+    const parsed = assertWebInstance(
       instance,
       id,
       nodes as Record<WebNodeId, WebNode>,
       parsedComponents,
     )
+    for (const liveId of Object.keys(parsed.bindings)) {
+      const other = boundBy.get(liveId)
+      if (other !== undefined && !instanceRoots.has(liveId)) {
+        throw new Error(`instances.${id}.bindings.${liveId} is already bound by instances.${other}`)
+      }
+      boundBy.set(liveId, id)
+    }
+    parsedInstances[id] = parsed
   }
   assertAcyclicComponents(
     nodes as Record<WebNodeId, WebNode>,

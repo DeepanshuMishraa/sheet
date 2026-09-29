@@ -12,6 +12,7 @@ import {
   serializeWebStylesheets,
   validConditionQuery,
   validSelector,
+  validStyleValue,
 } from './web-css'
 
 function stylesheetFixture() {
@@ -354,5 +355,14 @@ describe('authored CSS document model', () => {
     expect(migrated.instances).toEqual({})
     expect(migrated.nodes).toEqual({})
     expect(parseWebDocument(migrated)).toEqual(migrated)
+  })
+})
+
+describe('style value safety', () => {
+  it('rejects values that could close an exported <style> block', () => {
+    expect(validStyleValue('red')).toBe(true)
+    expect(validStyleValue('red}</style><script>alert(1)</script>')).toBe(false)
+    expect(validStyleValue('red</STYLE >')).toBe(false)
+    expect(validStyleValue('red<!--')).toBe(false)
   })
 })
