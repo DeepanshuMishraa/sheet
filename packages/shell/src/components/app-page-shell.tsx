@@ -25,10 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isLauncher = pathname.startsWith('/app/new')
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface text-foreground">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
       <header
         data-tauri-drag-region
-        className="flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.02)] z-10"
+        className="flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-sidebar pe-3 ps-20 z-10"
       >
         <DocumentTabBar />
 
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Main body: Sidebar + Content */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isLauncher && (
-          <aside className="hidden w-60 shrink-0 flex-col border-e border-line bg-surface p-3 md:flex shadow-[1px_0_3px_rgba(0,0,0,0.02)] z-10">
+          <aside className="hidden w-60 shrink-0 flex-col border-e border-line bg-sidebar p-3 md:flex z-10">
             <AppNavigation
               active={activeSection(pathname)}
               onSettings={() => setSettingsOpen(true)}
@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <div className="min-w-0 flex-1 overflow-y-auto bg-surface">
+        <div className="min-w-0 flex-1 overflow-y-auto bg-background">
           {children}
         </div>
       </div>
@@ -76,10 +76,10 @@ export function AppPageShell({
   wide?: boolean
 }) {
   return (
-    <main className="app-page-enter flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface">
-      <header className="sticky top-0 z-10 flex min-h-10 items-center gap-2 border-b border-line bg-surface/95 backdrop-blur-xs pe-3 ps-12 md:px-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    <main className="app-page-enter flex min-w-0 flex-1 flex-col overflow-y-auto bg-background">
+      <header className="sticky top-0 z-10 flex min-h-10 items-center gap-2 border-b border-line bg-background/95 backdrop-blur-xs pe-3 ps-12 md:px-6">
         <div className="min-w-0 py-2">
-          <h1 className="text-sm font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-sm font-semibold tracking-tight text-foreground">{title}</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
       </header>

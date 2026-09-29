@@ -1,4 +1,3 @@
-import { createEmptyCanvas } from './canvas-fixtures'
 import { orpc } from '@sheet/rpc/client'
 
 export interface DesignSummary {
@@ -12,11 +11,10 @@ export function newDesignId() {
   return `d${crypto.randomUUID().replaceAll('-', '')}`
 }
 
-/** Creates an empty Canvas document and its design row, then returns the list entry. */
+/** Creates an empty WebDocument and its design row, then returns the list entry. */
 export async function createDesign(name = 'Untitled'): Promise<DesignSummary> {
   const id = newDesignId()
-  const document = createEmptyCanvas(id, name)
-  const created = await orpc.canvas.create({ designId: id, name, document })
+  const created = await orpc.webCanvas.create({ designId: id, name })
   return { id, name, revision: created.revision, updatedAt: Date.now() }
 }
 

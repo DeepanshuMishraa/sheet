@@ -56,6 +56,9 @@ import HugeGripVerticalIcon from '@hugeicons/core-free-icons/GripVerticalIcon'
 import HugeGroupIcon from '@hugeicons/core-free-icons/GroupIcon'
 import HugeHandIcon from '@hugeicons/core-free-icons/HandIcon'
 import HugeHistoryIcon from '@hugeicons/core-free-icons/HistoryIcon'
+import HugeHeartIcon from '@hugeicons/core-free-icons/HeartIcon'
+import HugeHomeIcon from '@hugeicons/core-free-icons/Home01Icon'
+import HugeStarIcon from '@hugeicons/core-free-icons/StarIcon'
 import HugeStretchHorizontalIcon from '@hugeicons/core-free-icons/HorizontalResizeIcon'
 import HugeImageIcon from '@hugeicons/core-free-icons/Image01Icon'
 import HugeImagePlusIcon from '@hugeicons/core-free-icons/ImageAdd01Icon'
@@ -114,6 +117,30 @@ import {
 import { forwardRef } from 'react'
 
 export type IconProps = Omit<HugeiconsIconProps, 'icon'>
+
+/** Small, searchable set of authored SVG icons. Keep raw data here, not in product code. */
+export const ICON_LIBRARY = [
+  { name: 'Search', data: HugeSearchIcon },
+  { name: 'Heart', data: HugeHeartIcon },
+  { name: 'Home', data: HugeHomeIcon },
+  { name: 'Star', data: HugeStarIcon },
+  { name: 'Check', data: HugeCheckIcon },
+  { name: 'Circle', data: HugeCircleIcon },
+  { name: 'Square', data: HugeSquareIcon },
+  { name: 'Image', data: HugeImageIcon },
+  { name: 'Settings', data: HugeSettingsIcon },
+  { name: 'Globe', data: HugeGlobeIcon },
+  { name: 'Link', data: HugeLinkIcon },
+  { name: 'Clock', data: HugeClockIcon },
+  { name: 'Shield', data: HugeShieldKeyIcon },
+  { name: 'People', data: HugeUserGroupIcon },
+  { name: 'Plus', data: HugePlusIcon },
+  { name: 'External link', data: HugeExternalLinkIcon },
+] as const satisfies readonly { name: string; data: IconSvgElement }[]
+
+export function IconLibraryGlyph({ icon, ...props }: IconProps & { icon: IconSvgElement }) {
+  return <HugeiconsIcon icon={icon} size={20} strokeWidth={1.5} {...props} />
+}
 
 function createIcon(icon: IconSvgElement, displayName: string) {
   const Icon = forwardRef<SVGSVGElement, IconProps>(

@@ -41,9 +41,29 @@ export function saveStoredTabs(tabs: OpenTab[]) {
 }
 
 export function useOpenTabs(activeDocument?: { id: string; name: string }) {
-  const [tabs, setTabs] = useState<OpenTab[]>(() => getStoredTabs())
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const [tabs, setTabs] = useState<OpenTab[]>(() => {
+    const stored = getStoredTabs()
+    if (activeDocument?.id && !stored.some((item) => item.id === activeDocument.id)) {
+      const next = [...stored, { id: activeDocument.id, name: activeDocument.name || 'Untitled' }]
+      saveStoredTabs(next)
+      return next
+    }
+    return stored
+  })
+
+  let navigate: ReturnType<typeof useNavigate> | undefined
+  try {
+    navigate = useNavigate()
+  } catch {
+    navigate = undefined
+  }
+
+  let pathname = ''
+  try {
+    pathname = typeof useLocation === 'function' ? (useLocation()?.pathname ?? '') : ''
+  } catch {
+    pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  }
 
   // Sync tabs from storage
   useEffect(() => {
@@ -81,9 +101,17 @@ export function useOpenTabs(activeDocument?: { id: string; name: string }) {
     if (pathname.includes(id)) {
       if (remaining.length > 0) {
         const next = remaining.at(-1)!
-        void navigate({ to: '/design/$id', params: { id: next.id } })
+        if (navigate) {
+          void navigate({ to: '/design/$id', params: { id: next.id } })
+        } else if (typeof window !== 'undefined') {
+          window.location.assign(`/design/${next.id}`)
+        }
       } else {
-        void navigate({ to: '/app' })
+        if (navigate) {
+          void navigate({ to: '/app' })
+        } else if (typeof window !== 'undefined') {
+          window.location.assign('/app')
+        }
       }
     }
   }

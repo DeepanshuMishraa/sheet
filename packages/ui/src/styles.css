@@ -19,70 +19,70 @@
      idea for `primary` — the extreme end of the neutral ramp, with the other
      extreme as its text. Greys are true neutrals here, as they are in the kit;
      a tint without a reason reads as indecision. */
-  --cx-canvas: #f4f4f4;
-  --cx-dot: #dcdcdc;
-  --cx-ink: #0d0d0d;
-  --cx-accent: #924ff7;
+  --cx-canvas: #f0f1f4;
+  --cx-dot: #d8dadf;
+  --cx-ink: #0f1115;
+  --cx-accent: #7c3aed;
 
-  --background: #ffffff;
+  --background: #f8f9fa;
   --foreground: var(--cx-ink);
   --card: #ffffff;
   --card-foreground: var(--cx-ink);
   --popover: #ffffff;
   --popover-foreground: var(--cx-ink);
-  --primary: #0d0d0d;
-  --primary-foreground: #f4f4f4;
+  --primary: #0f1115;
+  --primary-foreground: #ffffff;
   /* `secondary` is a real fill in this kit, not a tint — the second button in
      every footer sits on it. */
-  --secondary: #ededed;
+  --secondary: #eceef2;
   --secondary-foreground: var(--cx-ink);
   /* Interaction tints stay translucent. A solid one matches whichever surface
      it lands on and the hover disappears. */
-  --muted: --alpha(var(--color-black) / 5%);
-  --muted-foreground: #5d5d5d;
-  --accent: --alpha(var(--color-black) / 7%);
+  --muted: rgba(0, 0, 0, 0.04);
+  --muted-foreground: #666c75;
+  --accent: rgba(0, 0, 0, 0.05);
   --accent-foreground: var(--cx-ink);
   --destructive: #d3302c;
-  --destructive-foreground: #a8211e;
-  --border: #e6e6e6;
-  --input: #cdcdcd;
-  --ring: --alpha(var(--color-black) / 32%);
+  --destructive-foreground: #ffffff;
+  --border: #e2e4e8;
+  --input: #d1d5db;
+  --ring: rgba(15, 17, 21, 0.2);
   /* Read off the kit's usage chart and its accent family — one scene. */
-  --chart-1: #924ff7;
+  --chart-1: #7c3aed;
   --chart-2: #bd4d83;
   --chart-3: #d8874a;
-  --chart-4: #4f9d6a;
-  --chart-5: #4285d4;
+  --chart-4: #10b981;
+  --chart-5: #3b82f6;
   --radius: 0.5rem;
-  --sidebar: var(--background);
+  --sidebar: #f5f6f8;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--accent);
+  --sidebar-accent: rgba(0, 0, 0, 0.05);
   --sidebar-accent-foreground: var(--cx-ink);
-  --sidebar-border: var(--border);
+  --sidebar-border: #e2e4e8;
   --sidebar-ring: var(--ring);
-  --info: #4285d4;
-  --info-foreground: #2c62a0;
-  --success: #4f9d6a;
-  --success-foreground: #3a7550;
-  --diff-added: #4f9d6a;
-  --diff-removed: #d3302c;
-  --skill: #924ff7;
-  --warning: #b5822c;
-  --warning-foreground: #8a6220;
+  --info: #3b82f6;
+  --info-foreground: #1d4ed8;
+  --success: #10b981;
+  --success-foreground: #047857;
+  --diff-added: #10b981;
+  --diff-removed: #ef4444;
+  --skill: #8b5cf6;
+  --warning: #f59e0b;
+  --warning-foreground: #b45309;
   /* The kit's tooltip is a light chip with dark text on a dark ground. Held as
      its own pair so it can invert per theme rather than track a surface. */
-  --tooltip: #303030;
-  --tooltip-foreground: #ededed;
+  --tooltip: #1e2025;
+  --tooltip-foreground: #f8f9fa;
   /* The well a segmented control sits in. The kit sinks it below the page so
      the selected option can be the lighter surface. */
-  --well: #ededed;
+  --well: #eceef2;
 
   /* Chrome materials. Opaque on purpose: no blur, no translucency, no sheen.
      Depth comes from two flat surface steps, a hairline, and a shadow. */
   --surface: #ffffff;
-  --surface-2: #f4f4f4;
+  --surface-2: #eceef2;
   /* The app-chrome typefaces. Overridden at runtime from Appearance
      (`sheet:ui-sans` / `sheet:ui-mono` via `--sheet-font-*` on the root);
      the defaults here are what a fresh account gets. Kept separate from
@@ -90,29 +90,27 @@
      compiled utilities. */
   --sheet-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --sheet-font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --line: #e6e6e6;
+  --line: #e2e4e8;
   /* A tight contact shadow says the panel touches the surface; a wide ambient
      one says how far above it floats. One shadow alone reads as a smudge. */
   --panel-shadow:
-    0 1px 1px 0 --alpha(var(--color-black) / 4%),
-    0 1px 2px 0 --alpha(var(--color-black) / 4%);
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --panel-shadow-lg:
-    0 0 0 0.5px --alpha(var(--color-black) / 5%),
-    0 1px 2px -1px --alpha(var(--color-black) / 6%),
-    0 12px 24px -8px --alpha(var(--color-black) / 12%),
-    0 24px 48px -24px --alpha(var(--color-black) / 10%);
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 4px 12px -2px rgba(0, 0, 0, 0.08),
+    0 2px 4px -1px rgba(0, 0, 0, 0.04);
   /* Durations. Three steps, so a hover, a disclosure, and a dialog entrance
      cannot drift apart — the shortest is still legible as motion rather than as
      a jump, the longest still reads as one gesture. */
   --duration-fast: 120ms;
   --duration-base: 180ms;
   --duration-slow: 280ms;
-  --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 4%);
-  --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%);
-  --shadow-md: 0 2px 4px -1px --alpha(var(--color-black) / 6%), 0 6px 12px -4px --alpha(var(--color-black) / 8%);
-  --shadow-lg: 0 4px 8px -2px --alpha(var(--color-black) / 6%), 0 16px 32px -8px --alpha(var(--color-black) / 12%);
-  --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 5%), 0 1px 2px -1px --alpha(var(--color-black) / 3%), inset 0 1px 0 0 --alpha(var(--color-white) / 60%);
-  --shadow-elevated-hover: 0 2px 4px -1px --alpha(var(--color-black) / 6%), 0 10px 20px -6px --alpha(var(--color-black) / 12%), inset 0 1px 0 0 --alpha(var(--color-white) / 80%);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  --shadow-elevated-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
   color-scheme: light;
 }
 
@@ -140,9 +138,9 @@
   --text-3xl--line-height: calc(2.75 / 2.25);
   /* The kit names OpenAI Sans and ships Inter as its explicit substitute.
      Inter is what we have, and what the specimens were measured in. */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+  --font-sans: var(--sheet-font-sans);
+  --font-heading: var(--sheet-font-sans);
+  --font-mono: var(--sheet-font-mono);
   /* The kit's search / shell easing, measured off the page CSS. */
   --ease-kit: cubic-bezier(0.19, 1, 0.22, 1);
   /* The durations, exposed as utilities so a panel entrance and a hover are
@@ -759,13 +757,13 @@ body {
   --chart-3: #d8874a;
   --chart-4: #80bd90;
   --chart-5: #4285d4;
-  --sidebar: var(--background);
+  --sidebar: #181818;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
+  --sidebar-border: #2c2c2c;
   --sidebar-ring: var(--ring);
   --info: #4285d4;
   --info-foreground: #8fbdea;
@@ -778,11 +776,11 @@ body {
   --warning-foreground: #e3b45c;
   --tooltip: #afafaf;
   --tooltip-foreground: #0d0d0d;
-  --well: #171717;
+  --well: #141414;
 
-  --surface: #212121;
-  --surface-2: #303030;
-  --line: #424242;
+  --surface: #202020;
+  --surface-2: #282828;
+  --line: #2c2c2c;
   /* Dark inverts which of the two shadows does the work. On a light surface the
      contact shadow darkens what is under the panel; on a dark one the panel is
      already darker than its ground, so the edge has to come from a catch of

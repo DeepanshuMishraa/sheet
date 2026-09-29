@@ -74,7 +74,7 @@ export function AppNavigation({
           <button
             type="button"
             aria-label={`Menu for ${firstName}`}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors duration-fast ease-out hover:bg-surface-2 active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors duration-fast ease-out hover:bg-surface active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Avatar className="size-6 shrink-0 rounded-full bg-surface-2 text-2xs font-semibold shadow-xs">
               {profile?.imageUrl ? (
@@ -109,7 +109,7 @@ export function AppNavigation({
           placeholder="Search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="w-full rounded-lg border border-line bg-surface-2/60 py-1.5 pe-3 ps-8 text-xs text-foreground shadow-xs transition-[background-color,border-color,box-shadow] duration-fast ease-spring placeholder:text-muted-foreground hover:border-ring/40 focus-visible:border-ring focus-visible:bg-surface focus-visible:shadow-panel focus-visible:outline-none"
+          className="w-full rounded-lg border border-line bg-surface py-1.5 pe-3 ps-8 text-xs text-foreground shadow-xs transition-[background-color,border-color,box-shadow] duration-fast ease-spring placeholder:text-muted-foreground hover:border-ring/40 focus-visible:border-ring focus-visible:bg-surface focus-visible:shadow-panel focus-visible:outline-none"
         />
       </div>
 
@@ -123,8 +123,8 @@ export function AppNavigation({
           className={cn(
             'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
             active === 'recents'
-              ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
+              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
+              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
           )}
         >
           <ClockIcon className="size-4 shrink-0" />
@@ -139,8 +139,8 @@ export function AppNavigation({
           className={cn(
             'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
             active === 'files'
-              ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
+              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
+              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
           )}
         >
           <LayoutGridIcon className="size-4 shrink-0" />
@@ -155,8 +155,8 @@ export function AppNavigation({
           className={cn(
             'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
             active === 'appearance'
-              ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
+              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
+              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
           )}
         >
           <SunIcon className="size-4 shrink-0" />
@@ -171,8 +171,8 @@ export function AppNavigation({
           className={cn(
             'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
             active === 'integrations'
-              ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface-2/70 hover:text-foreground',
+              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
+              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
           )}
         >
           <LinkIcon className="size-4 shrink-0" />

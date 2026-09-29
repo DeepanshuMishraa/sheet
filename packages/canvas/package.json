@@ -4,17 +4,19 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./model": "./src/model.ts",
-    "./engine": "./src/engine.ts",
-    "./merge": "./src/merge.ts",
-    "./react": "./src/react.tsx",
-    "./export": "./src/export.ts",
-    "./import": "./src/import.ts",
-    "./motion": "./src/motion.ts",
-    "./motion-css": "./src/motion-css.ts",
-    "./motion-presets": "./src/motion-presets.ts",
-    "./style-css": "./src/style-css.ts",
-    "./vector": "./src/vector.ts"
+    "./web-model": "./src/web-model.ts",
+    "./legacy-migration": "./src/legacy-migration.ts",
+    "./web-css": "./src/web-css.ts",
+    "./web-import": "./src/web-import.ts",
+    "./web-components": "./src/web-components.ts",
+    "./web-diff": "./src/web-diff.ts",
+    "./web-merge": "./src/web-merge.ts",
+    "./web-export": "./src/web-export.ts",
+    "./web-test-browser": "./src/web-test-browser.ts",
+    "./web-react": "./src/web-react.tsx",
+    "./legacy-model": "./src/legacy-model.ts",
+    "./web-icons": "./src/web-icons.ts",
+    "./web-icon-style": "./src/web-icon-style.ts"
   },
   "scripts": {
     "embed-preflight": "bun run scripts/embed-tailwind-preflight.ts"
@@ -33,6 +35,8 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.3.5",
+    "lucide": "^1.48.0",
     "tailwindcss": "4.3.3"
   }
 }

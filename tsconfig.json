@@ -15,7 +15,6 @@
       "@sheet/db/*": ["./packages/db/src/*"],
       "@sheet/canvas": ["./packages/canvas/src/index.ts"],
       "@sheet/canvas/*": ["./packages/canvas/src/*"],
-      "@sheet/agent/*": ["./packages/agent/src/*"],
       "@sheet/realtime/*": ["./packages/realtime/src/*"],
       "@sheet/rpc": ["./packages/rpc/src/router.ts"],
       "@sheet/rpc/*": ["./packages/rpc/src/*"],

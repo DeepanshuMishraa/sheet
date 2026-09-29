@@ -5,15 +5,17 @@ import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
 import { Spinner } from '@sheet/ui/spinner'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
-import { CanvasDocumentPreview } from '@sheet/editor/canvas-preview'
-import type { CanvasDocument } from '@sheet/canvas/model'
+import { WebDocumentPreview } from '@sheet/editor/web-preview'
+import type { WebDocument } from '@sheet/canvas/web-model'
 import { cn } from '@sheet/ui/utils'
+import { subscribeCanvasChanges } from '@sheet/editor/lib/canvas-events'
 
-const previewCache = new Map<string, CanvasDocument | null>()
+const previewCache = new Map<string, WebDocument | null>()
 
-function LauncherThumbnail({ designId }: { designId: string }) {
-  const [doc, setDoc] = useState<CanvasDocument | null>(() => previewCache.get(designId) ?? null)
-  const [loaded, setLoaded] = useState(() => previewCache.has(designId))
+function LauncherThumbnail({ designId, revision }: { designId: string; revision: number }) {
+  const cacheKey = `${designId}:${revision}`
+  const [doc, setDoc] = useState<WebDocument | null>(() => previewCache.get(cacheKey) ?? null)
+  const [loaded, setLoaded] = useState(() => previewCache.has(cacheKey))
   const [showLoader, setShowLoader] = useState(false)
 
   useEffect(() => {
@@ -23,34 +25,34 @@ function LauncherThumbnail({ designId }: { designId: string }) {
   }, [loaded])
 
   useEffect(() => {
-    if (typeof orpc.canvas?.get !== 'function') return
-    if (previewCache.has(designId)) return
+    if (typeof orpc.webCanvas?.get !== 'function') return
+    if (previewCache.has(cacheKey)) return
     let active = true
-    void orpc.canvas
+    void orpc.webCanvas
       .get({ designId })
       .then((res) => {
-        const document = res?.document ?? null
-        previewCache.set(designId, document)
+        const document = res?.status === 'ready' ? res.document : null
+        previewCache.set(cacheKey, document)
         if (active) {
           setDoc(document)
           setLoaded(true)
         }
       })
       .catch(() => {
-        previewCache.set(designId, null)
+        previewCache.set(cacheKey, null)
         if (active) setLoaded(true)
       })
     return () => {
       active = false
     }
-  }, [designId])
+  }, [cacheKey, designId])
 
   return (
     <div className="relative flex aspect-[16/10] w-18 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-cx-canvas sm:w-22">
       {!loaded && showLoader ? (
         <DotMatrixLoader className="size-4 text-muted-foreground" />
       ) : null}
-      <CanvasDocumentPreview
+      <WebDocumentPreview
         document={doc}
         className="size-full"
       />
@@ -80,6 +82,7 @@ export function NewFileLauncher() {
 
   useEffect(() => {
     void loadDesigns()
+    return subscribeCanvasChanges(null, () => void loadDesigns())
   }, [loadDesigns])
 
   const handleNewFile = useCallback(async () => {
@@ -198,7 +201,11 @@ export function NewFileLauncher() {
                 )}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3.5 pe-3">
-                  <LauncherThumbnail designId={design.id} />
+                  <LauncherThumbnail
+                    key={design.revision}
+                    designId={design.id}
+                    revision={design.revision}
+                  />
                   <span className="truncate text-sm font-normal text-foreground transition-colors group-hover:text-foreground">
                     {design.name}
                   </span>

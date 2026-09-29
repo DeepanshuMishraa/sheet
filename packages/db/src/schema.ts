@@ -6,10 +6,9 @@ import {
   sqliteTable,
   text,
 } from 'drizzle-orm/sqlite-core'
-import type { CanvasTransaction } from '@sheet/canvas/engine'
-import type { CanvasDocument } from '@sheet/canvas/model'
-import type { CanvasElement, CanvasPage } from './canvas'
-import type { DraftStatus } from './drafts'
+import type { CanvasDocument } from '@sheet/canvas/legacy-model'
+import type { WebDocument, WebTransaction } from '@sheet/canvas/web-model'
+export type DraftStatus = 'active' | 'proposed' | 'applied' | 'closed'
 import { EMPTY_SHORTCUT_CONFIG, type ShortcutConfig } from './shortcuts'
 
 /**
@@ -44,19 +43,15 @@ export const design = sqliteTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     shapes: text('shapes', { mode: 'json' })
-      .$type<CanvasElement[]>()
-      .$defaultFn((): CanvasElement[] => [])
+      .$type<unknown[]>()
+      .$defaultFn((): unknown[] => [])
       .notNull(),
     pages: text('pages', { mode: 'json' })
-      .$type<CanvasPage[]>()
-      .$defaultFn((): CanvasPage[] => [])
+      .$type<unknown[]>()
+      .$defaultFn((): unknown[] => [])
       .notNull(),
     canvasVersion: integer('canvas_version').default(1).notNull(),
-    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument>(),
-    canvasMigrationLeaseId: text('canvas_migration_lease_id'),
-    canvasMigrationLeaseExpiresAt: integer('canvas_migration_lease_expires_at', {
-      mode: 'timestamp_ms',
-    }),
+    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument | WebDocument>(),
     revision: integer('revision').default(0).notNull(),
     archivedAt: integer('archived_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -81,20 +76,20 @@ export const designDraft = sqliteTable(
     name: text('name').notNull(),
     description: text('description').default('').notNull(),
     status: text('status').$type<DraftStatus>().default('active').notNull(),
-    baseShapes: text('base_shapes', { mode: 'json' }).$type<CanvasElement[]>().notNull(),
-    shapes: text('shapes', { mode: 'json' }).$type<CanvasElement[]>().notNull(),
+    baseShapes: text('base_shapes', { mode: 'json' }).$type<unknown[]>().notNull(),
+    shapes: text('shapes', { mode: 'json' }).$type<unknown[]>().notNull(),
     basePages: text('base_pages', { mode: 'json' })
-      .$type<CanvasPage[]>()
-      .$defaultFn((): CanvasPage[] => [])
+      .$type<unknown[]>()
+      .$defaultFn((): unknown[] => [])
       .notNull(),
     pages: text('pages', { mode: 'json' })
-      .$type<CanvasPage[]>()
-      .$defaultFn((): CanvasPage[] => [])
+      .$type<unknown[]>()
+      .$defaultFn((): unknown[] => [])
       .notNull(),
     canvasVersion: integer('canvas_version').default(1).notNull(),
     baseCanvasVersion: integer('base_canvas_version').default(1).notNull(),
-    baseCanvasDocument: text('base_canvas_document', { mode: 'json' }).$type<CanvasDocument>(),
-    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument>(),
+    baseCanvasDocument: text('base_canvas_document', { mode: 'json' }).$type<CanvasDocument | WebDocument>(),
+    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument | WebDocument>(),
     baseRevision: integer('base_revision').notNull(),
     revision: integer('revision').default(0).notNull(),
     appliedVersionId: text('applied_version_id'),
@@ -132,13 +127,13 @@ export const designVersion = sqliteTable(
     draftId: text('draft_id'),
     userId: text('user_id').notNull(),
     message: text('message').notNull(),
-    shapes: text('shapes', { mode: 'json' }).$type<CanvasElement[]>().notNull(),
+    shapes: text('shapes', { mode: 'json' }).$type<unknown[]>().notNull(),
     pages: text('pages', { mode: 'json' })
-      .$type<CanvasPage[]>()
-      .$defaultFn((): CanvasPage[] => [])
+      .$type<unknown[]>()
+      .$defaultFn((): unknown[] => [])
       .notNull(),
     canvasVersion: integer('canvas_version').default(1).notNull(),
-    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument>(),
+    canvasDocument: text('canvas_document', { mode: 'json' }).$type<CanvasDocument | WebDocument>(),
     added: integer('added').notNull(),
     removed: integer('removed').notNull(),
     changed: integer('changed').notNull(),
@@ -178,7 +173,7 @@ export const canvasTransaction = sqliteTable(
     transactionId: text('transaction_id').notNull(),
     baseRevision: integer('base_revision').notNull(),
     revision: integer('revision').notNull(),
-    transaction: text('transaction', { mode: 'json' }).$type<CanvasTransaction>().notNull(),
+    transaction: text('transaction', { mode: 'json' }).$type<WebTransaction>().notNull(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .$defaultFn(now)
       .notNull(),

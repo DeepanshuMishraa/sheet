@@ -8,6 +8,13 @@
       "when": 1790412007750,
       "tag": "0000_cooing_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790539802535,
+      "tag": "0001_yummy_vargas",
+      "breakpoints": true
     }
   ]
 }

@@ -1,200 +1,86 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   ArchiveIcon,
-  FilePlus2Icon,
   FolderIcon,
-  PencilIcon,
-} from '@sheet/ui/icons'
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  HistoryIcon,
-  ImageIcon,
   RefreshCwIcon,
+  CodeXmlIcon,
 } from '@sheet/ui/icons'
-import { CanvasEngine, type CanvasTransaction } from '@sheet/canvas/engine'
-import {
-  CanvasEditor,
-  type CanvasEditorController,
-  type CanvasSettingsSlot,
-} from './editor'
-import {
-  type CanvasBranchSummary,
-} from './branches'
-import { CanvasPresenceFacePile } from './presence'
-import {
-  CanvasSyncController,
-  type CanvasSyncTarget,
-} from '../lib/canvas-client'
-import { createStarterCanvas } from '../lib/canvas-fixtures'
+import type { CanvasDocument } from '@sheet/canvas/legacy-model'
+import { LegacyDocumentViewer } from './legacy-viewer'
+import type { WebDocument } from '@sheet/canvas/web-model'
+import { WebCanvasEditor } from './web-editor'
 import { type DesignSummary } from '../lib/designs'
+import { DocumentTabBar } from './tab-bar'
 import { orpc } from '@sheet/rpc/client'
 import { Button } from '@sheet/ui/button'
 import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
-import { Input } from '@sheet/ui/input'
 import {
   Dialog,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogPanel,
   DialogPopup,
   DialogTitle,
 } from '@sheet/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@sheet/ui/dropdown-menu'
-
-export function CanvasDocSwitcher({
-  documents,
-  activeId,
-  onSwitch,
-  onNew,
-  onAssets,
-  onHistory,
-  onRename,
-  onArchive,
-}: {
-  documents: DesignSummary[]
-  activeId: string
-  onSwitch: (id: string) => void
-  onNew: () => void
-  onAssets: () => void
-  onHistory: () => void
-  onRename: () => void
-  onArchive: () => void
-}) {
-  const active = documents.find((document) => document.id === activeId)
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="pointer-events-auto flex min-w-0 max-w-40 items-center gap-1 rounded-sm px-1 py-0.5 text-xs leading-none text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <span className="truncate">{active?.name ?? 'Untitled'}</span>
-          <ChevronDownIcon className="size-3 shrink-0" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="center"
-        className="pointer-events-auto w-56"
-      >
-        <DropdownMenuItem asChild>
-          <Link to="/app">
-            <FolderIcon data-slot="icon" />
-            All files
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {documents.map((document) => (
-          <DropdownMenuItem
-            key={document.id}
-            onClick={() => onSwitch(document.id)}
-          >
-            <span className="min-w-0 flex-1 truncate">{document.name}</span>
-            {document.id === activeId ? (
-              <CheckIcon className="size-3.5" />
-            ) : null}
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onNew}>
-          <FilePlus2Icon data-slot="icon" />
-          New document
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onAssets}>
-          <ImageIcon data-slot="icon" />
-          Assets
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onHistory}>
-          <HistoryIcon data-slot="icon" />
-          Version history
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onRename}>
-          <PencilIcon data-slot="icon" />
-          Rename
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onArchive}>
-          <ArchiveIcon data-slot="icon" />
-          Archive document
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-function previewController(): CanvasEditorController {
-  const engine = new CanvasEngine(createStarterCanvas('preview', 'Sheet Canvas'))
-  return {
-    engine,
-    status: 'ready',
-    pendingCount: 0,
-    subscribe: () => () => {},
-    enqueue: (_transaction: CanvasTransaction) => {},
-  }
-}
-
 export function CanvasApp({
-  preview = false,
   designId,
   branchId,
-  renderSettings,
 }: {
-  preview?: boolean
   /** The document this editor opens. `/design/$id` remounts on change. */
   designId?: string
   /** The active branch from `/design/$id/b/$branchId`. */
   branchId?: string
   userId?: string
-  /** Host-supplied settings dialog body. See `CanvasSettingsSlot`. */
-  renderSettings?: CanvasSettingsSlot
 }) {
   const navigate = useNavigate()
-  const previewValue = useMemo(previewController, [])
   const [documents, setDocuments] = useState<DesignSummary[]>([])
   const [activeId, setActiveId] = useState<string | null>(designId ?? null)
-  const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
-  const [branches, setBranches] = useState<CanvasBranchSummary[]>([])
-  const [controller, setController] = useState<CanvasSyncController | null>(null)
-  const controllerRef = useRef<CanvasSyncController | null>(null)
-  const [loading, setLoading] = useState(!preview)
+  const [legacyCanvas, setLegacyCanvas] = useState<{
+    document: CanvasDocument
+    revision: number
+    draftId: string | null
+  } | null>(null)
+  const [webCanvas, setWebCanvas] = useState<{
+    document: WebDocument
+    revision: number
+    draftId: string | null
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState('Opening Canvas')
   const [error, setError] = useState<string | null>(null)
-  const [renameOpen, setRenameOpen] = useState(false)
-  const [renameName, setRenameName] = useState('')
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [webMigrationOpen, setWebMigrationOpen] = useState(false)
+  const [webMigrating, setWebMigrating] = useState(false)
+  const [webMigrationError, setWebMigrationError] = useState<string | null>(null)
 
-  const openTarget = useCallback(async (target: CanvasSyncTarget) => {
+  const openTarget = useCallback(async (target: { designId: string; draftId: string | null }) => {
     setLoading(true)
     setError(null)
     setProgress('Loading canvas')
+    setWebCanvas(null)
+    setLegacyCanvas(null)
     try {
-      const found = await orpc.canvas.get({
+      const webTarget = await orpc.webCanvas.get({
         designId: target.designId,
         draftId: target.draftId,
       })
-      if (found.status !== 'ready') {
-        throw new Error(
-          'This file uses an unsupported legacy format. Create a new Canvas document or import its HTML and CSS.',
-        )
+      if (webTarget?.status === 'ready') {
+        setWebCanvas({
+          document: webTarget.document,
+          revision: webTarget.revision,
+          draftId: target.draftId,
+        })
+        return
       }
-      if (!found.document) throw new Error('Canvas snapshot was not returned')
-      const next = await CanvasSyncController.open(
-        target,
-        found.document,
-        found.revision,
-      )
-      const previous = controllerRef.current
-      controllerRef.current = next
-      setController(next)
-      setActiveDraftId(target.draftId)
-      if (previous) void previous.close()
+      if (webTarget?.status !== 'legacy') {
+        throw new Error('This file uses an unsupported document format.')
+      }
+      setLegacyCanvas({
+        document: webTarget.document,
+        revision: webTarget.revision,
+        draftId: target.draftId,
+      })
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Canvas could not be opened'
       setError(message)
@@ -204,7 +90,7 @@ export function CanvasApp({
   }, [])
 
   useEffect(() => {
-    if (preview || !designId) return
+    if (!designId) return
     let cancelled = false
     void (async () => {
       try {
@@ -215,7 +101,6 @@ export function CanvasApp({
         const foundBranches = await orpc.draft
           .list({ designId, includeArchived: true })
           .catch(() => [])
-        setBranches(foundBranches)
         const requestedDraft = branchId ?? null
         const openDraft = foundBranches.find(
           (branch) =>
@@ -244,171 +129,163 @@ export function CanvasApp({
     return () => {
       cancelled = true
     }
-  }, [branchId, designId, navigate, openTarget, preview])
+  }, [branchId, designId, navigate, openTarget])
 
-  useEffect(() => {
-    if (preview || !controller || !activeId) return
-    let cancelled = false
-    const refreshBranches = async () => {
-      if (cancelled) return
-      const next = await orpc.draft
-        .list({ designId: activeId, includeArchived: true })
-        .catch(() => null)
-      if (cancelled || !next) return
-      setBranches(next)
-    }
-    const unsubscribe = controller.subscribeBranches(() => {
-      void refreshBranches()
-    })
-    return () => {
-      cancelled = true
-      unsubscribe()
-    }
-  }, [controller, activeId, preview])
-
-  useEffect(
-    () => () => {
-      if (controllerRef.current) void controllerRef.current.close()
-    },
-    [],
-  )
-
-  if (preview) {
+  if (error) {
+    const active = documents.find((document) => document.id === activeId)
     return (
-      <div className="h-screen min-h-[42rem] w-full">
-        <CanvasEditor controller={previewValue} name="Sheet Canvas" />
+      <div className="flex h-full min-h-0 flex-col bg-cx-canvas text-foreground">
+        <header
+          data-tauri-drag-region
+          className="z-30 flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+        >
+          <DocumentTabBar activeDocument={activeId ? { id: activeId, name: active?.name ?? '' } : undefined} />
+          <div data-tauri-drag-region className="h-full flex-1" />
+        </header>
+        <main className="grid min-h-0 flex-1 place-items-center p-4">
+          <div className="max-w-sm rounded-lg border bg-card p-4 text-center">
+            <h1 className="text-base font-semibold">Canvas could not open</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {activeId ? (
+                <Button
+                  onClick={() => void openTarget({ designId: activeId, draftId: branchId ?? null })}
+                >
+                  <RefreshCwIcon />
+                  Retry
+                </Button>
+              ) : null}
+              <Button variant="outline" render={<Link to="/app" />}>
+                <FolderIcon />
+                All files
+              </Button>
+            </div>
+          </div>
+        </main>
       </div>
     )
   }
 
-  if (error) {
+  if (loading || !activeId || (!legacyCanvas && !webCanvas)) {
+    const active = documents.find((document) => document.id === activeId)
     return (
-      <main className="grid h-full place-items-center bg-cx-canvas p-4">
-        <div className="max-w-sm rounded-lg border bg-card p-4 text-center">
-          <h1 className="text-base font-semibold">Canvas could not open</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            {activeId ? (
-              <Button
-                onClick={() => void openTarget({ designId: activeId, draftId: null })}
-              >
-                <RefreshCwIcon />
-                Retry
-              </Button>
-            ) : null}
-            <Button variant="outline" render={<Link to="/app" />}>
-              <FolderIcon />
-              All files
-            </Button>
+      <div className="flex h-full min-h-0 flex-col bg-cx-canvas text-foreground">
+        <header
+          data-tauri-drag-region
+          className="z-30 flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+        >
+          <DocumentTabBar activeDocument={activeId ? { id: activeId, name: active?.name ?? '' } : undefined} />
+          <div data-tauri-drag-region className="h-full flex-1" />
+        </header>
+        <main className="grid min-h-0 flex-1 place-items-center">
+          <div className="flex flex-col items-center gap-5">
+            <img
+              src="/app-icon.png"
+              alt="Sheet"
+              width={48}
+              height={48}
+              className="size-12"
+              draggable={false}
+            />
+            <DotMatrixLoader
+              rows={3}
+              columns={5}
+              className="size-8 text-foreground"
+              aria-label={progress}
+            />
+            <p className="text-xs text-muted-foreground">{progress}</p>
           </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (loading || !activeId || !controller) {
-    return (
-      <main className="grid h-full place-items-center bg-cx-canvas">
-        <div className="flex flex-col items-center gap-5">
-          <img
-            src="/app-icon.png"
-            alt="Sheet"
-            width={48}
-            height={48}
-            className="size-12"
-            draggable={false}
-          />
-          <DotMatrixLoader
-            rows={3}
-            columns={5}
-            className="size-8 text-foreground"
-            aria-label={progress}
-          />
-          <p className="text-xs text-muted-foreground">{progress}</p>
-        </div>
-      </main>
+        </main>
+      </div>
     )
   }
 
   const active = documents.find((document) => document.id === activeId)
-  const activeBranch =
-    branches.find((branch) => branch.id === activeDraftId) ?? null
-  const renameDesign = async () => {
-    const name = renameName.trim()
-    if (!name || activeDraftId) return
-    await controller.flush()
-    if (controller.pendingCount > 0) {
-      throw new Error('Save or resolve pending changes before renaming.')
-    }
-    const renamed = await orpc.canvas.rename({
-      designId: activeId,
-      name,
-      expectedRevision: controller.revision,
-    })
-    await controller.adoptSnapshot(renamed.document, renamed.revision)
-    setDocuments((current) =>
-      current.map((entry) =>
-        entry.id === activeId
-          ? { ...entry, name, revision: renamed.revision, updatedAt: Date.now() }
-          : entry,
-      ),
+  if (webCanvas) {
+    return (
+      <div className="h-full min-h-0">
+        <WebCanvasEditor
+          key={`${activeId}:${webCanvas.draftId ?? 'main'}:${webCanvas.revision}`}
+          designId={activeId}
+          draftId={webCanvas.draftId}
+          initialDocument={webCanvas.document}
+          initialRevision={webCanvas.revision}
+          name={active?.name ?? webCanvas.document.name}
+        />
+      </div>
     )
-    setRenameOpen(false)
   }
+  if (!legacyCanvas) return null
   const archiveDesign = async () => {
-    await controller.flush()
-    if (controller.pendingCount > 0) {
-      throw new Error('Save or resolve pending changes before archiving.')
-    }
     await orpc.design.archive({ id: activeId })
-    await controller.close()
-    controllerRef.current = null
-    setController(null)
     setArchiveOpen(false)
     await navigate({ to: '/app' })
   }
   return (
     <div className="h-full min-h-0">
-      <CanvasEditor
-        controller={controller}
-        renderSettings={renderSettings}
-        name={active?.name ?? controller.engine.document.name}
-        readOnly={
-          activeBranch?.status === 'applied' ||
-          activeBranch?.status === 'closed'
-        }
-        topBarEnd={
-          <>
-            <CanvasPresenceFacePile controller={controller} />
-          </>
-        }
+      <LegacyDocumentViewer
+        designId={activeId}
+        document={legacyCanvas.document}
+        name={active?.name ?? legacyCanvas.document.name}
+        onMigrate={() => {
+          setWebMigrationError(null)
+          setWebMigrationOpen(true)
+        }}
+        onArchive={legacyCanvas.draftId ? undefined : () => setArchiveOpen(true)}
       />
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogPopup className="max-w-sm">
+      <Dialog open={webMigrationOpen} onOpenChange={setWebMigrationOpen}>
+        <DialogPopup className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Rename design</DialogTitle>
+            <DialogTitle>Migrate this design to the web document?</DialogTitle>
             <DialogDescription>
-              The structured document and its generated output use this name.
+              This converts the read-only legacy snapshot to WebDocument. Legacy source
+              is kept as text; unsupported components, instances, interactions, motion,
+              and visual styles remain in the saved historical snapshot.{' '}
+              {legacyCanvas.draftId
+                ? 'The branch and base snapshots are saved before conversion.'
+                : 'The original scene graph is saved before conversion.'}
             </DialogDescription>
           </DialogHeader>
-          <DialogPanel>
-            <Input
-              autoFocus
-              value={renameName}
-              onChange={(event) => setRenameName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && renameName.trim()) {
-                  void renameDesign()
-                }
-              }}
-            />
-          </DialogPanel>
+          {webMigrationError ? (
+            <p className="px-6 text-sm text-destructive">{webMigrationError}</p>
+          ) : null}
           <DialogFooter>
+            <Button variant="outline" onClick={() => setWebMigrationOpen(false)}>
+              Cancel
+            </Button>
             <Button
-              disabled={!renameName.trim()}
-              onClick={() => void renameDesign()}
+              disabled={webMigrating}
+              onClick={() => {
+                void (async () => {
+                  setWebMigrating(true)
+                  try {
+                    if (!legacyCanvas) throw new Error('No legacy document is open.')
+                    const migrated = await orpc.webCanvas.migrate({
+                      designId: activeId,
+                      expectedRevision: legacyCanvas.revision,
+                      draftId: legacyCanvas.draftId,
+                    })
+                    setLegacyCanvas(null)
+                    setWebCanvas({
+                      document: migrated.document,
+                      revision: migrated.revision,
+                      draftId: legacyCanvas.draftId,
+                    })
+                    setWebMigrationOpen(false)
+                  } catch (cause) {
+                    setWebMigrationError(
+                      cause instanceof Error
+                        ? cause.message
+                        : 'The web document migration failed. The original design remains intact.',
+                    )
+                  } finally {
+                    setWebMigrating(false)
+                  }
+                })()
+              }}
             >
-              Rename
+              <CodeXmlIcon />
+              {webMigrating ? 'Migrating' : legacyCanvas.draftId ? 'Migrate Branch' : 'Migrate Main'}
             </Button>
           </DialogFooter>
         </DialogPopup>

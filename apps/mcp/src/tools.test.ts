@@ -12,34 +12,38 @@ import {
 describe('MCP tool manifest', () => {
   test('embeds the complete TypeScript tool manifest', () => {
     const names = toolNames()
-    expect(names).toHaveLength(35)
+    expect(names).toHaveLength(22)
     expect(names[0]).toBe('getUsage')
-    expect(names).toContain('getScreenshot')
+    expect(names).not.toContain('getScreenshot')
+    expect(names).not.toContain('createPage')
+    expect(names).not.toContain('insertNodes')
+    expect(names).toContain('getWebDocument')
+    expect(names).toContain('getWebHTML')
+    expect(names).toContain('getWebCSS')
+    expect(names).toContain('getWebScreenshot')
+    expect(names).toContain('searchIcons')
+    expect(names).toContain('insertIcon')
+    expect(names).toContain('styleIcon')
+    expect(names).toContain('applyWebTransaction')
+    expect(names).toContain('createBranch')
+    expect(names).toContain('applyBranch')
     expect(names.at(-1)).toBe('listAssets')
+    for (const name of validationSchemas.keys()) {
+      expect(names).toContain(name)
+    }
   })
 
   test('advertises Codex-compatible arrays without weakening validation schemas', () => {
-    const radiusItems =
-      '/definitions/CanvasStylePatch/properties/radius/anyOf/1/items'
-    const createPage = validationSchemas.get('createPage')
-    expect(createPage).toBeDefined()
-    expect(Array.isArray(schemaPointer(createPage as JsonValue, radiusItems))).toBe(
-      true,
-    )
-    const advertised = advertisedTools.find((tool) => tool.name === 'createPage')
-    const advertisedItems = schemaPointer(
-      advertised?.inputSchema as JsonValue,
-      radiusItems,
-    )
-    expect(
-      advertisedItems &&
-        typeof advertisedItems === 'object' &&
-        !Array.isArray(advertisedItems) &&
-        Array.isArray((advertisedItems as { anyOf?: unknown }).anyOf),
-    ).toBe(true)
     expect(containsTupleItems(advertisedTools as unknown as JsonValue)).toBe(
       false,
     )
+    expect(validationSchemas.get('applyWebTransaction')).toBeDefined()
+    expect(
+      schemaPointer(
+        validationSchemas.get('applyWebTransaction') as JsonValue,
+        '/properties/transaction/properties/operations',
+      ),
+    ).toBeDefined()
   })
 
   test('decodes structured arguments sent as JSON text', () => {

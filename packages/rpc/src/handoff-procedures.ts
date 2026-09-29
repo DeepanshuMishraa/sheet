@@ -6,7 +6,7 @@ import {
 import { z } from 'zod'
 import { db } from '@sheet/db'
 import { design } from '@sheet/db/schema'
-import { getOwnedDraft } from './branches'
+import { readWebCanvasStore } from './web-canvas-procedures'
 import { createHandoffToken } from './handoff-token'
 import {
   optionalDraftIdSchema,
@@ -31,8 +31,15 @@ export const createDesignHandoff = localProcedure
       .where(and(eq(design.id, input.designId), eq(design.userId, context.user.id)))
       .limit(1)
     if (!found) throw new ORPCError('NOT_FOUND')
-    if (input.draftId) {
-      await getOwnedDraft(context.user.id, input.designId, input.draftId)
+    const target = await readWebCanvasStore(
+      context.user.id,
+      input.designId,
+      input.draftId,
+    )
+    if (target.status !== 'ready') {
+      throw new ORPCError('CONFLICT', {
+        message: 'Migrate this legacy design before creating a handoff.',
+      })
     }
     return createHandoffToken(input.designId, context.user.id, undefined, input.draftId)
   })

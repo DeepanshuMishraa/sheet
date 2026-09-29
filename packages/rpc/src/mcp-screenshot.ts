@@ -1,45 +1,20 @@
 import { existsSync } from 'node:fs'
-import { and, eq, inArray } from 'drizzle-orm'
 import {
   chromium,
   type Browser,
   type ElementHandle,
 } from 'playwright-core'
-import { db } from '@sheet/db'
-import { asset } from '@sheet/db/schema'
-import { compileStandaloneHtml } from '@sheet/canvas/export'
+import { compileWebStandaloneHtml } from '@sheet/canvas/web-export'
 import {
-  orderedChildren,
-  type CanvasDocument,
-  type NodeId,
-  type NodeRef,
-} from '@sheet/canvas/model'
-import { readCanvasNodeRef } from '@sheet/agent/canvas-tools'
-import { s3 } from '@sheet/rpc/storage'
-import { assetIdFromSrc } from './asset-url'
+  assertWebDocument,
+  type WebDocument,
+} from '@sheet/canvas/web-model'
 import { BoundedConcurrencyGate } from './mcp-concurrency'
 import { IdleResource } from './mcp-idle-resource'
 
-const BLANK_IMAGE =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-const MAX_ASSET_BYTES = 10 * 1024 * 1024
-const MAX_TOTAL_ASSET_BYTES = 30 * 1024 * 1024
-const MAX_ASSET_COUNT = 50
 const MAX_SCREENSHOT_DIMENSION = 4_096
 const MAX_SCREENSHOT_AREA = 12_000_000
 const MAX_PNG_BYTES = 8 * 1024 * 1024
-const SAFE_IMAGE_TYPES = new Set([
-  'image/avif',
-  'image/gif',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-])
-
-interface LoadedAsset {
-  data: Buffer
-  mediaType: string
-}
 
 function integerEnvironment(
   name: string,
@@ -59,101 +34,6 @@ const screenshotGate = new BoundedConcurrencyGate(
   integerEnvironment('MCP_SCREENSHOT_QUEUE_TIMEOUT_MS', 20_000, 1_000, 120_000),
 )
 
-export interface CanvasScreenshotOptions {
-  pageId?: NodeId
-  ref?: NodeRef
-  width?: number
-  pixelRatio?: number
-}
-
-export interface CanvasScreenshot {
-  png: Uint8Array
-  width: number
-  height: number
-  pageId: NodeId | null
-  ref: NodeRef | null
-  skippedImages: string[]
-}
-
-async function loadAssets(userId: string, ids: string[]) {
-  if (ids.length === 0) return new Map<string, LoadedAsset>()
-  const rows = await db
-    .select({
-      id: asset.id,
-      data: asset.data,
-      storageKey: asset.storageKey,
-      mediaType: asset.mediaType,
-      size: asset.size,
-    })
-    .from(asset)
-    .where(
-      and(
-        eq(asset.userId, userId),
-        inArray(asset.id, ids.slice(0, MAX_ASSET_COUNT)),
-      ),
-    )
-  const output = new Map<string, LoadedAsset>()
-  let remainingBytes = MAX_TOTAL_ASSET_BYTES
-  for (const row of rows) {
-    if (
-      row.size > MAX_ASSET_BYTES ||
-      row.size > remainingBytes ||
-      !SAFE_IMAGE_TYPES.has(row.mediaType)
-    ) {
-      continue
-    }
-    if (row.data) {
-      output.set(row.id, {
-        data: Buffer.from(row.data, 'base64'),
-        mediaType: row.mediaType,
-      })
-      remainingBytes -= row.size
-      continue
-    }
-    if (!row.storageKey || !s3) continue
-    const bytes = new Uint8Array(
-      await s3.file(row.storageKey).arrayBuffer(),
-    )
-    if (bytes.byteLength > MAX_ASSET_BYTES) continue
-    if (bytes.byteLength > remainingBytes) continue
-    output.set(row.id, {
-      data: Buffer.from(bytes),
-      mediaType: row.mediaType,
-    })
-    remainingBytes -= bytes.byteLength
-  }
-  return output
-}
-
-async function prepareDocument(userId: string, source: CanvasDocument) {
-  const document = structuredClone(source)
-  const images = Object.values(document.nodes).filter(
-    (node) => node.type === 'image',
-  )
-  const assetIds = [
-    ...new Set(
-      images
-        .map((node) => assetIdFromSrc(node.src))
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ]
-  const assets = await loadAssets(userId, assetIds)
-  const assetsByUrl = new Map<string, LoadedAsset>()
-  const skippedImages: string[] = []
-  for (const image of images) {
-    if (image.src.startsWith('data:image/')) continue
-    const id = assetIdFromSrc(image.src)
-    const loaded = id ? assets.get(id) : null
-    if (id && loaded) {
-      image.src = `https://assets.sheet.invalid/${encodeURIComponent(id)}`
-      assetsByUrl.set(image.src, loaded)
-      continue
-    }
-    skippedImages.push(image.src)
-    image.src = BLANK_IMAGE
-  }
-  return { assetsByUrl, document, skippedImages }
-}
 
 function chromiumExecutable() {
   const configured =
@@ -196,71 +76,56 @@ const screenshotBrowser = new IdleResource(
   ),
 )
 
-function screenshotTarget(
-  document: CanvasDocument,
-  options: CanvasScreenshotOptions,
-) {
-  if (options.ref) {
-    readCanvasNodeRef(document, options.ref)
-    return {
-      exportNodeId: options.ref.instancePath[0] ?? options.ref.nodeId,
-      targetNodeId: options.ref.nodeId,
-      pageId: null,
-      ref: options.ref,
-    }
-  }
-  const page =
-    (options.pageId ? document.nodes[options.pageId] : null) ??
-    orderedChildren(document, null).find(
-      (node) => node.type === 'page' && !node.hidden,
-    )
-  if (!page || page.type !== 'page') {
-    throw new Error(
-      options.pageId
-        ? `Page "${options.pageId}" does not exist`
-        : 'The Canvas has no visible Page to capture',
-    )
-  }
-  return {
-    exportNodeId: page.id,
-    targetNodeId: page.id,
-    pageId: page.id,
-    ref: null,
-  }
+
+export interface WebScreenshotOptions {
+  rootId?: string
+  width?: number
+  pixelRatio?: number
 }
 
-async function renderCanvasScreenshotWithBrowser(
+export interface WebScreenshot {
+  png: Uint8Array
+  width: number
+  height: number
+  rootId: string | null
+  skippedImages: string[]
+}
+
+/**
+ * Web screenshot: the same standalone serialization the editor
+ * materializes from, rendered by the same Chromium pool through the same
+ * route-interception, settle, clamp, and PNG-limit stages. External images
+ * are skipped deterministically (route abort), exactly like the legacy
+ * path; only the compile stage is model-specific.
+ */
+async function renderWebScreenshotWithBrowser(
   activeBrowser: Browser,
-  userId: string,
-  source: CanvasDocument,
-  options: CanvasScreenshotOptions = {},
-): Promise<CanvasScreenshot> {
+  source: WebDocument,
+  options: WebScreenshotOptions = {},
+): Promise<WebScreenshot> {
   const width = Math.round(Math.max(200, Math.min(options.width ?? 1_440, 3_840)))
   const pixelRatio = Math.max(1, Math.min(options.pixelRatio ?? 1, 2))
-  const prepared = await prepareDocument(userId, source)
-  const target = screenshotTarget(prepared.document, options)
-  const html = compileStandaloneHtml(prepared.document, {
-    nodeId: target.exportNodeId,
-    width,
-    title: prepared.document.name,
-  })
+  const webDocument = assertWebDocument(structuredClone(source))
+  if (options.rootId !== undefined && !webDocument.nodes[options.rootId]) {
+    throw new Error(`Web node "${options.rootId}" does not exist`)
+  }
+  const skippedImages: string[] = []
+  for (const node of Object.values(webDocument.nodes)) {
+    if (
+      node.kind === 'element' &&
+      node.tag === 'img' &&
+      /^\s*https?:\/\//i.test(node.attributes.src ?? '')
+    ) {
+      skippedImages.push(node.attributes.src as string)
+    }
+  }
+  const html = compileWebStandaloneHtml(webDocument, { title: webDocument.name })
   const context = await activeBrowser.newContext({
     viewport: { width, height: 900 },
     deviceScaleFactor: pixelRatio,
   })
   try {
-    await context.route('**/*', async (route) => {
-      const loaded = prepared.assetsByUrl.get(route.request().url())
-      if (!loaded) {
-        await route.abort()
-        return
-      }
-      await route.fulfill({
-        body: loaded.data,
-        contentType: loaded.mediaType,
-        status: 200,
-      })
-    })
+    await context.route('**/*', (route) => route.abort())
     const page = await context.newPage()
     page.setDefaultTimeout(15_000)
     await page.setContent(html, { waitUntil: 'load' })
@@ -281,7 +146,7 @@ async function renderCanvasScreenshotWithBrowser(
     const root = page.locator('[data-sheet-export-root="true"]').first()
     await root.waitFor({ state: 'visible' })
     const handle = (
-      target.targetNodeId === target.exportNodeId
+      options.rootId === undefined
         ? await root.elementHandle()
         : (
             await root.evaluateHandle(
@@ -289,14 +154,12 @@ async function renderCanvasScreenshotWithBrowser(
                 [...element.querySelectorAll('[data-sheet-node]')].find(
                   (node) => node.getAttribute('data-sheet-node') === nodeId,
                 ) ?? null,
-              target.targetNodeId,
+              options.rootId,
             )
           ).asElement()
     ) as ElementHandle<HTMLElement> | null
     if (!handle) {
-      throw new Error(
-        `Canvas node "${target.targetNodeId}" did not render`,
-      )
+      throw new Error(`Web node "${options.rootId}" did not render`)
     }
 
     await handle.evaluate(
@@ -324,7 +187,7 @@ async function renderCanvasScreenshotWithBrowser(
       },
     )
     const bounds = await handle.boundingBox()
-    if (!bounds) throw new Error('Canvas screenshot target has no visible bounds')
+    if (!bounds) throw new Error('Web screenshot target has no visible bounds')
     const png = await handle.screenshot({
       type: 'png',
       animations: 'disabled',
@@ -332,43 +195,29 @@ async function renderCanvasScreenshotWithBrowser(
     })
     if (png.byteLength > MAX_PNG_BYTES) {
       throw new Error(
-        'The PNG is too large for one MCP response. Use a smaller width, pixelRatio, Page, or NodeRef.',
+        'The PNG is too large for one MCP response. Use a smaller width, pixelRatio, or rootId.',
       )
     }
     return {
       png,
       width: Math.max(1, Math.round(bounds.width * pixelRatio)),
       height: Math.max(1, Math.round(bounds.height * pixelRatio)),
-      pageId: target.pageId,
-      ref: target.ref,
-      skippedImages: prepared.skippedImages,
+      rootId: options.rootId ?? null,
+      skippedImages,
     }
   } finally {
     await context.close()
   }
 }
 
-function renderCanvasScreenshotInternal(
-  userId: string,
-  source: CanvasDocument,
-  options: CanvasScreenshotOptions = {},
-) {
-  return screenshotBrowser.run((activeBrowser) =>
-    renderCanvasScreenshotWithBrowser(
-      activeBrowser,
-      userId,
-      source,
-      options,
-    ),
-  )
-}
-
-export function renderCanvasScreenshot(
-  userId: string,
-  source: CanvasDocument,
-  options: CanvasScreenshotOptions = {},
+export function renderWebScreenshot(
+  _userId: string,
+  source: WebDocument,
+  options: WebScreenshotOptions = {},
 ) {
   return screenshotGate.run(() =>
-    renderCanvasScreenshotInternal(userId, source, options),
+    screenshotBrowser.run((activeBrowser) =>
+      renderWebScreenshotWithBrowser(activeBrowser, source, options),
+    ),
   )
 }
