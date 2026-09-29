@@ -12,6 +12,7 @@ Exact shapes for `getWebDocument` and `applyWebTransaction`. Grounded in
 - [Components and instances](#components-and-instances)
 - [Operations](#operations)
 - [Validation limits](#validation-limits)
+- [Pages and layer names](#pages-and-layer-names)
 - [Icons and shaders](#icons-and-shaders)
 
 ## Envelope
@@ -168,6 +169,31 @@ and a stylesheet before its rules.
 - Ids: `[A-Za-z0-9:_-]`, 1–200 chars, unique per kind.
 - Rule selector, condition query, and style value length are capped; long
   values are rejected with the offending key in the message.
+
+## Pages and layer names
+
+A design holds any number of pages. A page is a root element with a
+`data-sheet-page` attribute (its value is the page name) whose own `width`,
+`height` and `background` styles are the canvas. Its descendants are that page's
+layers; no page can see or select another's content. Page 1 is the original
+unnamed page: roots without the attribute. It is listed only while it has
+content or no other page exists.
+
+- `createPage { designId, draftId?, name?, width?, height?, background? }`
+  returns `pageId`, the page root node id.
+- `listPages { designId, draftId? }` returns `[{ pageId, name, width, height }]`;
+  `pageId: null` is the original page.
+- Use `pageId` as `parentId` for `node.insert`, or pass it as `pageId` to
+  `insertIcon` / `insertShader`, and as `rootId` to `getWebScreenshot` and
+  `exportDesign` to capture one page.
+- Rename: `node.patch` the root's `data-sheet-page`. Resize: `node.patch` its
+  `width`/`height` styles (`page.resize` is only for the original page).
+  Delete: `node.delete` the `pageId`.
+
+Layer names come from `data-name`. Without it the editor shows: the icon or
+shader label, a text element's own text, otherwise the kind: Frame, Image, SVG,
+Path, Link, Button, Input. Set it with `node.patch`
+`{ "kind": "element", "attributes": { "data-name": "Hero" } }` or at insert time.
 
 ## Icons and shaders
 

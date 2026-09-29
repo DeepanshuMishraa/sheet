@@ -40,13 +40,15 @@ your next `applyWebTransaction`.
 | `getWebHTML` | Serialized DOM only; cheap for reviewing markup |
 | `getWebCSS` | Serialized stylesheets in cascade order |
 | `listAssets` | Uploaded image assets (use as `/api/asset/<id>`) |
+| `listPages` | Pages: `pageId`, name, size |
 | `listVersions` | History for Main or a branch |
 
 ### Authoring
 
 | Tool | Use |
 |---|---|
-| `applyWebTransaction` | All structural edits: nodes, stylesheets, rules, components, instances, page size |
+| `createPage` | New isolated page (its own canvas, size and layers) |
+| `applyWebTransaction` | All structural edits: nodes, stylesheets, rules, components, instances |
 | `searchIcons` / `insertIcon` / `styleIcon` | Find, place, and restyle library icons |
 | `listShaders` / `insertShader` / `styleShader` | Discover, place, and tune Paper shaders |
 
@@ -54,7 +56,7 @@ your next `applyWebTransaction`.
 
 | Tool | Use |
 |---|---|
-| `getWebScreenshot` | Real PNG of the document (or one `rootId`) at a width and pixel ratio |
+| `getWebScreenshot` | Real PNG of the document, or one page via `rootId = pageId`, at a width and pixel ratio |
 | `exportDesign` | `html`, `png`, `jpg`, or `json` file payload |
 
 ### Design and branch lifecycle
@@ -74,8 +76,11 @@ your next `applyWebTransaction`.
 1. Pass the capability gate.
 2. `createDesign` with a concise product-oriented name. Note the `designId`.
 3. `getWebDocument` to get the starting `revision` (an empty document).
-4. First transaction: `page.resize` plus a theme stylesheet (custom properties
-   on `:root`, base typography, reusable classes) and the page's root element.
+4. `createPage` (name, width, height, background). Keep the returned `pageId`.
+   Then one transaction with the theme stylesheet (custom properties on `:root`,
+   base typography, reusable classes) and the page's first content, inserted
+   with `parentId: pageId`. Each additional screen or variant is another
+   `createPage`; never build two screens inside one page.
 5. Add sections with one transaction each: nodes first, then the rules that
    style them.
 6. Define components (`component.define`) for genuinely repeated structures, then

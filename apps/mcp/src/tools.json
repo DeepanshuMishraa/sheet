@@ -623,7 +623,13 @@
           "description": "Icon name from searchIcons"
         },
         "parentId": {
-          "description": "Element to insert into; defaults to the first root",
+          "description": "Element to insert into; defaults to the page root",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "pageId": {
+          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200
@@ -706,6 +712,83 @@
     }
   },
   {
+    "name": "listPages",
+    "description": "List a design's pages. Each page is an isolated canvas with its own layers and size. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "createPage",
+    "description": "Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "description": "Page name; defaults to the next \"Page N\"",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "width": {
+          "description": "Width in px, default 1440",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "description": "Height in px, default 900",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "background": {
+          "description": "Any CSS color, default white",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
     "name": "listShaders",
     "description": "List the available Paper shaders with their params: type, range or options, and default. Use the names and params with insertShader and styleShader.",
     "inputSchema": {
@@ -744,7 +827,13 @@
           "description": "mesh-gradient: Flowing color spots moving along distinct trajectories with organic distortion. | static-mesh-gradient: Multi-point mesh gradient with two-direction warping. Renders one still frame. | swirl: Animated bands of color twisting into spirals, arcs and circular flows. | grain-gradient: Multi-color gradient with noise-textured distortion in seven abstract forms."
         },
         "parentId": {
-          "description": "Element to insert into; defaults to the first root",
+          "description": "Element to insert into; defaults to the page root",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "pageId": {
+          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200

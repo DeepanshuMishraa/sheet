@@ -6,6 +6,7 @@ payload shapes and `design-craft.md` for visual judgment.
 ## Contents
 
 - [The mental model](#the-mental-model)
+- [Pages and naming](#pages-and-naming)
 - [Set up the system first](#set-up-the-system-first)
 - [Layout with flex and grid](#layout-with-flex-and-grid)
 - [Responsive rules](#responsive-rules)
@@ -32,6 +33,16 @@ Split styling between two places:
 
 Default to classes for repeated things. Inline `styles` cannot express pseudo
 classes or conditions.
+
+## Pages and naming
+
+Each screen or variant is a page (`createPage`): an isolated canvas with its own
+size, background, and layers. Build a mobile design as several pages, not one
+long page. Reuse a theme stylesheet across pages; rules are global, content is
+not.
+
+Name layers you will want to find again with `data-name` (`"Nav"`, `"Hero"`,
+`"Pricing card"`). Unnamed frames show as "Frame" and text shows its own copy.
 
 ## Set up the system first
 

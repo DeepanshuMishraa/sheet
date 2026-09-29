@@ -18,7 +18,7 @@ Inspect the callable Sheet tools before creating or mutating anything. Require:
 
 - `getWebDocument` and `applyWebTransaction` for every read and edit
 - `getWebScreenshot` for visual verification
-- `createDesign` for a new design
+- `createDesign` for a new design, `createPage` / `listPages` for pages
 - `insertIcon` / `styleIcon` for icons, `listShaders` / `insertShader` /
   `styleShader` for shaders
 - `createBranch`, `compareBranch`, `proposeBranch`, `applyBranch` for branch work
@@ -59,10 +59,12 @@ do not load every reference.
    (`--color-*`, `--space-*`), classes, and components. For a new design, create
    a `theme` stylesheet with custom properties on `:root` and reusable class
    rules before repeating values.
-5. **Build in meaningful batches.** One `applyWebTransaction` per coherent
-   section: insert nodes, then stylesheet rules. Use `page.resize` to set the
-   page size. Prefer flex/grid; reserve absolute positioning for deliberate
-   overlays.
+5. **Build in meaningful batches.** Call `createPage` first; every page is an
+   isolated canvas. Then one `applyWebTransaction` per coherent section under
+   that page's `pageId`: insert nodes, then stylesheet rules. Prefer flex/grid;
+   reserve absolute positioning for deliberate overlays. Name layers with
+   `data-name` so the layers panel reads "Hero", not "Frame".
+
 6. **Inspect after meaningful edits.** Call `getWebScreenshot`. With image
    vision, compare pixels against the brief and `design-craft.md`. Without it,
    use `getWebHTML`, `getWebCSS`, and `getWebDocument` as described in
@@ -83,6 +85,14 @@ do not load every reference.
   `meta`, `object`, `embed`, `base`, and `template` tags are rejected, as are
   `on*` attributes, `srcdoc`, and an inline `style` attribute (use the node's
   `styles` map).
+- A design is a set of **pages**. A page is a top-level element tagged
+  `data-sheet-page="<name>"` with its own `width`, `height`, and `background`;
+  everything inside it belongs to that page only. Never mix content between
+  pages, and never put a second page's content in another page's tree. Use
+  `createPage` (not a raw root insert) so the page is tagged.
+- Give meaningful layers a `data-name` attribute (`"Hero"`, `"Pricing card"`).
+  Without one the editor names a layer by kind ("Frame", "Image", the text of a
+  heading), never by tag.
 - Every node needs a unique id (`[A-Za-z0-9:_-]`, up to 200 chars) that you
   choose. Reuse those ids in later `node.patch`, `node.move`, and rule
   selectors. Ids are permanent once applied.

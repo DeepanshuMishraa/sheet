@@ -20,20 +20,20 @@ and `styles`. Text is its own node.
 { "name": "Acme landing" }
 // -> { "id": "design_abc", "revision": 0 }
 
-// getWebDocument { "designId": "design_abc" } -> revision 0
+// createPage { "designId": "design_abc", "name": "Landing", "width": 1440, "height": 2400 }
+// -> { "pageId": "element_...", "result": { "applied": true, "revision": 1 } }
 ```
 
-First transaction: page size, theme stylesheet, root element.
+Next transaction: theme stylesheet and the page's main element.
 
 ```json
 {
   "designId": "design_abc",
-  "expectedRevision": 0,
+  "expectedRevision": 1,
   "transaction": {
     "id": "setup-1",
     "label": "Page, theme and root",
     "operations": [
-      { "type": "page.resize", "width": 1440, "height": 2400 },
       {
         "type": "stylesheet.insert",
         "stylesheet": {
@@ -83,15 +83,15 @@ First transaction: page size, theme stylesheet, root element.
       {
         "type": "node.insert",
         "node": {
-          "id": "page", "kind": "element", "namespace": "html", "tag": "main",
-          "parentId": null, "order": 1024, "attributes": {},
+          "id": "page-main", "kind": "element", "namespace": "html", "tag": "main",
+          "parentId": "<pageId>", "order": 1024, "attributes": { "data-name": "Landing" },
           "styles": { "display": "flex", "flex-direction": "column", "min-height": "100%" }
         }
       }
     ]
   }
 }
-// -> { "applied": true, "revision": 1, "document": { ... } }
+// -> { "applied": true, "revision": 2, "document": { ... } }
 ```
 
 ## Add a section
@@ -101,14 +101,14 @@ Parents before children; the response revision is the next `expectedRevision`.
 ```json
 {
   "designId": "design_abc",
-  "expectedRevision": 1,
+  "expectedRevision": 2,
   "transaction": {
     "id": "hero-1",
     "label": "Hero section",
     "operations": [
       { "type": "node.insert", "node": {
         "id": "hero", "kind": "element", "namespace": "html", "tag": "section",
-        "parentId": "page", "order": 1024, "attributes": { "class": "hero" },
+        "parentId": "page-main", "order": 1024, "attributes": { "class": "hero", "data-name": "Hero" },
         "styles": { "padding": "120px 0" } } },
       { "type": "node.insert", "node": {
         "id": "hero-inner", "kind": "element", "namespace": "html", "tag": "div",
@@ -138,7 +138,7 @@ Parents before children; the response revision is the next `expectedRevision`.
 ```json
 {
   "designId": "design_abc",
-  "expectedRevision": 2,
+  "expectedRevision": 3,
   "transaction": {
     "id": "card-component-1",
     "label": "Feature card component",
@@ -184,7 +184,7 @@ Re-read the document to find the live id bound to `fc-title-text`, then:
   "parentId": "hero",
   "params": { "colors": ["#0b0d10", "#123d33", "#7cf5c4"], "speed": 0.3, "distortion": 0.7 }
 }
-// -> { "nodeId": "element_...", "result": { "applied": true, "revision": 3, ... } }
+// -> { "nodeId": "element_...", "result": { "applied": true, "revision": 5, ... } }
 ```
 
 Make it a backdrop, using the returned `nodeId` and the new revision:
@@ -192,7 +192,7 @@ Make it a backdrop, using the returned `nodeId` and the new revision:
 ```json
 {
   "designId": "design_abc",
-  "expectedRevision": 3,
+  "expectedRevision": 5,
   "transaction": {
     "id": "hero-backdrop-1",
     "label": "Shader as hero backdrop",

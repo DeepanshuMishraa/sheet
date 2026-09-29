@@ -24,6 +24,7 @@ const TOOL_LABELS: Record<string, string> = {
   createPage: 'Adding a page',
   insertNodes: 'Adding elements',
   insertIcon: 'Adding an icon',
+  listPages: 'Reading pages',
   listShaders: 'Browsing shaders',
   insertShader: 'Adding a shader',
   styleShader: 'Styling a shader',

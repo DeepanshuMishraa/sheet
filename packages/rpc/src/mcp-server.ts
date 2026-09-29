@@ -12,6 +12,17 @@ import {
   type IconLibrary,
 } from '@sheet/canvas/web-icons'
 import {
+  DEFAULT_PAGE_HEIGHT,
+  DEFAULT_PAGE_WIDTH,
+  listPages,
+  nextPageName,
+  nextRootOrder,
+  pageNode,
+  pageParentId,
+  pageRootSize,
+  resolvePageId,
+} from '@sheet/canvas/web-pages'
+import {
   SHADERS,
   SHADER_NAMES,
   isShaderNode,
@@ -107,6 +118,12 @@ const shaderParamsShape = z
   .record(z.string(), z.union([z.number(), z.string(), z.array(z.string().max(64)).max(10)]))
   .optional()
   .describe('Shader params, for example { colors: ["#111","#f0f"], speed: 0.5, distortion: 0.8 }. Unknown keys are dropped and numbers are clamped to range; omitted keys keep their default.')
+const pageIdShape = z
+  .string()
+  .min(1)
+  .max(200)
+  .optional()
+  .describe('Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.')
 const targetShape = {
   designId,
   draftId: draftId.optional().describe('Branch target; omit for Main'),
@@ -655,7 +672,8 @@ function createSheetRuntime(
         ...targetShape,
         library: iconLibrary,
         name: z.string().min(1).max(80).describe('Icon name from searchIcons'),
-        parentId: z.string().min(1).max(200).optional().describe('Element to insert into; defaults to the first root'),
+        parentId: z.string().min(1).max(200).optional().describe('Element to insert into; defaults to the page root'),
+        pageId: pageIdShape,
         ...iconStyleShape,
       },
     },
@@ -665,6 +683,7 @@ function createSheetRuntime(
       library: IconLibrary
       name: string
       parentId?: string
+      pageId?: string
       color?: string
       size?: number
       strokeWidth?: number
@@ -672,7 +691,7 @@ function createSheetRuntime(
       const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
       if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
       const document = found.document
-      const parentId = args.parentId ?? document.roots[0] ?? null
+      const parentId = args.parentId ?? pageParentId(document, resolvePageId(document, args.pageId ?? null))
       if (parentId && document.nodes[parentId]?.kind !== 'element') {
         throw new Error(`Parent "${parentId}" is not an element in this design.`)
       }
@@ -746,6 +765,73 @@ function createSheetRuntime(
   )
 
   server.registerTool(
+    'listPages',
+    {
+      description:
+        'List a design\'s pages. Each page is an isolated canvas with its own layers and size. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.',
+      inputSchema: { ...targetShape },
+      annotations: { readOnlyHint: true },
+    },
+    tool('listPages', async (args: { designId: string; draftId?: string }) => {
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
+      return listPages(found.document).map((page) => ({
+        pageId: page.id,
+        name: page.name,
+        ...(page.id === null
+          ? { width: found.document.metadata.page?.width ?? DEFAULT_PAGE_WIDTH, height: found.document.metadata.page?.height ?? DEFAULT_PAGE_HEIGHT }
+          : pageRootSize(found.document, page.id)),
+      }))
+    }),
+  )
+
+  server.registerTool(
+    'createPage',
+    {
+      description:
+        'Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.',
+      inputSchema: {
+        ...targetShape,
+        name: z.string().trim().min(1).max(200).optional().describe('Page name; defaults to the next "Page N"'),
+        width: z.number().positive().max(100_000).optional().describe(`Width in px, default ${DEFAULT_PAGE_WIDTH}`),
+        height: z.number().positive().max(100_000).optional().describe(`Height in px, default ${DEFAULT_PAGE_HEIGHT}`),
+        background: z.string().min(1).max(64).optional().describe('Any CSS color, default white'),
+      },
+    },
+    tool('createPage', async (args: {
+      designId: string
+      draftId?: string
+      name?: string
+      width?: number
+      height?: number
+      background?: string
+    }) => {
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
+      const node = pageNode(args.name ?? nextPageName(found.document), {
+        order: nextRootOrder(found.document),
+        width: args.width,
+        height: args.height,
+        background: args.background,
+      })
+      const result = await applyWebCanvasTransactionToStore(
+        userId,
+        userId,
+        args.designId,
+        found.revision,
+        {
+          id: `page-${crypto.randomUUID()}`,
+          label: `Add page ${node.attributes['data-sheet-page']}`,
+          operations: [{ type: 'node.insert', node }],
+        },
+        args.draftId ?? null,
+      )
+      requireApplied(result)
+      return { pageId: node.id, result }
+    }),
+  )
+
+  server.registerTool(
     'listShaders',
     {
       description:
@@ -770,7 +856,8 @@ function createSheetRuntime(
       inputSchema: {
         ...targetShape,
         shader: shaderName,
-        parentId: z.string().min(1).max(200).optional().describe('Element to insert into; defaults to the first root'),
+        parentId: z.string().min(1).max(200).optional().describe('Element to insert into; defaults to the page root'),
+        pageId: pageIdShape,
         width: z.number().positive().max(8_192).optional().describe('Width in px, default 400'),
         height: z.number().positive().max(8_192).optional().describe('Height in px, default 300'),
         params: shaderParamsShape,
@@ -781,6 +868,7 @@ function createSheetRuntime(
       draftId?: string
       shader: ShaderName
       parentId?: string
+      pageId?: string
       width?: number
       height?: number
       params?: Record<string, number | string | string[]>
@@ -788,7 +876,7 @@ function createSheetRuntime(
       const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
       if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
       const document = found.document
-      const parentId = args.parentId ?? document.roots[0] ?? null
+      const parentId = args.parentId ?? pageParentId(document, resolvePageId(document, args.pageId ?? null))
       if (parentId && document.nodes[parentId]?.kind !== 'element') {
         throw new Error(`Parent "${parentId}" is not an element in this design.`)
       }
