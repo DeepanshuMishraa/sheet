@@ -33,6 +33,18 @@ import {
 } from '@sheet/ui/icons'
 import { ConnectAgent } from './connect-agent'
 import { IconsPanel } from './icon-panel'
+import {
+  AlignmentGrid,
+  IconToggle,
+  InspectorSection,
+  OptionalSection,
+  collectSelectionColors,
+  readShadows,
+  replaceColorInStyles,
+  toColorInputValue,
+  writeShadows,
+  type SelectionColor,
+} from './inspector-controls'
 import { ShadersList } from './shader-panel'
 import { documentFonts, firstFamily, SYSTEM_FONT_STACKS, type DocumentFont } from '../lib/fonts'
 import { iconInfo, iconStyleOperation, isIconNode, type IconLibrary } from '@sheet/canvas/web-icon-style'
@@ -55,6 +67,23 @@ import {
 } from '@sheet/canvas/web-model'
 import type { WebStyleRule } from '@sheet/canvas/web-css'
 import { boundNodeIndex, type WebOverride } from '@sheet/canvas/web-components'
+import {
+  NAME_ATTRIBUTE,
+  PAGE_ATTRIBUTE,
+  layerChildren,
+  layerKind,
+  layerName,
+  listPages,
+  nextPageName,
+  nextRootOrder,
+  pageLayerIds,
+  pageNode,
+  pageParentId,
+  pageRootSize,
+  resolvePageId,
+  visibleRootIds,
+  type LayerKind,
+} from '@sheet/canvas/web-pages'
 import { WebDocumentView } from '@sheet/canvas/web-react'
 import { AssetsPanel, assetSrc } from './assets-panel'
 import { DocumentTabBar } from './tab-bar'
@@ -295,26 +324,60 @@ function pickTarget(document: WebDocument, id: string | null) {
   return id
 }
 
-function nodeLabel(node: WebNode) {
-  if (node.kind === 'text') {
-    const value = node.text.trim().replace(/\s+/g, ' ')
-    return value ? `"${value.slice(0, 32)}${value.length > 32 ? '…' : ''}"` : 'text'
+function nodeLabel(node: WebNode, document?: WebDocument) {
+  return layerName(node, document)
+}
+
+const layerIconClass = 'size-4 shrink-0 text-muted-foreground'
+
+function LayerGlyph({ kind }: { kind: LayerKind }) {
+  switch (kind) {
+    case 'text':
+      return <span aria-hidden className="grid size-4 shrink-0 place-items-center text-[11px] font-semibold leading-none text-muted-foreground">Aa</span>
+    case 'frame-row':
+      return (
+        <svg aria-hidden viewBox="0 0 16 16" className={layerIconClass} fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="2" y="2.5" width="5" height="11" rx="1" />
+          <rect x="9" y="2.5" width="5" height="11" rx="1" />
+        </svg>
+      )
+    case 'frame-column':
+      return (
+        <svg aria-hidden viewBox="0 0 16 16" className={layerIconClass} fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="2.5" y="2" width="11" height="5" rx="1" />
+          <rect x="2.5" y="9" width="11" height="5" rx="1" />
+        </svg>
+      )
+    case 'svg':
+      return (
+        <svg aria-hidden viewBox="0 0 16 16" className={layerIconClass} fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="3" y="3" width="10" height="10" rx="1" />
+          <path d="M1.5 3h3M11.5 3h3M1.5 13h3M11.5 13h3" />
+        </svg>
+      )
+    case 'shape':
+      return (
+        <svg aria-hidden viewBox="0 0 16 16" className={layerIconClass} fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="1.5" y="5.5" width="13" height="5" rx="2.5" />
+        </svg>
+      )
+    case 'image':
+      return <ImageIcon className={layerIconClass} />
+    case 'link':
+      return <CodeXmlIcon className={layerIconClass} />
+    case 'input':
+      return <PencilIcon className={layerIconClass} />
+    case 'button':
+      return <SquareIcon className={layerIconClass} />
+    case 'frame':
+      return <FrameIcon className={layerIconClass} />
+    default:
+      return <SquareIcon className={layerIconClass} />
   }
-  return node.tag
 }
 
 function nodeIcon(node: WebNode) {
-  if (node.kind === 'text') return <TypeIcon className="size-3.5 text-muted-foreground shrink-0" />
-  if (node.tag === 'img') return <ImageIcon className="size-3.5 text-muted-foreground shrink-0" />
-  if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a'].includes(node.tag)) {
-    return <TypeIcon className="size-3.5 text-muted-foreground shrink-0" />
-  }
-  if (node.tag === 'button') return <CodeXmlIcon className="size-3.5 text-muted-foreground shrink-0" />
-  if (node.tag === 'input') return <PencilIcon className="size-3.5 text-muted-foreground shrink-0" />
-  if (['section', 'article', 'main', 'header', 'footer'].includes(node.tag)) {
-    return <FrameIcon className="size-3.5 text-muted-foreground shrink-0" />
-  }
-  return <SquareIcon className="size-3.5 text-muted-foreground shrink-0" />
+  return <LayerGlyph kind={layerKind(node)} />
 }
 
 function nextOrder(document: WebDocument, parentId: string | null) {
@@ -389,34 +452,142 @@ function initialText(tag: string) {
   return null
 }
 
+function PageRow({
+  name,
+  active,
+  pageSelected,
+  removable,
+  onSelect,
+  onRename,
+  onDelete,
+}: {
+  name: string
+  active: boolean
+  pageSelected: boolean
+  removable: boolean
+  onSelect: () => void
+  onRename: ((name: string) => void) | null
+  onDelete: (() => void) | null
+}) {
+  const [editing, setEditing] = useState(false)
+  const current = active && pageSelected
+  return (
+    <div
+      className={cn(
+        'group flex h-9 items-center gap-3 px-4 text-[13px] transition-colors',
+        active ? 'bg-secondary text-foreground' : 'text-foreground/80 hover:bg-secondary/60 hover:text-foreground',
+        current && 'font-medium',
+      )}
+    >
+      {editing && onRename ? (
+        <>
+          <File01Icon className="size-4 shrink-0 text-muted-foreground" />
+          <InlineName
+            value={name}
+            onCancel={() => setEditing(false)}
+            onCommit={(value) => {
+              setEditing(false)
+              if (value.trim() && value.trim() !== name) onRename(value)
+            }}
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          className="flex h-full min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={onSelect}
+          onDoubleClick={() => {
+            if (onRename) setEditing(true)
+          }}
+        >
+          <File01Icon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">{name}</span>
+        </button>
+      )}
+      {removable && onDelete && !editing ? (
+        <button
+          type="button"
+          aria-label={`Delete ${name}`}
+          title="Delete page"
+          className="grid size-5 shrink-0 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+          onClick={onDelete}
+        >
+          <Trash2Icon className="size-3.5" />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function InlineName({
+  value,
+  onCommit,
+  onCancel,
+}: {
+  value: string
+  onCommit: (value: string) => void
+  onCancel: () => void
+}) {
+  return (
+    <input
+      autoFocus
+      aria-label="Layer name"
+      defaultValue={value}
+      className="h-6 min-w-0 flex-1 rounded bg-surface px-1.5 text-[13px] text-foreground outline-none ring-1 ring-ring"
+      onClick={(event) => event.stopPropagation()}
+      onFocus={(event) => event.currentTarget.select()}
+      onBlur={(event) => onCommit(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur()
+        if (event.key === 'Escape') onCancel()
+      }}
+    />
+  )
+}
+
 function WebTreeNode({
   document,
   node,
   selectedId,
+  depth = 0,
   onSelect,
+  onToggleHidden,
+  onRename,
 }: {
   document: WebDocument
   node: WebNode
   selectedId: string | null
+  depth?: number
   onSelect: (id: string) => void
+  onToggleHidden: (id: string) => void
+  onRename: (id: string, name: string) => void
 }) {
-  const children = node.kind === 'element' ? orderedWebChildren(document, node.id) : []
+  const children = layerChildren(document, node)
   const [open, setOpen] = useState(true)
+  const [editing, setEditing] = useState(false)
   const isSelected = selectedId === node.id
+  const hidden = node.kind === 'element' && node.styles.visibility === 'hidden'
+  const label = nodeLabel(node, document)
+  const renamable = node.kind === 'element'
   return (
     <div>
       <div
         className={cn(
-          'group flex h-7 cursor-pointer select-none items-center rounded-md border px-1.5 text-xs transition-colors',
+          'group flex h-8 cursor-pointer select-none items-center pe-3 text-[13px] transition-colors',
           isSelected
-            ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-            : 'border-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground',
+            ? 'bg-secondary text-foreground'
+            : 'text-foreground/80 hover:bg-secondary/60 hover:text-foreground',
+          hidden && 'opacity-50',
         )}
+        style={{ paddingInlineStart: 8 + depth * 16 }}
         onClick={() => onSelect(node.id)}
+        onDoubleClick={() => {
+          if (renamable) setEditing(true)
+        }}
       >
         <button
           type="button"
-          className="grid size-4 shrink-0 place-items-center text-muted-foreground/60 hover:text-foreground"
+          className="grid size-5 shrink-0 place-items-center text-muted-foreground hover:text-foreground disabled:pointer-events-none"
           aria-label={open ? 'Collapse element' : 'Expand element'}
           disabled={children.length === 0}
           onClick={(e) => {
@@ -426,33 +597,55 @@ function WebTreeNode({
         >
           {children.length > 0 ? (
             open ? <ChevronDownIcon className="size-3" /> : <ChevronRightIcon className="size-3" />
-          ) : <span className="size-3" />}
+          ) : null}
         </button>
-        <div className="flex items-center gap-1.5 min-w-0 flex-1 ps-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2 ps-1">
           {nodeIcon(node)}
-          <span
-            className={cn(
-              'min-w-0 flex-1 truncate text-left text-xs',
-              node.kind === 'text' ? 'italic text-muted-foreground' : 'text-foreground',
-            )}
-          >
-            {nodeLabel(node)}
-          </span>
+          {editing ? (
+            <InlineName
+              value={node.kind === 'element' ? (node.attributes[NAME_ATTRIBUTE] ?? label) : label}
+              onCancel={() => setEditing(false)}
+              onCommit={(value) => {
+                setEditing(false)
+                if (value.trim() !== label) onRename(node.id, value.trim())
+              }}
+            />
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+          )}
         </div>
+        {node.kind === 'element' && !editing ? (
+          <button
+            type="button"
+            aria-label={hidden ? 'Show element' : 'Hide element'}
+            title={hidden ? 'Show element' : 'Hide element'}
+            className={cn(
+              'grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition-opacity hover:text-foreground',
+              hidden ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+            )}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleHidden(node.id)
+            }}
+          >
+            {hidden ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+          </button>
+        ) : null}
       </div>
-      {open && children.length > 0 ? (
-        <div className="ms-2.5 border-s border-line ps-1">
-          {children.map((child) => (
+      {open && children.length > 0
+        ? children.map((child) => (
             <WebTreeNode
               key={child.id}
               document={document}
               node={child}
               selectedId={selectedId}
+              depth={depth + 1}
               onSelect={onSelect}
+              onToggleHidden={onToggleHidden}
+              onRename={onRename}
             />
-          ))}
-        </div>
-      ) : null}
+          ))
+        : null}
     </div>
   )
 }
@@ -485,9 +678,7 @@ function InspectorInput({
         className,
       )}
     >
-      {prefix ? (
-        <span className="min-w-4 shrink-0 text-center font-mono text-[11px] text-muted-foreground">{prefix}</span>
-      ) : layout === 'bare' ? null : (
+      {prefix || layout === 'bare' ? null : (
         <span
           className={cn(
             'truncate text-[11px] text-muted-foreground',
@@ -499,13 +690,17 @@ function InspectorInput({
         </span>
       )}
       <div className="relative flex min-w-0 flex-1 items-center">
+        {prefix ? (
+          <span className="pointer-events-none absolute start-2.5 text-[13px] text-muted-foreground">{prefix}</span>
+        ) : null}
         <input
           key={`${label}:${value}`}
           aria-label={label}
           defaultValue={value}
           placeholder={placeholder}
           className={cn(
-            'h-7 w-full min-w-0 rounded-md border border-input bg-surface-2 px-2 font-mono text-xs text-foreground outline-none transition-colors hover:border-line focus:border-ring focus:bg-surface',
+            'h-8 w-full min-w-0 rounded-lg border border-transparent bg-surface-2 px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 hover:border-line focus:border-ring',
+            prefix ? 'ps-7' : null,
             suffix ? 'pe-7' : null,
           )}
           onBlur={(event) => {
@@ -516,7 +711,7 @@ function InspectorInput({
           }}
         />
         {suffix ? (
-          <span className="pointer-events-none absolute end-2 text-[10px] text-muted-foreground/70">{suffix}</span>
+          <span className="pointer-events-none absolute end-2.5 text-[11px] text-muted-foreground/70">{suffix}</span>
         ) : null}
       </div>
     </label>
@@ -554,7 +749,7 @@ function InspectorSelect({
       <select
         aria-label={label}
         value={value}
-        className="h-7 w-full min-w-0 rounded-md border border-input bg-surface-2 px-1.5 font-mono text-xs text-foreground outline-none transition-colors hover:border-line focus:border-ring"
+        className="h-8 w-full min-w-0 rounded-lg border border-transparent bg-surface-2 px-2 text-[13px] text-foreground outline-none transition-colors hover:border-line focus:border-ring"
         onChange={(event) => onCommit(event.currentTarget.value)}
       >
         <option value="">{placeholder}</option>
@@ -692,6 +887,8 @@ function WebInspector({
   pageBackground,
   pageSize,
   fonts,
+  selectionColors,
+  onReplaceColor,
   onSetPageBackground,
   onResizePage,
   onConnectAgent,
@@ -710,6 +907,8 @@ function WebInspector({
   pageBackground: string
   pageSize: { width: number; height: number }
   fonts: readonly DocumentFont[]
+  selectionColors: readonly SelectionColor[]
+  onReplaceColor: (from: string, to: string) => void
   onSetPageBackground: (color: string) => void
   onResizePage: (size: { width?: number; height?: number }) => void
   onConnectAgent: () => void
@@ -730,8 +929,8 @@ function WebInspector({
     return (
       <div>
         {/* Page Section */}
-        <section className="space-y-2 border-b border-line p-3">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <section className="space-y-3 border-b border-line px-4 py-3.5">
+          <div className="text-[13px] font-medium text-foreground">
             Page
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -779,7 +978,7 @@ function WebInspector({
 
         {/* MCP Section */}
         <section className="space-y-2 p-3">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="text-[13px] font-medium text-foreground">
             MCP
           </div>
           <Button
@@ -799,7 +998,7 @@ function WebInspector({
       const text = override?.kind === 'text' ? override.text : node.text
       return (
         <div className="space-y-2 p-3">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="text-[13px] font-medium text-foreground">
             Instance override · text
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -840,6 +1039,9 @@ function WebInspector({
     onSetOverride({ kind: 'custom-properties', properties: { ...base, ...change } })
   }
 
+  const shadows = readShadows(node.styles['box-shadow'])
+  const isFlex = /^(inline-)?flex$/.test(node.styles.display ?? computed.display ?? '')
+  const flexColumn = (node.styles['flex-direction'] ?? computed['flex-direction'] ?? 'row').startsWith('column')
   const icon = iconInfo(node)
   const iconColor = node.styles.color ?? ''
   const iconSize = parseInt(node.styles.width ?? '', 10)
@@ -862,8 +1064,8 @@ function WebInspector({
   return (
     <div>
       {shader && !bound ? (
-        <section className="space-y-2.5 border-b border-line p-3">
-          <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <section className="space-y-3 border-b border-line px-4 py-3.5">
+          <div className="flex items-center justify-between gap-2 text-[13px] font-medium text-foreground">
             <span>Shader</span>
             <span className="min-w-0 truncate font-mono text-[10px] lowercase">{shader.name}</span>
           </div>
@@ -889,8 +1091,8 @@ function WebInspector({
         </section>
       ) : null}
       {icon && !bound ? (
-        <section className="space-y-2.5 border-b border-line p-3">
-          <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <section className="space-y-3 border-b border-line px-4 py-3.5">
+          <div className="flex items-center justify-between gap-2 text-[13px] font-medium text-foreground">
             <span>Icon</span>
             <span className="min-w-0 truncate font-mono text-[10px] lowercase" title={`${icon.name} · ${icon.library}`}>
               {icon.name} · {icon.library}
@@ -950,15 +1152,13 @@ function WebInspector({
         </section>
       ) : null}
 
-      {/* Layout Section (Image 4) */}
-      <section className="space-y-2.5 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span>Layout</span>
-          <span className="font-mono text-[10px] text-muted-foreground lowercase">&lt;{node.tag}&gt;</span>
-        </div>
-
+      <InspectorSection
+        title="Layout"
+        collapsible
+        action={<span className="font-mono text-[10px] lowercase text-muted-foreground">&lt;{node.tag}&gt;</span>}
+      >
         {bound ? (
-          <div className="space-y-1.5 rounded-md border border-line bg-surface-2 p-2 text-xs">
+          <div className="space-y-1.5 rounded-lg bg-surface-2 p-2.5 text-xs">
             <div className="font-mono text-[11px] text-foreground">&lt;{node.tag}&gt;</div>
             <p className="text-[11px] text-muted-foreground">
               Instance of {bound.componentName}; structure comes from template.
@@ -973,8 +1173,7 @@ function WebInspector({
           <InspectorInput label="tag" value={node.tag} onCommit={(tag) => onPatch({ tag })} />
         )}
 
-        {/* X, Y */}
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-2">
           <InspectorInput
             label="left"
             prefix="X"
@@ -989,10 +1188,6 @@ function WebInspector({
             placeholder={geometry ? `${Math.round(geometry.top)}px` : '0'}
             onCommit={(val) => onPatch({ styles: { top: val ? val : null } })}
           />
-        </div>
-
-        {/* W, H */}
-        <div className="grid grid-cols-2 gap-1.5">
           <InspectorInput
             label="width"
             prefix="W"
@@ -1009,26 +1204,7 @@ function WebInspector({
           />
         </div>
 
-        {/* Wrap in flex button (Image 4) */}
-        <button
-          type="button"
-          className="w-full h-7 rounded-md border border-line bg-surface-2 hover:bg-secondary hover:text-foreground text-xs font-normal text-foreground flex items-center justify-between px-2.5 transition-colors"
-          onClick={() => {
-            onPatch({
-              styles: {
-                display: 'flex',
-                'flex-direction': node.styles['flex-direction'] || 'column',
-                gap: node.styles.gap || '12px',
-              },
-            })
-          }}
-        >
-          <span>Wrap in flex</span>
-          <span className="font-mono text-[10px] text-muted-foreground">⇧A</span>
-        </button>
-
-        {/* Additional Layout Properties */}
-        <div className="grid grid-cols-2 gap-1.5 pt-1">
+        <div className="grid grid-cols-2 gap-2">
           <InspectorSelect
             label="display"
             value={node.styles.display ?? ''}
@@ -1043,8 +1219,91 @@ function WebInspector({
             placeholder={computed.position || 'Default'}
             onCommit={(val) => onPatch({ styles: { position: val ? val : null } })}
           />
-          {/^(inline-)?(flex|grid)$/.test(node.styles.display ?? computed.display ?? '') ? (
-            <>
+        </div>
+      </InspectorSection>
+
+      {isFlex ? (
+        <InspectorSection
+          title="Flex"
+          collapsible
+          action={
+            <button
+              type="button"
+              aria-label="Remove flex"
+              title="Remove flex"
+              className="grid size-5 place-items-center rounded text-muted-foreground hover:text-foreground"
+              onClick={() => onPatch({ styles: { display: null, 'flex-direction': null, 'align-items': null, 'justify-content': null, 'flex-wrap': null, gap: null } })}
+            >
+              <span className="h-px w-3 bg-current" />
+            </button>
+          }
+        >
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-2">
+            <AlignmentGrid
+              direction={flexColumn ? 'column' : 'row'}
+              justify={node.styles['justify-content'] || 'flex-start'}
+              align={node.styles['align-items'] || 'flex-start'}
+              onChange={({ justify, align }) => onPatch({ styles: { display: node.styles.display || 'flex', 'justify-content': justify, 'align-items': align } })}
+            />
+            <div className="min-w-0 space-y-2">
+              <IconToggle
+                label="Direction"
+                value={flexColumn ? 'column' : 'row'}
+                options={[
+                  { value: 'column', label: 'Direction column', icon: <span aria-hidden className="text-sm leading-none">↓</span> },
+                  { value: 'row', label: 'Direction row', icon: <span aria-hidden className="text-sm leading-none">→</span> },
+                ]}
+                onChange={(value) => onPatch({ styles: { 'flex-direction': value } })}
+              />
+              <IconToggle
+                label="Wrap"
+                value={node.styles['flex-wrap'] === 'wrap' ? 'wrap' : 'nowrap'}
+                options={[
+                  { value: 'nowrap', label: 'No wrap', icon: <span aria-hidden className="text-sm leading-none">–</span> },
+                  { value: 'wrap', label: 'Wrap', icon: <span aria-hidden className="text-sm leading-none">↩</span> },
+                ]}
+                onChange={(value) => onPatch({ styles: { 'flex-wrap': value === 'wrap' ? 'wrap' : null } })}
+              />
+              <InspectorInput
+                label="gap"
+                layout="bare"
+                prefix="↕"
+                value={node.styles.gap ?? ''}
+                placeholder="0"
+                onCommit={(val) => onPatch({ styles: { gap: val ? val : null } })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <InspectorInput
+              label="padding-x"
+              layout="bare"
+              prefix="⇹"
+              value={node.styles['padding-inline'] ?? ''}
+              placeholder="0"
+              onCommit={(val) => onPatch({ styles: { 'padding-inline': val ? val : null } })}
+            />
+            <InspectorInput
+              label="padding-y"
+              layout="bare"
+              prefix="⇳"
+              value={node.styles['padding-block'] ?? ''}
+              placeholder="0"
+              onCommit={(val) => onPatch({ styles: { 'padding-block': val ? val : null } })}
+            />
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={(node.styles.overflow ?? '') === 'hidden'}
+              onChange={(event) => onPatch({ styles: { overflow: event.currentTarget.checked ? 'hidden' : null } })}
+            />
+            Clip content
+          </label>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer select-none hover:text-foreground">CSS values</summary>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <InspectorSelect
                 label="flex-direction"
                 value={node.styles['flex-direction'] ?? ''}
@@ -1064,32 +1323,35 @@ function WebInspector({
                 options={JUSTIFY_OPTIONS}
                 onCommit={(val) => onPatch({ styles: { 'justify-content': val ? val : null } })}
               />
-              <InspectorInput
-                label="gap"
-                layout="stack"
-                value={node.styles.gap ?? ''}
-                placeholder="0"
-                onCommit={(val) => onPatch({ styles: { gap: val ? val : null } })}
+              <InspectorSelect
+                label="overflow"
+                value={node.styles.overflow ?? ''}
+                options={OVERFLOW_OPTIONS}
+                placeholder={computed.overflow || 'Default'}
+                onCommit={(val) => onPatch({ styles: { overflow: val ? val : null } })}
               />
-            </>
-          ) : null}
-          <InspectorSelect
-            label="overflow"
-            value={node.styles.overflow ?? ''}
-            options={OVERFLOW_OPTIONS}
-            placeholder={computed.overflow || 'Default'}
-            onCommit={(val) => onPatch({ styles: { overflow: val ? val : null } })}
-          />
-        </div>
-      </section>
+            </div>
+          </details>
+        </InspectorSection>
+      ) : (
+        <OptionalSection
+          title="Flex"
+          active={false}
+          onAdd={() => onPatch({
+            styles: {
+              display: 'flex',
+              'flex-direction': node.styles['flex-direction'] || 'column',
+              gap: node.styles.gap || '12px',
+            },
+          })}
+          onRemove={() => undefined}
+        >
+          {null}
+        </OptionalSection>
+      )}
 
-      {/* Radius Section (Image 4) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span>Radius</span>
-          <SquareIcon className="size-3 text-muted-foreground" />
-        </div>
-        <div className="flex items-center gap-2">
+      <InspectorSection title="Radius" action={<SquareIcon className="size-3.5" />}>
+        <div className="flex items-center gap-3">
           <input
             type="range"
             min={0}
@@ -1097,7 +1359,7 @@ function WebInspector({
             value={parseInt(node.styles['border-radius'] ?? '0', 10) || 0}
             onChange={(e) => onPatch({ styles: { 'border-radius': `${e.target.value}px` } })}
             aria-label="Border radius"
-            className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-lg bg-surface-2 accent-primary"
+            className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-surface-2 accent-primary"
           />
           <div className="w-20 shrink-0">
             <InspectorInput
@@ -1109,27 +1371,25 @@ function WebInspector({
             />
           </div>
         </div>
-      </section>
+      </InspectorSection>
 
-      {/* Blending Section (Image 4) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span>Blending</span>
+      <InspectorSection
+        title="Blending"
+        action={
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => {
-              const isHidden = node.styles.opacity === '0'
-              onPatch({ styles: { opacity: isHidden ? '1' : '0' } })
-            }}
+            aria-label={node.styles.opacity === '0' ? 'Show element' : 'Hide element'}
+            className="grid size-5 place-items-center rounded hover:text-foreground"
+            onClick={() => onPatch({ styles: { opacity: node.styles.opacity === '0' ? '1' : '0' } })}
           >
-            {node.styles.opacity === '0' ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+            {node.styles.opacity === '0' ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
           </button>
-        </div>
-        <div className="grid grid-cols-2 items-end gap-2">
+        }
+      >
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
           <InspectorInput
             label="opacity"
-            layout="stack"
+            layout="bare"
             value={node.styles.opacity ?? '1'}
             placeholder="1"
             onCommit={(val) => onPatch({ styles: { opacity: val ? val : null } })}
@@ -1138,38 +1398,35 @@ function WebInspector({
             aria-label="Blend mode"
             value={node.styles['mix-blend-mode'] ?? 'normal'}
             onChange={(e) => onPatch({ styles: { 'mix-blend-mode': e.target.value === 'normal' ? null : e.target.value } })}
-            className="h-7 w-full min-w-0 rounded-md border border-input bg-surface-2 px-2 font-mono text-xs text-foreground outline-none hover:border-line focus:border-ring"
+            className="h-8 w-full min-w-0 rounded-lg border border-transparent bg-surface-2 px-2 text-[13px] text-foreground outline-none hover:border-line focus:border-ring"
           >
-            <option value="normal">Normal</option>
-            <option value="multiply">Multiply</option>
-            <option value="screen">Screen</option>
-            <option value="overlay">Overlay</option>
-            <option value="darken">Darken</option>
-            <option value="lighten">Lighten</option>
+            {['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'difference'].map((mode) => (
+              <option key={mode} value={mode}>{mode.replace(/(^|-)([a-z])/g, (_, dash: string, letter: string) => `${dash ? ' ' : ''}${letter.toUpperCase()}`)}</option>
+            ))}
           </select>
         </div>
-      </section>
+      </InspectorSection>
 
-      {/* Fill Section (Image 4) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span>Fill</span>
+      <InspectorSection
+        title="Fill"
+        action={
           <button
             type="button"
             aria-label="Choose fill color"
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="grid size-5 place-items-center rounded hover:text-foreground"
             onClick={() => fillPickerRef.current?.click()}
           >
-            <PlusIcon className="size-3.5" />
+            <PlusIcon className="size-4" />
           </button>
-        </div>
+        }
+      >
         <div className="flex items-center gap-2">
           <input
             ref={fillPickerRef}
             type="color"
             aria-label="Fill color"
-            className="size-7 shrink-0 cursor-pointer rounded border border-line bg-transparent p-0 shadow-xs"
-            value={/^#[\da-f]{6}$/i.test(node.styles.background || node.styles['background-color'] || '') ? (node.styles.background || node.styles['background-color']) : '#ffffff'}
+            className="size-8 shrink-0 cursor-pointer rounded-lg border border-line bg-transparent p-0.5"
+            value={toColorInputValue(node.styles.background || node.styles['background-color'] || '')}
             onChange={(event) => onPatch({ styles: { background: event.currentTarget.value } })}
           />
           <div className="min-w-0 flex-1">
@@ -1182,20 +1439,29 @@ function WebInspector({
             />
           </div>
         </div>
-      </section>
+      </InspectorSection>
 
-      {/* Border & Outline Section (Image 4) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span>Border</span>
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => onPatch({ styles: { border: '1px solid #3e3e3e' } })}
-          >
-            <PlusIcon className="size-3.5" />
-          </button>
-        </div>
+      <OptionalSection
+        title="Outline"
+        active={Boolean(node.styles.outline)}
+        onAdd={() => onPatch({ styles: { outline: '2px solid #3b82f6', 'outline-offset': '2px' } })}
+        onRemove={() => onPatch({ styles: { outline: null, 'outline-offset': null } })}
+      >
+        <InspectorInput
+          label="outline"
+          layout="bare"
+          value={node.styles.outline ?? ''}
+          placeholder="2px solid #3b82f6"
+          onCommit={(val) => onPatch({ styles: { outline: val ? val : null } })}
+        />
+      </OptionalSection>
+
+      <OptionalSection
+        title="Border"
+        active={Boolean(node.styles.border)}
+        onAdd={() => onPatch({ styles: { border: '1px solid #3e3e3e' } })}
+        onRemove={() => onPatch({ styles: { border: null, 'border-width': null } })}
+      >
         <div className="flex items-center gap-2">
           <div className="w-20 shrink-0">
             <InspectorInput
@@ -1216,11 +1482,80 @@ function WebInspector({
             />
           </div>
         </div>
-      </section>
+      </OptionalSection>
+
+      <OptionalSection
+        title="Shadow"
+        active={Boolean(shadows.outer)}
+        onAdd={() => onPatch({ styles: { 'box-shadow': writeShadows('0 4px 12px rgba(0, 0, 0, 0.25)', shadows.inner) } })}
+        onRemove={() => onPatch({ styles: { 'box-shadow': writeShadows('', shadows.inner) } })}
+      >
+        <InspectorInput
+          label="shadow"
+          layout="bare"
+          value={shadows.outer}
+          placeholder="0 4px 12px rgba(0, 0, 0, 0.25)"
+          onCommit={(val) => onPatch({ styles: { 'box-shadow': writeShadows(val, shadows.inner) } })}
+        />
+      </OptionalSection>
+
+      <OptionalSection
+        title="Inner shadow"
+        active={Boolean(shadows.inner)}
+        onAdd={() => onPatch({ styles: { 'box-shadow': writeShadows(shadows.outer, '0 2px 6px rgba(0, 0, 0, 0.3)') } })}
+        onRemove={() => onPatch({ styles: { 'box-shadow': writeShadows(shadows.outer, '') } })}
+      >
+        <InspectorInput
+          label="inner shadow"
+          layout="bare"
+          value={shadows.inner}
+          placeholder="0 2px 6px rgba(0, 0, 0, 0.3)"
+          onCommit={(val) => onPatch({ styles: { 'box-shadow': writeShadows(shadows.outer, val) } })}
+        />
+      </OptionalSection>
+
+      <OptionalSection
+        title="Filters"
+        active={Boolean(node.styles.filter)}
+        onAdd={() => onPatch({ styles: { filter: 'blur(4px)' } })}
+        onRemove={() => onPatch({ styles: { filter: null } })}
+      >
+        <InspectorInput
+          label="filter"
+          layout="bare"
+          value={node.styles.filter ?? ''}
+          placeholder="blur(4px)"
+          onCommit={(val) => onPatch({ styles: { filter: val ? val : null } })}
+        />
+      </OptionalSection>
+
+      {selectionColors.length > 0 ? (
+        <InspectorSection title="Selection colors">
+          <div className="space-y-2">
+            {selectionColors.map(({ color, count }) => (
+              <div key={color} className="flex items-center gap-2">
+                <label className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg bg-surface-2 px-1.5 text-[13px] text-foreground">
+                  <span className="relative size-5 shrink-0 overflow-hidden rounded-md border border-line" style={{ background: color }}>
+                    <input
+                      type="color"
+                      aria-label={`Replace ${color}`}
+                      className="absolute inset-0 size-full cursor-pointer opacity-0"
+                      value={toColorInputValue(color)}
+                      onChange={(event) => onReplaceColor(color, event.currentTarget.value)}
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs uppercase">{color.replace(/^#/, '')}</span>
+                </label>
+                <span className="w-6 shrink-0 text-end text-xs text-muted-foreground" title={`Used ${count} time${count === 1 ? '' : 's'}`}>{count}</span>
+              </div>
+            ))}
+          </div>
+        </InspectorSection>
+      ) : null}
 
       {/* Typography Section (Image 4 & tests) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <section className="space-y-3 border-b border-line px-4 py-3.5">
+        <div className="flex h-5 items-center justify-between text-[13px] font-medium text-foreground">
           <span>Typography</span>
         </div>
         <div className="space-y-1.5">
@@ -1281,8 +1616,8 @@ function WebInspector({
       </section>
 
       {/* Attributes Section (for tests and editing) */}
-      <section className="space-y-2 border-b border-line p-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <section className="space-y-3 border-b border-line px-4 py-3.5">
+        <div className="text-[13px] font-medium text-foreground">
           {bound ? 'Instance override · attributes' : 'Attributes'}
         </div>
         {attributeNames.map((name) => (
@@ -1306,8 +1641,8 @@ function WebInspector({
 
       {/* Custom Properties (for instances or variables) */}
       {bound && (
-        <section className="space-y-2 border-b border-line p-3">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <section className="space-y-3 border-b border-line px-4 py-3.5">
+          <div className="text-[13px] font-medium text-foreground">
             Instance override · custom properties
           </div>
           {customProperties.map(([name, value]) => (
@@ -1330,7 +1665,7 @@ function WebInspector({
 
       {/* Authored · matching stylesheet rules */}
       <section className="space-y-3 border-b border-line p-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="text-[13px] font-medium text-foreground">
           Authored · matching stylesheet rules
         </div>
         {matchingRules.length === 0 ? (
@@ -1384,7 +1719,7 @@ function WebInspector({
 
       {/* Computed · browser output · read-only */}
       <section className="space-y-2 p-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="text-[13px] font-medium text-foreground">
           Computed · browser output · read-only
         </div>
         <p className="text-[10px] text-muted-foreground">
@@ -1420,7 +1755,13 @@ export function WebCanvasEditor({
   name: string
 }) {
   const [document, setDocument] = useState(initialDocument)
-  const [selectedId, setSelectedId] = useState<string | null>(initialDocument.roots[0] ?? null)
+  const [activePageId, setActivePageId] = useState<string | null>(() => resolvePageId(initialDocument, null))
+  const pageId = resolvePageId(document, activePageId)
+  const pageIdRef = useRef(pageId)
+  pageIdRef.current = pageId
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => pageLayerIds(initialDocument, resolvePageId(initialDocument, null))[0] ?? null,
+  )
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectionRect, setSelectionRect] = useState<OverlayRect | null>(null)
   const [hoverRect, setHoverRect] = useState<OverlayRect | null>(null)
@@ -1438,11 +1779,6 @@ export function WebCanvasEditor({
   const [quickInsertOpen, setQuickInsertOpen] = useState(false)
   const [connectAgentOpen, setConnectAgentOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(true)
-  const [pageBackground, setPageBackground] = useState(() => {
-    const root = initialDocument.nodes[initialDocument.roots[0] ?? '']
-    const value = root?.kind === 'element' ? (root.styles.background ?? root.styles['background-color'] ?? '') : ''
-    return /^#[\da-f]{6}$/i.test(value) ? value : '#ffffff'
-  })
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [leftTab, setLeftTab] = useState<'design' | 'theme' | 'assets' | 'icons'>('design')
@@ -1546,7 +1882,7 @@ export function WebCanvasEditor({
         setRedo([])
         const selected = selectedRef.current
         if (selected && !latest.document.nodes[selected]) {
-          selectedRef.current = latest.document.roots[0] ?? null
+          selectedRef.current = pageLayerIds(latest.document, resolvePageId(latest.document, pageIdRef.current))[0] ?? null
           setSelectedId(selectedRef.current)
         }
         setSaveStatus('saved')
@@ -1722,7 +2058,7 @@ export function WebCanvasEditor({
       : null
     const parentId = selected?.kind === 'element'
       ? selected.id
-      : (selected?.parentId ?? documentRef.current.roots[0] ?? null)
+      : (selected?.parentId ?? pageParentId(documentRef.current, pageIdRef.current))
     transact('Create instance', [{
       type: 'instance.create',
       componentId,
@@ -1730,6 +2066,16 @@ export function WebCanvasEditor({
       order: nextOrder(documentRef.current, parentId),
     }])
   }, [transact])
+
+  const pageRootId = pageId ?? pageParentId(document, null)
+  const pageRootElement = pageRootId ? document.nodes[pageRootId] : undefined
+  const pageBackgroundValue = pageRootElement?.kind === 'element'
+    ? (pageRootElement.styles.background ?? pageRootElement.styles['background-color'] ?? '')
+    : ''
+  const pageBackground = /^#[\da-f]{6}$/i.test(pageBackgroundValue) ? pageBackgroundValue : '#ffffff'
+  const visibleIds = useMemo(() => visibleRootIds(document, pageId), [document, pageId])
+  const pages = useMemo(() => listPages(document), [document])
+  const layerIds = useMemo(() => pageLayerIds(document, pageId), [document, pageId])
 
   const selectedNode = pageSelected ? null : selectedId ? document.nodes[selectedId] ?? null : null
   const matchingRules = matchingAuthoredRules(findElement(selectedId), document)
@@ -1747,20 +2093,26 @@ export function WebCanvasEditor({
   const selectedOverride = selectedBinding && selectedId
     ? document.instances[selectedBinding.instanceId]?.overrides[selectedId]
     : undefined
-  const root = document.nodes[document.roots[0] ?? '']
+  const root = document.nodes[pageParentId(document, null) ?? '']
   const authoredCanvasWidth = root?.kind === 'element' ? parsePxAuthored(root.styles.width) : null
   const authoredCanvasHeight = root?.kind === 'element' ? parsePxAuthored(root.styles.height) : null
-  const canvasWidth = document.metadata.page?.width ?? Math.max(authoredCanvasWidth ?? 1_440, contentSize.width)
-  const canvasHeight = document.metadata.page?.height ?? Math.max(authoredCanvasHeight ?? 900, contentSize.height)
+  const pageCanvas = pageId === null ? null : pageRootSize(document, pageId)
+  const canvasWidth = pageCanvas?.width ?? document.metadata.page?.width ?? Math.max(authoredCanvasWidth ?? 1_440, contentSize.width)
+  const canvasHeight = pageCanvas?.height ?? document.metadata.page?.height ?? Math.max(authoredCanvasHeight ?? 900, contentSize.height)
   const fonts = useMemo(() => documentFonts(document), [document])
   const shortcutLabel = (id: BuiltInShortcutId) => formatBuiltInChord(id, shortcutConfig)
 
   const resizePage = useCallback((size: { width?: number; height?: number }) => {
-    transact('Resize page', [{
-      type: 'page.resize',
-      width: size.width ?? canvasWidth,
-      height: size.height ?? canvasHeight,
-    }])
+    const width = size.width ?? canvasWidth
+    const height = size.height ?? canvasHeight
+    const target = pageIdRef.current
+    transact('Resize page', [target === null
+      ? { type: 'page.resize', width, height }
+      : {
+        type: 'node.patch',
+        id: target,
+        patch: { kind: 'element', styles: { width: `${width}px`, height: `${height}px` } },
+      }])
   }, [canvasWidth, canvasHeight, transact])
 
   const patchSelected = useCallback((patch: {
@@ -1783,10 +2135,10 @@ export function WebCanvasEditor({
       ? documentRef.current.nodes[selectedRef.current]
       : null
     const parentId = point
-      ? documentRef.current.roots[0] ?? null
+      ? pageParentId(documentRef.current, pageIdRef.current)
       : selected?.kind === 'element'
         ? selected.id
-        : (selected?.parentId ?? documentRef.current.roots[0] ?? null)
+        : (selected?.parentId ?? pageParentId(documentRef.current, pageIdRef.current))
     const element = createWebElement(tag, {
       parentId,
       order: nextOrder(documentRef.current, parentId),
@@ -1818,7 +2170,7 @@ export function WebCanvasEditor({
 
   const insertLibraryIcon = useCallback(async (icon: { library: IconLibrary; name: string }) => {
     const { iconNodes } = await import('@sheet/canvas/web-icons')
-    const parentId = documentRef.current.roots[0] ?? null
+    const parentId = pageParentId(documentRef.current, pageIdRef.current)
     const nodes = iconNodes(icon.library, icon.name, {
       parentId,
       order: nextOrder(documentRef.current, parentId),
@@ -1836,8 +2188,86 @@ export function WebCanvasEditor({
     setLeftTab('design')
   }, [setTool, transact])
 
+  const selectionColors = useMemo(() => {
+    if (!selectedId || !document.nodes[selectedId]) return []
+    return collectSelectionColors(
+      collectSubtreeIds(document, selectedId).flatMap((id) => {
+        const node = document.nodes[id]
+        return node?.kind === 'element' ? [node.styles] : []
+      }),
+    )
+  }, [document, selectedId])
+
+  const replaceSelectionColor = useCallback((from: string, to: string) => {
+    const current = documentRef.current
+    const rootId = selectedRef.current
+    if (!rootId) return
+    const bound = boundNodeIndex(current.instances)
+    const operations = collectSubtreeIds(current, rootId).flatMap((id) => {
+      const node = current.nodes[id]
+      if (node?.kind !== 'element' || bound.has(id)) return []
+      const styles = replaceColorInStyles(node.styles, from, to)
+      return styles ? [{ type: 'node.patch' as const, id, patch: { kind: 'element' as const, styles } }] : []
+    })
+    if (operations.length) transact('Replace selection color', operations)
+  }, [transact])
+
+  const renameNode = useCallback((id: string, name: string) => {
+    if (documentRef.current.nodes[id]?.kind !== 'element') return
+    transact('Rename layer', [{
+      type: 'node.patch',
+      id,
+      patch: { kind: 'element', attributes: { [NAME_ATTRIBUTE]: name || null } },
+    }])
+  }, [transact])
+
+  const selectPage = useCallback((id: string | null) => {
+    pageIdRef.current = id
+    setActivePageId(id)
+    selectedRef.current = null
+    setSelectedId(null)
+    setPageSelected(false)
+    hoveredRef.current = null
+    setHoveredId(null)
+    setPageResizePreview(null)
+  }, [])
+
+  const addPage = useCallback(() => {
+    const current = documentRef.current
+    const node = pageNode(nextPageName(current), { order: nextRootOrder(current) })
+    transact('Add page', [{ type: 'node.insert', node }])
+    selectPage(node.id)
+  }, [selectPage, transact])
+
+  const renamePage = useCallback((id: string, name: string) => {
+    if (!name.trim() || documentRef.current.nodes[id]?.kind !== 'element') return
+    transact('Rename page', [{
+      type: 'node.patch',
+      id,
+      patch: { kind: 'element', attributes: { [PAGE_ATTRIBUTE]: name.trim() } },
+    }])
+  }, [transact])
+
+  const deletePage = useCallback((id: string) => {
+    if (documentRef.current.nodes[id]?.kind !== 'element') return
+    const remaining = listPages(documentRef.current).filter((page) => page.id !== id)
+    transact('Delete page', [{ type: 'node.delete', id }])
+    selectPage(remaining[0]?.id ?? null)
+  }, [selectPage, transact])
+
+  const toggleHidden = useCallback((id: string) => {
+    const target = documentRef.current.nodes[id]
+    if (target?.kind !== 'element') return
+    const hidden = target.styles.visibility === 'hidden'
+    transact(hidden ? 'Show element' : 'Hide element', [{
+      type: 'node.patch',
+      id,
+      patch: { kind: 'element', styles: { visibility: hidden ? null : 'hidden' } },
+    }])
+  }, [transact])
+
   const insertShader = useCallback((name: ShaderName) => {
-    const parentId = documentRef.current.roots[0] ?? null
+    const parentId = pageParentId(documentRef.current, pageIdRef.current)
     const node = shaderNode(name, { parentId, order: nextOrder(documentRef.current, parentId) })
     selectedRef.current = node.id
     setSelectedId(node.id)
@@ -1858,7 +2288,7 @@ export function WebCanvasEditor({
       }])
       return
     }
-    const parentId = documentRef.current.roots[0] ?? null
+    const parentId = pageParentId(documentRef.current, pageIdRef.current)
     const element = createWebElement('svg', {
       namespace: 'svg', parentId, order: nextOrder(documentRef.current, parentId),
       attributes: { viewBox: `0 0 ${canvasWidth} ${canvasHeight}` },
@@ -1980,7 +2410,7 @@ export function WebCanvasEditor({
     if (
       mode === 'resize' &&
       selectedRef.current !== null &&
-      documentRef.current.roots.includes(selectedRef.current) &&
+      pageLayerIds(documentRef.current, pageIdRef.current).includes(selectedRef.current) &&
       (authoredWidth === null || authoredHeight === null)
     ) {
       const rect = element.getBoundingClientRect()
@@ -2169,6 +2599,13 @@ export function WebCanvasEditor({
     const next = fitCamera(pageSizeRef.current.width, pageSizeRef.current.height)
     if (next) setNextCamera(next)
   }, [fitCamera, setNextCamera])
+
+  // Each page is its own canvas: frame it whenever the active page changes.
+  useEffect(() => {
+    const next = fitCamera(pageSizeRef.current.width, pageSizeRef.current.height)
+    if (next) setNextCamera(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId])
 
   // Overlays are measured against the stage, so any stage resize (window, panel toggle) must remeasure.
   useEffect(() => {
@@ -2510,10 +2947,10 @@ export function WebCanvasEditor({
         {leftPanelOpen ? (
           <aside aria-label="Layers" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-e border-line bg-surface">
             {/* Header: Scratchpad + Collapse button */}
-            <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <File01Icon className="size-4 text-muted-foreground shrink-0" />
-                <span className="min-w-0 truncate text-xs font-medium text-foreground">{name || 'Scratchpad'}</span>
+            <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <File01Icon className="size-5 text-muted-foreground shrink-0" />
+                <span className="min-w-0 truncate text-sm font-medium text-foreground">{name || 'Scratchpad'}</span>
               </div>
               <button
                 type="button"
@@ -2526,15 +2963,15 @@ export function WebCanvasEditor({
             </div>
 
             {/* Segmented control: Design | Theme */}
-            <div className="m-2 grid shrink-0 grid-cols-4 rounded-lg border border-line bg-well p-0.5">
+            <div className="mx-3 my-3 grid shrink-0 grid-cols-4 rounded-lg bg-well p-1">
               {(['design', 'theme', 'assets', 'icons'] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   className={cn(
-                    'min-w-0 truncate rounded-md px-1 py-1 text-xs capitalize transition-all duration-150',
+                    'min-w-0 truncate rounded-md px-1 py-1.5 text-[13px] capitalize transition-all duration-150',
                     leftTab === tab
-                      ? 'bg-surface text-foreground font-medium shadow-xs'
+                      ? 'bg-surface text-foreground font-medium shadow-xs ring-1 ring-line'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                   onClick={() => setLeftTab(tab)}
@@ -2548,10 +2985,10 @@ export function WebCanvasEditor({
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
                 {/* Pages Section */}
                 <div className="border-b border-line">
-                  <div className="flex h-8 items-center justify-between px-3 text-xs font-medium text-foreground">
+                  <div className="flex h-10 items-center justify-between px-3 text-sm font-medium text-foreground">
                     <button
                       type="button"
-                      className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                      className="flex items-center gap-2 text-foreground hover:text-foreground"
                       onClick={() => setPagesOpen((open) => !open)}
                     >
                       <ChevronDownIcon className={cn('size-3 transition-transform', !pagesOpen && '-rotate-90')} />
@@ -2559,40 +2996,40 @@ export function WebCanvasEditor({
                     </button>
                     <button
                       type="button"
-                      className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      onClick={() => insertElement('main')}
+                      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      onClick={addPage}
                       title="Add page"
                     >
-                      <PlusIcon className="size-3.5" />
+                      <PlusIcon className="size-4" />
                     </button>
                   </div>
                   {pagesOpen ? (
-                    <div className="px-2 pb-2">
-                      <button
-                        type="button"
-                        className={cn(
-                          'flex w-full min-w-0 items-center gap-2 rounded-md border px-2 py-1 text-xs transition-colors',
-                          pageSelected
-                            ? 'border-line/80 bg-surface-2 font-medium text-foreground shadow-xs'
-                            : 'border-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground',
-                        )}
-                        onClick={() => {
-                          selectedRef.current = null
-                          setSelectedId(null)
-                          setPageSelected(true)
-                          scheduleMeasure()
-                        }}
-                      >
-                        <File01Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate">Page 1</span>
-                      </button>
+                    <div className="pb-2">
+                      {pages.map((page) => (
+                        <PageRow
+                          key={page.id ?? 'implicit'}
+                          name={page.name}
+                          active={page.id === pageId}
+                          removable={page.id !== null}
+                          onSelect={() => {
+                            if (page.id !== pageId) selectPage(page.id)
+                            selectedRef.current = null
+                            setSelectedId(null)
+                            setPageSelected(true)
+                            scheduleMeasure()
+                          }}
+                          onRename={page.id === null ? null : (name) => renamePage(page.id as string, name)}
+                          onDelete={page.id === null ? null : () => deletePage(page.id as string)}
+                          pageSelected={pageSelected}
+                        />
+                      ))}
                     </div>
                   ) : null}
                 </div>
 
                 {/* Layers Section */}
-                <div className="px-2 py-2">
-                  <div className="flex h-7 items-center justify-between px-1 text-xs font-medium text-muted-foreground">
+                <div className="py-1">
+                  <div className="flex h-8 items-center justify-between px-4 text-xs font-medium text-muted-foreground">
                     <span>Layers</span>
                     <button
                       type="button"
@@ -2603,10 +3040,10 @@ export function WebCanvasEditor({
                       <PlusIcon className="size-3.5" />
                     </button>
                   </div>
-                  <div className="mt-1 space-y-0.5">
-                    {document.roots.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-line p-4 text-center">
-                        <p className="text-xs text-muted-foreground">Start with a page root.</p>
+                  <div>
+                    {layerIds.length === 0 ? (
+                      <div className="mx-3 rounded-lg border border-dashed border-line p-4 text-center">
+                        <p className="text-xs text-muted-foreground">This page is empty.</p>
                         <Button
                           size="sm"
                           variant="outline"
@@ -2615,11 +3052,11 @@ export function WebCanvasEditor({
                           onClick={() => insertElement('main')}
                         >
                           <PlusIcon className="size-3.5" />
-                          Create root
+                          Add a frame
                         </Button>
                       </div>
                     ) : (
-                      document.roots.map((id) => {
+                      layerIds.map((id) => {
                         const node = document.nodes[id]
                         return node ? (
                           <WebTreeNode
@@ -2628,6 +3065,8 @@ export function WebCanvasEditor({
                             node={node}
                             selectedId={selectedId}
                             onSelect={select}
+                            onToggleHidden={toggleHidden}
+                            onRename={renameNode}
                           />
                         ) : null
                       })
@@ -2952,6 +3391,7 @@ export function WebCanvasEditor({
           >
             <WebDocumentView
               document={document}
+              visibleRootIds={visibleIds}
               onMaterialize={onMaterialize}
               className="relative h-full w-full overflow-hidden"
             />
@@ -3022,7 +3462,7 @@ export function WebCanvasEditor({
               {/* Move handle */}
               {bound ? (
                 <div className="pointer-events-auto absolute -top-5 left-0 max-w-48 truncate rounded-sm bg-violet-600 px-1.5 py-0.5 font-mono text-[10px] text-white">
-                  {selectedNode ? nodeLabel(selectedNode) : ''} · instance
+                  {selectedNode ? nodeLabel(selectedNode, document) : ''} · instance
                 </div>
               ) : (
                 <div
@@ -3032,7 +3472,7 @@ export function WebCanvasEditor({
                   onPointerUp={finishElementDrag}
                   onPointerCancel={finishElementDrag}
                 >
-                  {selectedNode ? nodeLabel(selectedNode) : ''}
+                  {selectedNode ? nodeLabel(selectedNode, document) : ''}
                 </div>
               )}
 
@@ -3061,7 +3501,7 @@ export function WebCanvasEditor({
         {/* Right Inspector Panel: Design (Image 2 & 4) */}
         {rightPanelOpen ? (
         <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
-          <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3 text-xs font-medium text-foreground">
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 text-sm font-medium text-foreground">
             <span>Design</span>
             <button
               type="button"
@@ -3090,9 +3530,10 @@ export function WebCanvasEditor({
               pageBackground={pageBackground}
               pageSize={pageResizePreview ?? { width: canvasWidth, height: canvasHeight }}
               fonts={fonts}
+              selectionColors={selectionColors}
+              onReplaceColor={replaceSelectionColor}
               onSetPageBackground={(color) => {
-                setPageBackground(color)
-                const id = documentRef.current.roots[0]
+                const id = pageIdRef.current ?? pageParentId(documentRef.current, null)
                 if (id && documentRef.current.nodes[id]?.kind === 'element') {
                   transact('Set page background', [{ type: 'node.patch', id, patch: { kind: 'element', styles: { background: color } } }])
                 }

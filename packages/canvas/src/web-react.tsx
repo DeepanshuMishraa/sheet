@@ -10,6 +10,8 @@ import { mountShaders } from './web-shaders'
 export interface WebDocumentViewProps {
   document: WebDocument
   className?: string
+  /** Render only these roots (one page at a time); omit to render every root. */
+  visibleRootIds?: readonly string[]
   onMaterialize?: (element: HTMLDivElement) => void
 }
 
@@ -22,6 +24,7 @@ export interface WebDocumentViewProps {
 export function WebDocumentView({
   document,
   className,
+  visibleRootIds,
   onMaterialize,
 }: WebDocumentViewProps) {
   const disposeShaders = useRef<(() => void) | null>(null)
@@ -38,14 +41,14 @@ export function WebDocumentView({
       element.replaceChildren(
         defaults,
         ...materializeWebStylesheets(document, element.ownerDocument),
-        ...document.roots.map((id) =>
+        ...(visibleRootIds ?? document.roots).map((id) =>
           materializeWebNode(document, id, element.ownerDocument),
         ),
       )
       disposeShaders.current = mountShaders(element)
       onMaterialize?.(element)
     },
-    [document, onMaterialize],
+    [document, visibleRootIds, onMaterialize],
   )
 
   return (
