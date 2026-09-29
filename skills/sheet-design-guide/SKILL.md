@@ -1,153 +1,140 @@
 ---
 name: sheet-design-guide
-description: Build, edit, refine, troubleshoot, and review polished responsive product interfaces through the Sheet MCP server and its structured Canvas schemas. Use when an agent must create or modify a Sheet design, recover from MCP schema errors or missing authoring tools, turn a brief or reference into editable Canvas nodes, establish tokens or reusable components, add themes, interactions, or motion, work safely on a Sheet branch, verify with or without image vision, or export implementation code without treating HTML, JSX, or CSS as the authoring model.
+description: Build, edit, refine, troubleshoot, and review polished responsive product interfaces through the Sheet MCP server and its web-native document model (real DOM nodes plus authored CSS). Use when an agent must create or modify a Sheet design, recover from applyWebTransaction errors, turn a brief or reference into editable HTML/CSS nodes, add icons or Paper shaders, define reusable components, work safely on a Sheet branch, verify with or without image vision, or export the page as HTML, PNG, JPG, or JSON.
 ---
 
 # Sheet Design Guide
 
-Create real, editable Sheet designs through the MCP tools. Treat the Canvas
-document—not generated code—as the source of truth. Work like a designer:
-understand the product, establish a system, build coherent sections, inspect the
-render, and refine the weak parts.
+Create real, editable Sheet designs through the MCP tools. The source of truth is
+a **web-native document**: a tree of real HTML/SVG elements plus authored
+stylesheets, components, and instances. The browser is the layout engine, so
+layout is ordinary CSS (flex, grid, media and container queries). Computed
+styles are never stored. Work like a designer: understand the product, establish
+a system, build coherent sections, inspect the render, and refine.
 
 ## Gate the MCP surface first
 
 Inspect the callable Sheet tools before creating or mutating anything. Require:
 
-- `createPage`, `insertNodes`, and `patchNodes` for new design authoring
-- `createComponent` and `createInstance` for reusable component work
-- `setTokens` for tokens or themes
-- `setAnimations` and `animateNodes` for motion
-- branch lifecycle tools for branch work
+- `getWebDocument` and `applyWebTransaction` for every read and edit
+- `getWebScreenshot` for visual verification
+- `createDesign` for a new design
+- `insertIcon` / `styleIcon` for icons, `listShaders` / `insertShader` /
+  `styleShader` for shaders
+- `createBranch`, `compareBranch`, `proposeBranch`, `applyBranch` for branch work
 
-If a required tool is absent, stop before `createDesign` or any partial mutation.
-`createDesign` creates only an empty record; it is not a successful Canvas
-design. Report the missing tools and the manifest/session mismatch. Do not
-substitute HTML, JSX, browser clicks, or repeated speculative calls.
+If `applyWebTransaction` is absent, stop. `createDesign` makes only an empty
+document; do not create one and hope mutation tools appear later. Report the
+missing tools and do not substitute exported code or browser clicks.
 
-If a callable tool exposes nested arguments such as `ref`, `nodes`, or `patch`
-as `unknown`, treat that as a schema-display limitation, not permission to
-guess. Use the schema reference below.
+If a callable tool shows `transaction.operations` items as `unknown`, that is a
+schema-display limitation, not permission to guess. Use `references/web-schema.md`.
 
 ## Load references by action
 
 | Before this action | Read first | Read as well when applicable |
 |---|---|---|
-| Select a design, target Main, create/use a branch, compare, propose, or apply | [tool-workflows.md](references/tool-workflows.md) | [worked-examples.md](references/worked-examples.md) for branch theming or merge payloads |
-| Call `createPage`, `insertNodes`, `patchNodes`, component, token, interaction, or motion tools | [mcp-schema.md](references/mcp-schema.md) | [worked-examples.md](references/worked-examples.md) for a known-good envelope |
-| Compose responsive layout, components, themes, interactions, or motion | [canvas-authoring.md](references/canvas-authoring.md) | [design-craft.md](references/design-craft.md) for new or materially restyled work |
+| Pick a design, target Main or a branch, compare, propose, or apply | [tool-workflows.md](references/tool-workflows.md) | |
+| Write any `applyWebTransaction` payload | [web-schema.md](references/web-schema.md) | [worked-examples.md](references/worked-examples.md) for known-good payloads |
+| Compose layout, styles, responsive rules, components, icons, or shaders | [web-authoring.md](references/web-authoring.md) | [design-craft.md](references/design-craft.md) for new or materially restyled work |
 | Review pixels with image vision | [design-craft.md](references/design-craft.md) | [tool-workflows.md](references/tool-workflows.md) for screenshot limits |
-| Verify without image vision | [tool-workflows.md](references/tool-workflows.md) | [mcp-schema.md](references/mcp-schema.md) to verify effective fields and collection semantics |
+| Verify without image vision | [tool-workflows.md](references/tool-workflows.md) | [web-schema.md](references/web-schema.md) |
 
-For a one-field text or spacing patch, read `mcp-schema.md` plus the target node;
-do not load every design reference.
+For a one-field text or spacing tweak, read `web-schema.md` and the target node;
+do not load every reference.
 
 ## Follow the core loop
 
-1. **Check capability and orient.** Confirm the required authoring tools are
-   callable. Call `getUsage` if budget matters. Call `listDesigns`, select the
-   target explicitly, then call `getDesignContext`. For an existing design,
-   inspect the relevant area with `readTree`, `readNode`, or `searchNodes`.
-2. **Protect the target.** Confirm whether the user intends Main or a branch.
-   Carry the same `designId` and optional `draftId` through every call. For a
-   broad or speculative redesign, prefer a new branch. Never silently switch
-   targets.
-3. **Form a visual direction.** Extract the audience, job, content hierarchy,
-   mood, constraints, and required states from the request. If the prompt is
-   underspecified, choose a coherent direction and state it briefly; do not
-   default to a generic dashboard.
-4. **Establish the system.** Reuse existing tokens, themes, components, spacing,
-   and typography. For a new design, define a small token set and reusable
-   components before repeating them. Use semantic, human-readable node names.
-5. **Build in meaningful batches.** Use `createPage` for the Page and its initial
-   hierarchy. Use `insertNodes` for later sections, `patchNodes` for atomic
-   refinements, and `moveNodes` for source structure. Prefer flex/grid with
-   `fill` and `hug`; reserve absolute positioning for intentional overlays or
-   artwork.
-6. **Inspect after meaningful edits.** Call `getScreenshot` on the affected Page
-   or node. With image vision, compare the pixels against the brief and
-   `design-craft.md`. Without image vision, use the renderer result plus
-   `readTree`/`readNode` as described in `tool-workflows.md` and state that pixel
-   quality was not visually judged. A successful mutation alone is not proof.
-7. **Refine surgically.** Fix the largest verified problem first. With vision,
-   use visible hierarchy, spacing, contrast, alignment, content, and responsive
-   behavior. Without vision, fix only structural issues supported by reads or
-   renderer metadata; do not invent pixel problems.
-8. **Verify structure.** Re-read the affected tree or nodes. Confirm component
-   instances, interactions, token references, responsive overrides, and target
-   revision. Use `viewPage` or `viewNode` for a canonical Sheet link.
-9. **Finish deliberately.** If working on a branch, compare it with Main before
-   proposing or applying it. Do not apply, close, or delete anything without the
-   user's authority. Use `exportCode` only when the user needs a one-way
-   implementation artifact.
+1. **Check capability and orient.** Confirm the required tools are callable.
+   Call `listDesigns`, select the target explicitly, then `getWebDocument`.
+   Keep the returned `revision`.
+2. **Protect the target.** Confirm Main or a branch. Carry the same `designId`
+   and optional `draftId` through every call. For a broad or speculative
+   redesign, prefer a new branch. Never silently switch targets.
+3. **Form a visual direction.** Extract audience, job, hierarchy, mood,
+   constraints, and required states. If the prompt is underspecified, choose a
+   coherent direction and state it briefly; do not default to a generic
+   dashboard.
+4. **Establish the system.** Reuse existing stylesheets, custom properties
+   (`--color-*`, `--space-*`), classes, and components. For a new design, create
+   a `theme` stylesheet with custom properties on `:root` and reusable class
+   rules before repeating values.
+5. **Build in meaningful batches.** One `applyWebTransaction` per coherent
+   section: insert nodes, then stylesheet rules. Use `page.resize` to set the
+   page size. Prefer flex/grid; reserve absolute positioning for deliberate
+   overlays.
+6. **Inspect after meaningful edits.** Call `getWebScreenshot`. With image
+   vision, compare pixels against the brief and `design-craft.md`. Without it,
+   use `getWebHTML`, `getWebCSS`, and `getWebDocument` as described in
+   `tool-workflows.md` and say pixel quality was not judged. A successful
+   transaction alone is not proof.
+7. **Refine surgically.** Fix the largest verified problem first with
+   `node.patch` or `rule.patch`; do not rebuild a section to change one value.
+8. **Verify structure.** Re-read the document. Confirm ids, class names that
+   rules target, component bindings, and the new revision.
+9. **Finish deliberately.** On a branch, `compareBranch` before proposing or
+   applying. Do not apply, close, or delete anything without the user's
+   authority. Use `exportDesign` only when the user needs a file.
 
-## Preserve Canvas semantics
+## Preserve document semantics
 
-- Send structured nodes and fields. Never insert HTML, JSX, Tailwind classes,
-  arbitrary CSS, or code nodes.
-- Keep the three schema layers separate: the outer tool envelope, a NodeRef or
-  descriptor locator, and the typed field value. Never move fields between
-  those layers.
-- Keep IDs distinct: `designId` selects a design, `draftId` selects a branch,
-  `pageId` selects a Page, `componentId` selects a component, a NodeRef selects
-  an existing node, and descriptor `ref` is only a temporary label.
-- Use temporary descriptor `ref` values only inside a single create/insert
-  payload. Save the permanent IDs returned in `refs` for later calls.
-- Use the exact NodeRef returned by `readTree` for component descendants.
-  `instancePath` is meaningful; do not replace it with an empty array.
-- Edit a component source to change all instances. Patch an instance descendant
-  only for a deliberate visual or content override. Do not structurally insert
-  inside an instance.
-- Use Page or component state definitions plus declarative interactions for
-  behavior. Do not simulate application state with hidden duplicate trees when
-  a typed state and action expresses it.
-- Use tokens for repeated colors, numbers, and fonts. Use components for
-  repeated structures with shared identity, not merely because two rectangles
-  look similar.
-- Set `mode` on every container that will lay out children. A frame may flow
-  within its parent while still defaulting its own children to absolute
-  positioning.
-- Read before patching collection fields. Preserve existing Page/component
-  states, interactions, animation lists, and an existing patch for the same
-  breakpoint unless replacement is intentional.
-- Keep motion restrained and purposeful. Prefer the provided presets. Always
-  judge the static composition before animating it.
-- Treat `deleteNodes`, `deleteDesign`, and `closeBranch` as destructive. Obtain
-  explicit confirmation, then pass the required `confirmed: true`.
+- Send structured operations, never raw HTML strings. There is no "insert HTML"
+  operation; build `WebNode` objects. `script`, `style`, `iframe`, `link`,
+  `meta`, `object`, `embed`, `base`, and `template` tags are rejected, as are
+  `on*` attributes, `srcdoc`, and an inline `style` attribute (use the node's
+  `styles` map).
+- Every node needs a unique id (`[A-Za-z0-9:_-]`, up to 200 chars) that you
+  choose. Reuse those ids in later `node.patch`, `node.move`, and rule
+  selectors. Ids are permanent once applied.
+- Keep the three layers separate: the tool envelope (`designId`, `draftId`,
+  `expectedRevision`, `transaction`), the transaction (`id`, `label`,
+  `operations`), and each operation's payload. Never move fields between them.
+- Put per-element values in `styles`. Put shared, responsive, stateful, and
+  themable rules in a stylesheet: media/container conditions and pseudo-classes
+  (`:hover`, `:focus-visible`) belong in rules, not inline styles.
+- Edit a component template to change every instance. Use
+  `instance.setOverride` (text, attributes, or `--custom-properties`) for a
+  deliberate per-instance difference. Patching a bound instance node directly is
+  rejected.
+- Use `insertIcon` and `insertShader` instead of hand-writing icon svg paths or
+  shader markup; they produce validated, restylable nodes.
+- Pass a fresh transaction `id` per logical edit and reuse it only when retrying
+  the identical transaction. Send the revision you last read as
+  `expectedRevision`.
+- Treat `deleteDesign` and `closeBranch` as destructive. Obtain explicit
+  confirmation, then pass `confirmed: true`. `deleteDesign` archives.
+- Keep motion restrained. The model has no `@keyframes` or `@font-face`, so
+  motion means CSS `transition` between states (`:hover`, `:focus-visible`,
+  `:active`) with a `prefers-reduced-motion` guard. Shaders are the only
+  continuously animated element. Judge the static composition first.
 
 ## Work efficiently
 
-- Start with one context call, not a chain of broad reads.
-- Read only the subtree being changed. Use `searchNodes` to locate known copy or
-  names.
-- Create a whole coherent section in one nested payload, but split very large
-  pages by section so errors and refinements stay local.
-- Batch independent node patches into one `patchNodes` call.
-- Use `getScreenshot` at useful milestones, not after every field.
-- Inspect at the Page's intended desktop width and at least one narrow width
-  when responsive behavior matters.
-- Report what changed, which target was used, whether verification was visual or
-  structural, and any remaining uncertainty. Include the returned Sheet URL
-  when useful.
+- Start with `getWebDocument` once, not a chain of reads. Use `getWebHTML` or
+  `getWebCSS` when you only need markup or styles.
+- Create a whole coherent section in one transaction (up to 2000 operations),
+  but split very large pages by section so errors stay local.
+- Batch independent patches into one transaction; it applies fully or not at all.
+- Use `getWebScreenshot` at milestones, not after every field. Check the intended
+  desktop width and at least one narrow width when responsiveness matters.
+- Report what changed, which target and revision, whether verification was
+  visual or structural, and any remaining uncertainty.
 
 ## Handle failure without thrashing
 
-- On schema rejection, read the error path from the outer envelope inward, then
-  compare it with `mcp-schema.md` and the live tool schema. Correct one coherent
-  payload; do not retry variants at random.
-- If mutation tools disappear from the callable surface, stop. Do not create an
-  empty design and hope later calls become available.
-- On an invalid or stale ID, re-read the nearest tree and use returned IDs.
-- On a locked node, stop and tell the user unless unlocking it is clearly part
-  of the request.
+- On a rejected transaction, read the error message: it names the failing node,
+  rule, or field. Correct one coherent payload; do not retry variants at random.
+- On `applied: false` with reason `stale`, re-read with `getWebDocument`, rebase
+  your edit onto the new document, and send a new transaction with the new
+  revision. Never resend the old one blindly.
+- On "Node ... already exists" or "does not exist", re-read and use real ids.
 - On a read-only branch, inspect its status. Reopen a proposed branch only when
   the user wants further edits.
 - On merge revision drift, call `compareBranch` again. Never reuse stale
   revisions or guess conflict resolutions.
-- On `CANVAS_UNAVAILABLE`, explain that the legacy design is unsupported; do
-  not attempt to reconstruct or overwrite it.
-- On screenshot failure, preserve the successful structured edit, inspect the
-  reported error or skipped images, and be explicit that visual verification
-  is incomplete.
-- On usage or plan limits, stop repeated calls and report the exact returned
-  code and remaining work.
+- On a legacy design that reports it must be migrated, stop and tell the user;
+  do not attempt to reconstruct or overwrite it.
+- On screenshot failure, keep the successful edit and be explicit that visual
+  verification is incomplete.
+- Shaders draw in the editor and preview only. A screenshot or exported file
+  shows an empty box where a shader sits; do not treat that as a bug in the edit.

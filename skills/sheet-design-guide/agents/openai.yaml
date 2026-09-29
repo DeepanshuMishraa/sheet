@@ -1,11 +1,11 @@
 interface:
   display_name: "Sheet Design Guide"
-  short_description: "Build schema-safe structured designs in Sheet"
-  default_prompt: "Use $sheet-design-guide to build and verify a schema-safe structured design in Sheet."
+  short_description: "Build and verify web-native designs in Sheet"
+  default_prompt: "Use $sheet-design-guide to build and verify a web-native design in Sheet."
 dependencies:
   tools:
     - type: "mcp"
       value: "sheet"
-      description: "Sheet structured design and Canvas MCP server"
+      description: "Sheet web-native design MCP server"
       transport: "streamable_http"
       url: "http://127.0.0.1:4100/mcp"

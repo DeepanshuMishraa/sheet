@@ -1,289 +1,188 @@
 # Sheet MCP tool workflows
 
-Use this reference to select tools, preserve the correct target, and finish
-safely. Tool behavior is grounded in `packages/rpc/src/mcp-server.ts` and the shared
-`@sheet/agent/canvas-tools` schemas.
+Select tools, preserve the target, and finish safely. Grounded in
+`packages/rpc/src/mcp-server.ts` and `apps/mcp/src/tools.json`.
 
 ## Contents
 
 - [Target model](#target-model)
-- [Capability gate](#capability-gate)
 - [Tool map](#tool-map)
 - [Create a new design](#create-a-new-design)
 - [Edit an existing design](#edit-an-existing-design)
 - [Use branches safely](#use-branches-safely)
 - [Validate the visual result](#validate-the-visual-result)
-- [Efficiency and limits](#efficiency-and-limits)
+- [Export](#export)
 - [Failure guide](#failure-guide)
 
 ## Target model
 
-Most Canvas tools require:
-
-```json
-{
-  "designId": "d...",
-  "draftId": "dr..."
-}
-```
-
-Omit `draftId` for Main. Include it for a branch. Do not infer the target from
-an editor URL once a tool run begins; carry the IDs explicitly.
+Design tools take `designId`. Write tools also take an optional `draftId`: omit
+it for Main, include it for a branch. Carry both explicitly on every call; do not
+infer the target from an editor URL mid-run.
 
 An active branch is writable. Proposed, applied, and closed branches are
-read-only. Main stays writable unless product access prevents it.
+read-only.
 
-`getDesignContext` is the best first read. It returns:
-
-- target identity and status
-- revision and update time
-- canonical editor URL
-- breakpoints and active theme
-- themes and tokens
-- Page and component summaries
-- a compact semantic tree
-
-Use a deeper `readTree` only for the area being edited. Use `readNode` when the
-complete source/effective node is required.
-
-## Capability gate
-
-Inspect the callable tool surface before any write. A healthy general authoring
-session needs `createPage`, `insertNodes`, and `patchNodes`; component, theme,
-motion, and branch requests need their corresponding tools as well. A tool may
-exist in Sheet's source but still be absent from a stale or mismatched MCP
-manifest/session.
-
-If a required authoring tool is absent:
-
-1. Do not call `createDesign`; that produces only an empty record.
-2. Do not substitute exported code, browser clicks, or an unrelated tool.
-3. Report the exact missing tool names and that no Canvas mutation was made.
-4. Retry only after the MCP manifest/session is refreshed or the user supplies
-   another valid authoring surface.
-
-If the tool is callable but its nested schema displays as `unknown`, follow
-`mcp-schema.md`. That is a client schema-display problem, not a missing tool.
+Every edit is guarded by `expectedRevision`. The revision advances on every
+successful write, including `insertIcon`, `styleIcon`, `insertShader`, and
+`styleShader`. After any of those, re-read (or use the returned revision) before
+your next `applyWebTransaction`.
 
 ## Tool map
 
-### Orientation and inspection
+### Orientation and reading
 
 | Tool | Use |
 |---|---|
-| `getUsage` | Read weekly MCP allowance without consuming a call |
-| `listDesigns` | Discover structured designs and canonical URLs |
-| `getDesignContext` | Read one target's system and compact tree before editing |
-| `readTree` | Inspect a Page, component, frame, group, or instance subtree |
-| `readNode` | Inspect a complete source node, effective node, and instance override |
-| `searchNodes` | Find names or text without traversing the whole tree |
-| `listAssets` | Discover uploaded image asset IDs and metadata |
-| `listVersions` | Inspect Main or branch history |
+| `getUsage` | Usage status; local-first, never consumes anything |
+| `listDesigns` | Discover designs and editor URLs. Start here |
+| `getWebDocument` | Full document plus `revision`; the authored source of truth |
+| `getWebHTML` | Serialized DOM only; cheap for reviewing markup |
+| `getWebCSS` | Serialized stylesheets in cascade order |
+| `listAssets` | Uploaded image assets (use as `/api/asset/<id>`) |
+| `listVersions` | History for Main or a branch |
 
-### Structured authoring
-
-| Tool | Use |
-|---|---|
-| `createPage` | Create a responsive Page and initial nested hierarchy atomically |
-| `insertNodes` | Add a coherent nested section to a source container |
-| `patchNodes` | Batch layout, style, content, responsive, state, and interaction edits |
-| `moveNodes` | Reparent or reorder source nodes |
-| `deleteNodes` | Delete source subtrees after explicit confirmation |
-| `createComponent` | Create an off-canvas reusable definition |
-| `createInstance` | Insert a component instance into a source container |
-| `setTokens` | Upsert themes and color, number, or font tokens |
-| `setAnimations` | Define reusable keyframe animations or presets |
-| `animateNodes` | Apply hover/press/focus states and animation references |
-
-### Visual and delivery surfaces
+### Authoring
 
 | Tool | Use |
 |---|---|
-| `getScreenshot` | Render Page or NodeRef pixels through Sheet's DOM/CSS engine |
-| `viewPage` | Get a Page URL and semantic tree |
-| `viewNode` | Get a node URL and semantic details |
-| `viewCanvas` | Get a design URL and Page summary |
-| `exportCode` | Produce one-way Tailwind JSX, JSX, or standalone HTML |
+| `applyWebTransaction` | All structural edits: nodes, stylesheets, rules, components, instances, page size |
+| `searchIcons` / `insertIcon` / `styleIcon` | Find, place, and restyle library icons |
+| `listShaders` / `insertShader` / `styleShader` | Discover, place, and tune Paper shaders |
+
+### Visual and delivery
+
+| Tool | Use |
+|---|---|
+| `getWebScreenshot` | Real PNG of the document (or one `rootId`) at a width and pixel ratio |
+| `exportDesign` | `html`, `png`, `jpg`, or `json` file payload |
 
 ### Design and branch lifecycle
 
 | Tool | Use |
 |---|---|
 | `createDesign` / `renameDesign` | Manage design identity |
-| `deleteDesign` | Permanently delete after explicit confirmation |
-| `listBranches` | Inspect branch IDs and statuses |
-| `createBranch` | Fork current Main into an isolated active branch |
-| `compareBranch` | Compute semantic changes/conflicts against current Main |
-| `proposeBranch` | Freeze an active branch for review |
-| `reopenBranch` | Make a proposed branch active again |
-| `applyBranch` | Merge using exact current revisions and explicit conflict choices |
-| `closeBranch` | Archive without applying after explicit confirmation |
+| `deleteDesign` | Archive after explicit confirmation (`confirmed: true`) |
+| `listBranches` / `createBranch` | Inspect or fork Main into an isolated branch |
+| `compareBranch` | Field-level semantic comparison against Main |
+| `proposeBranch` / `reopenBranch` | Freeze for review / make editable again |
+| `applyBranch` | Merge with exact revisions and conflict choices |
+| `closeBranch` | Discard without applying (`confirmed: true`) |
 
 ## Create a new design
 
-1. Pass the capability gate for the planned authoring work.
-2. Call `createDesign` with a concise product-oriented name.
-3. Call `setTokens` if the design will reuse a visual system.
-4. Create truly repeated building blocks with `createComponent`.
-5. Call `createPage` with the Page shell and initial hierarchy. A new design is
-   empty; `createPage` is required before inserting ordinary nodes.
-6. Continue with section-sized `insertNodes` calls.
-7. Apply motion only after the static layout is sound.
-8. Call `getScreenshot` for the Page and inspect it using the appropriate
-   vision or non-vision path below.
+1. Pass the capability gate.
+2. `createDesign` with a concise product-oriented name. Note the `designId`.
+3. `getWebDocument` to get the starting `revision` (an empty document).
+4. First transaction: `page.resize` plus a theme stylesheet (custom properties
+   on `:root`, base typography, reusable classes) and the page's root element.
+5. Add sections with one transaction each: nodes first, then the rules that
+   style them.
+6. Define components (`component.define`) for genuinely repeated structures, then
+   place them with `instance.create`.
+7. Add icons with `insertIcon` and any shader backdrops with `insertShader`.
+8. `getWebScreenshot`; inspect it with the vision or non-vision path below.
 9. Patch the largest verified issues, then render again.
-10. Return the canonical URL from `viewPage`, `viewCanvas`, or mutation context.
+10. Return the design's editor URL from `listDesigns`.
 
-Prefer a single Page creation payload containing header, main content, and
-section skeletons over dozens of one-node insertions. Split elaborate content
-into later section calls so any schema error remains local.
+Prefer one transaction per section over dozens of one-node calls, but split
+large pages so any rejection stays local.
 
 ## Edit an existing design
 
-1. Call `getDesignContext`.
-2. Locate the affected subtree with `searchNodes` or `readTree`.
-3. Read exact nodes when styles, instance overrides, interactions, or
-   responsive behavior matter.
-4. Preserve the established system unless the user asked for a redesign.
-5. Preserve existing record/array fields when adding states, interactions,
-   animation uses, or a patch to an existing breakpoint.
-6. Use `patchNodes` for local refinements; use `insertNodes` only when structure
-   is genuinely missing.
-7. Call `getScreenshot` with the affected Page or NodeRef.
-8. Re-read the changed subtree and report the target revision.
+1. `getWebDocument` and locate the affected nodes by id, tag, or class.
+2. Preserve the established stylesheets, classes, and components unless the user
+   asked for a redesign.
+3. Use `node.patch` for one element and `rule.patch` for a class shared by many.
+   A rule patch restyles every element with that class; check the blast radius
+   first.
+4. `getWebScreenshot` for the affected result.
+5. Re-read and report the new revision.
 
-Do not rebuild a Page to change one section. Do not patch a component source
-when only one instance should differ.
+Do not rebuild a section to change one value. Do not patch a component template
+when only one instance should differ; use `instance.setOverride`.
 
 ## Use branches safely
 
-Prefer a branch when:
-
-- the user requested alternatives
-- the edit is broad or experimental
-- Main is shared with other work
-- the result needs review before publication
-
-Flow:
+Prefer a branch when the user asked for alternatives, the change is broad or
+experimental, or the result needs review before Main changes.
 
 1. `createBranch`
 2. Keep `draftId` on every read and write
-3. Build and visually verify
+3. Build and verify
 4. `compareBranch`
 5. Optionally `proposeBranch`
-6. Present the branch URL and comparison
+6. Present the branch and comparison
 7. Apply only when authorized
 
-`compareBranch` returns `mainRevision`, `draftRevision`, a summary, and field
-conflicts. Supply those exact revisions to `applyBranch`. For every conflict,
-map its ID to either `"main"` or `"draft"`. If Main or the branch changes,
-compare again.
+`compareBranch` returns Main and branch revisions, a summary, and conflicts.
+Pass those exact revisions to `applyBranch` as `expectedMainRevision` and
+`expectedDraftRevision`, and map every conflict to `"main"` or `"draft"` in
+`resolutions`. If either side moved, compare again.
 
-Never propose merely to mark work "done": proposing freezes the branch.
-Never apply a branch just because the design looks good unless the user's
-request authorizes merging it into Main.
+Never propose just to mark work done: proposing freezes the branch. Never apply
+merely because it looks good unless the request authorizes changing Main.
 
 ## Validate the visual result
 
-`getScreenshot` accepts one of:
+`getWebScreenshot { designId, rootId?, width?, pixelRatio? }` renders the same
+serialized HTML/CSS the editor materializes. It is read-only.
 
-```json
-{
-  "designId": "d...",
-  "pageId": "page...",
-  "width": 1440,
-  "pixelRatio": 1
-}
-```
+Render after the first complete composition, each material style or layout
+pass, responsive rules, component changes, and the final refinement.
 
-```json
-{
-  "designId": "d...",
-  "ref": {
-    "nodeId": "frame...",
-    "instancePath": []
-  },
-  "width": 800,
-  "pixelRatio": 2
-}
-```
+Limits to keep in mind:
 
-Choose either `pageId` or `ref`, not both. Width is 200–3840 and pixel ratio is
-1–2. A Page screenshot is best for composition; a NodeRef screenshot is best
-for a component or local detail.
-
-`getScreenshot` has no input for runtime Page state or a temporary theme
-selection. It proves the default rendered composition, not every interactive
-state or theme. Verify interaction rules and theme modes structurally with
-`readNode`/`readTree`, and do not claim alternate-state pixels were checked
-unless they were actually exercised in Sheet.
-
-Render after:
-
-- the first complete Page composition
-- a material style or layout pass
-- responsive overrides
-- component/instance changes
-- the final refinement pass
-
-Inspect the returned metadata as well as the PNG. Record `skippedImages`; a
-composition can render while an image was omitted.
+- It renders the default state. Hover, focus, and active states, and media or
+  container rules that do not match the chosen `width`, are not visible; check
+  them structurally in `getWebCSS`.
+- Paper shaders do not draw in screenshots or exports. Their box is present but
+  empty.
+- Use `width` to test the desktop and a narrow layout.
 
 ### With image vision
 
-Inspect the actual PNG using the rubric in `design-craft.md`. Check composition,
-hierarchy, alignment, wrapping, contrast, clipping, responsive behavior, image
-crops, and control affordances. Fix the largest visible issue and render again.
+Inspect the PNG using the rubric in `design-craft.md`. Fix the largest visible
+issue and render again.
 
 ### Without image vision
 
-Do not pretend to inspect pixels. Use a structural/render verification pass:
+Do not pretend to inspect pixels.
 
-1. Call `getScreenshot` at the intended desktop and narrow widths to exercise
-   the real renderer. Confirm it returns without error; record rendered
-   `width`, `height`, `revision`, target IDs, and `skippedImages`.
-2. Call `readTree` on the Page at sufficient depth. Confirm semantic reading
-   order, node presence, exact NodeRefs, container `mode`, `position`, and
-   effective `width`/`height` metadata.
-3. Call `readNode` for changed containers, text, instances, and controls.
-   Confirm source/effective layout, style, token references, responsive
-   records, interactions, variants, and instance overrides.
-4. Confirm breakpoint IDs and patches structurally through `getDesignContext`
-   and `readNode`. A narrow screenshot succeeding proves renderability, not
-   that the narrow composition looks good.
-5. Report verification as **structural/render-only**. Explicitly leave pixel
-   hierarchy, contrast, clipping, and aesthetic quality unverified, and return
-   the canonical Sheet URL for human or vision-capable review.
+1. Call `getWebScreenshot` at desktop and narrow widths to prove the document
+   renders without error.
+2. `getWebHTML`: confirm reading order, headings, landmarks, alt text, and that
+   the elements you expect exist.
+3. `getWebCSS`: confirm each class you used has a rule, responsive rules use
+   the intended breakpoints, and custom properties resolve (every `var(--x)` has
+   a definition).
+4. `getWebDocument`: confirm ids, component bindings, and the target revision.
+5. Report verification as **structural/render-only**. Say hierarchy, contrast,
+   clipping, and aesthetics were not judged, and return the editor URL for human
+   review.
 
-Screenshot bounds are computed render metadata, but they do not reveal every
-descendant's geometry. `readTree` reports effective layout intent, not a full
-browser box model. Keep that limitation explicit.
+## Export
 
-## Efficiency and limits
+`exportDesign { designId, format, rootId?, width?, pixelRatio? }`:
 
-- One `getDesignContext` usually replaces `listBranches`, `readTree`, and
-  separate token reads.
-- `searchNodes` returns up to 200 matches.
-- `createPage` and `insertNodes` accept up to 5000 descriptors, but practical
-  section-sized batches are easier to debug.
-- `patchNodes`, `moveNodes`, and `deleteNodes` accept up to 1000 changes.
-- Depth is capped at 10 in `getDesignContext` and 20 in `readTree`.
-- `getScreenshot` starts Chromium and is more expensive than semantic reads.
-- `exportCode` refuses responses over 2 MB; export one Page or node.
-- Every tool except `getUsage` may consume metered usage. Prefer purposeful
-  calls over speculative probing.
+- `html`: one self-contained page (all DOM and CSS), returned as text
+- `png` / `jpg`: base64 image
+- `json`: the authored web document
+
+The result carries `filename`, `mimeType`, `encoding` (`utf8` or `base64`), and
+`data`. Exports are one-way: they never round-trip into the editor. Shader nodes
+export as empty boxes.
 
 ## Failure guide
 
 | Signal | Response |
 |---|---|
-| `CANVAS_UNAVAILABLE` | The legacy design is unsupported; choose/create a structured design |
-| `MCP_USAGE_LIMIT_REACHED` | Stop mutations and report usage/reset metadata |
-| `MCP_USAGE_UNAVAILABLE` | Do not assume the mutation ran; report metering failure |
-| Plan limit code | Report the exact limit; do not retry creation |
-| Branch is read-only | Reopen only if the user wants to continue editing |
-| Node not found | Re-read the nearest tree; IDs may have changed or target may be wrong |
-| Instance path invalid | Use the exact NodeRef returned by the semantic tree |
-| Locked node | Do not bypass silently |
-| Main or branch changed | Re-run `compareBranch` and use fresh revisions |
-| Screenshot skipped images | Inspect asset URLs/ownership and disclose incomplete pixels |
+| `applied: false`, reason `stale` | Re-read, rebase your edit, send a new transaction with the new revision |
+| Validation error naming a node, rule, or key | Fix that field in one coherent payload |
+| "already exists" / "does not exist" | Re-read the document and use real ids |
+| Bound-node edit rejected | Edit the component template or use `instance.setOverride` |
+| Cannot delete component | `instance.delete` its instances first |
+| Branch is read-only | Reopen only if the user wants to keep editing |
+| Main or branch changed before apply | `compareBranch` again and use fresh revisions |
+| Legacy design, migration required | Stop; the design is unsupported over MCP |
+| Screenshot fails | Keep the edit; state visual verification is incomplete |

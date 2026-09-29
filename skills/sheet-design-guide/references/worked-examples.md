@@ -1,903 +1,245 @@
-# Worked MCP payload patterns
+# Worked examples
 
-These examples illustrate structure and sequencing. Replace all design, branch,
-Page, node, component, breakpoint, token, and asset IDs with values returned by
-the current MCP session. Tool schemas shown by the connected server are
-authoritative. Read `mcp-schema.md` first; these examples demonstrate complete
-tool envelopes, not every accepted field.
+Known-good payloads. Ids are chosen by you; keep them stable for later patches.
+Every `node` needs `kind`, `namespace`, `tag`, `parentId`, `order`, `attributes`,
+and `styles`. Text is its own node.
 
 ## Contents
 
-- [Create a responsive Page foundation](#create-a-responsive-page-foundation)
-- [Add a reusable component and instances](#add-a-reusable-component-and-instances)
-- [Patch a section responsively](#patch-a-section-responsively)
-- [Add interaction state](#add-interaction-state)
-- [Add restrained motion](#add-restrained-motion)
-- [Refine through screenshots](#refine-through-screenshots)
-- [Add a dark theme on a branch](#add-a-dark-theme-on-a-branch)
-- [Complete a branch review](#complete-a-branch-review)
+- [Start a new design](#start-a-new-design)
+- [Add a section](#add-a-section)
+- [Define and place a component](#define-and-place-a-component)
+- [Add a shader backdrop](#add-a-shader-backdrop)
+- [Refine with a rule patch](#refine-with-a-rule-patch)
+- [Branch, compare, apply](#branch-compare-apply)
 
-## Create a responsive Page foundation
-
-First define a compact visual system:
-
-`setTokens`
+## Start a new design
 
 ```json
-{
-  "designId": "DESIGN_ID",
-  "themes": [
-    { "id": "light", "name": "Light" },
-    { "id": "dark", "name": "Dark" }
-  ],
-  "tokens": [
-    {
-      "id": "canvas",
-      "name": "Canvas",
-      "type": "color",
-      "value": "#f4f3ef",
-      "modes": { "dark": "#151614" }
-    },
-    {
-      "id": "surface",
-      "name": "Surface",
-      "type": "color",
-      "value": "#ffffff",
-      "modes": { "dark": "#20221f" }
-    },
-    {
-      "id": "text",
-      "name": "Text",
-      "type": "color",
-      "value": "#1b1d1a",
-      "modes": { "dark": "#f1f2ed" }
-    },
-    {
-      "id": "muted",
-      "name": "Muted text",
-      "type": "color",
-      "value": "#686d65",
-      "modes": { "dark": "#a8ada4" }
-    },
-    {
-      "id": "accent",
-      "name": "Accent",
-      "type": "color",
-      "value": "#315c49",
-      "modes": { "dark": "#77b99a" }
-    },
-    {
-      "id": "border",
-      "name": "Border",
-      "type": "color",
-      "value": "#dcded8",
-      "modes": { "dark": "#363a34" }
-    }
-  ]
-}
+// createDesign
+{ "name": "Acme landing" }
+// -> { "id": "design_abc", "revision": 0 }
+
+// getWebDocument { "designId": "design_abc" } -> revision 0
 ```
 
-Then create the Page and its first complete hierarchy:
-
-`createPage`
+First transaction: page size, theme stylesheet, root element.
 
 ```json
 {
-  "designId": "DESIGN_ID",
-  "name": "Overview",
-  "width": 1440,
-  "minHeight": 1000,
-  "layout": {
-    "mode": "flex",
-    "direction": "column",
-    "align": "stretch",
-    "gap": 0
-  },
-  "style": {
-    "fills": [
-      { "type": "solid", "color": { "token": "canvas" } }
+  "designId": "design_abc",
+  "expectedRevision": 0,
+  "transaction": {
+    "id": "setup-1",
+    "label": "Page, theme and root",
+    "operations": [
+      { "type": "page.resize", "width": 1440, "height": 2400 },
+      {
+        "type": "stylesheet.insert",
+        "stylesheet": {
+          "id": "theme",
+          "name": "theme",
+          "order": 1024,
+          "ruleOrder": ["r-root", "r-body", "r-container", "r-btn", "r-btn-hover", "r-btn-motion"],
+          "rules": {
+            "r-root": {
+              "id": "r-root", "order": 1024, "conditions": [], "selector": ":root",
+              "declarations": {
+                "--bg": "#0b0d10", "--text": "#f4f5f7", "--muted": "#9aa1ab",
+                "--accent": "#7cf5c4", "--radius": "12px"
+              }
+            },
+            "r-body": {
+              "id": "r-body", "order": 2048, "conditions": [], "selector": ":root",
+              "declarations": {
+                "background-color": "var(--bg)", "color": "var(--text)",
+                "font-family": "Inter, system-ui, sans-serif"
+              }
+            },
+            "r-container": {
+              "id": "r-container", "order": 3072, "conditions": [], "selector": ".container",
+              "declarations": { "max-width": "1120px", "margin": "0 auto", "padding": "0 32px" }
+            },
+            "r-btn": {
+              "id": "r-btn", "order": 4096, "conditions": [], "selector": ".btn",
+              "declarations": {
+                "display": "inline-flex", "padding": "12px 20px", "border-radius": "var(--radius)",
+                "background-color": "var(--accent)", "color": "#04110b", "font-weight": "600",
+                "transition": "transform .2s ease"
+              }
+            },
+            "r-btn-hover": {
+              "id": "r-btn-hover", "order": 5120, "conditions": [], "selector": ".btn:hover",
+              "declarations": { "transform": "translateY(-2px)" }
+            },
+            "r-btn-motion": {
+              "id": "r-btn-motion", "order": 6144, "selector": ".btn",
+              "conditions": [{ "kind": "media", "query": "(prefers-reduced-motion: reduce)" }],
+              "declarations": { "transition": "none" }
+            }
+          }
+        }
+      },
+      {
+        "type": "node.insert",
+        "node": {
+          "id": "page", "kind": "element", "namespace": "html", "tag": "main",
+          "parentId": null, "order": 1024, "attributes": {},
+          "styles": { "display": "flex", "flex-direction": "column", "min-height": "100%" }
+        }
+      }
     ]
-  },
-  "children": [
-    {
-      "ref": "header",
-      "type": "frame",
-      "name": "Primary navigation",
-      "semanticTag": "header",
-      "layout": {
-        "mode": "flex",
-        "direction": "row",
-        "width": { "unit": "fill" },
-        "height": { "unit": "hug" },
-        "padding": {
-          "top": 20,
-          "right": 48,
-          "bottom": 20,
-          "left": 48
-        },
-        "align": "center",
-        "justify": "space-between"
-      },
-      "style": {
-        "stroke": {
-          "color": { "token": "border" },
-          "width": 1
-        }
-      },
-      "children": [
-        {
-          "type": "text",
-          "name": "Product wordmark",
-          "text": "Northstar",
-          "layout": {
-            "width": { "unit": "hug" },
-            "height": { "unit": "hug" }
-          },
-          "style": {
-            "typography": {
-              "family": "Inter",
-              "size": 18,
-              "weight": 650,
-              "lineHeight": 1.2,
-              "letterSpacing": -0.3,
-              "align": "left"
-            },
-            "fills": [
-              { "type": "solid", "color": { "token": "text" } }
-            ]
-          }
-        },
-        {
-          "ref": "header-action",
-          "type": "frame",
-          "name": "New report button",
-          "semanticTag": "button",
-          "layout": {
-            "mode": "flex",
-            "direction": "row",
-            "width": { "unit": "hug" },
-            "height": { "unit": "hug" },
-            "padding": {
-              "top": 10,
-              "right": 16,
-              "bottom": 10,
-              "left": 16
-            },
-            "align": "center",
-            "justify": "center"
-          },
-          "style": {
-            "fills": [
-              { "type": "solid", "color": { "token": "accent" } }
-            ],
-            "radius": 8
-          },
-          "children": [
-            {
-              "type": "text",
-              "name": "New report label",
-              "text": "New report",
-              "layout": {
-                "width": { "unit": "hug" },
-                "height": { "unit": "hug" }
-              },
-              "style": {
-                "typography": {
-                  "family": "Inter",
-                  "size": 14,
-                  "weight": 600,
-                  "lineHeight": 1.2,
-                  "letterSpacing": 0,
-                  "align": "center"
-                },
-                "fills": [
-                  { "type": "solid", "color": "#ffffff" }
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "ref": "main",
-      "type": "frame",
-      "name": "Overview content",
-      "semanticTag": "main",
-      "layout": {
-        "mode": "flex",
-        "direction": "column",
-        "width": { "unit": "fill" },
-        "height": { "unit": "hug" },
-        "gap": 40,
-        "padding": {
-          "top": 64,
-          "right": 48,
-          "bottom": 96,
-          "left": 48
-        },
-        "align": "center"
-      },
-      "children": [
-        {
-          "type": "frame",
-          "name": "Overview heading",
-          "layout": {
-            "mode": "flex",
-            "direction": "column",
-            "width": { "unit": "fill" },
-            "height": { "unit": "hug" },
-            "maxWidth": 1180,
-            "gap": 12
-          },
-          "children": [
-            {
-              "type": "text",
-              "name": "Eyebrow",
-              "text": "WEEK 31 · PRODUCT",
-              "layout": {
-                "width": { "unit": "hug" },
-                "height": { "unit": "hug" }
-              },
-              "style": {
-                "typography": {
-                  "family": "Inter",
-                  "size": 12,
-                  "weight": 650,
-                  "lineHeight": 1.2,
-                  "letterSpacing": 1.1,
-                  "align": "left",
-                  "transform": "uppercase"
-                },
-                "fills": [
-                  { "type": "solid", "color": { "token": "accent" } }
-                ]
-              }
-            },
-            {
-              "type": "text",
-              "name": "Overview title",
-              "text": "The signal is getting clearer.",
-              "layout": {
-                "width": { "unit": "fill" },
-                "height": { "unit": "hug" }
-              },
-              "style": {
-                "typography": {
-                  "family": "Inter",
-                  "size": 48,
-                  "weight": 620,
-                  "lineHeight": 1.08,
-                  "letterSpacing": -1.8,
-                  "align": "left",
-                  "wrap": true
-                },
-                "fills": [
-                  { "type": "solid", "color": { "token": "text" } }
-                ]
-              }
-            },
-            {
-              "type": "text",
-              "name": "Overview summary",
-              "text": "Activation improved while support volume held steady. Two onboarding moments still need attention.",
-              "layout": {
-                "width": { "unit": "fill" },
-                "height": { "unit": "hug" },
-                "maxWidth": 680
-              },
-              "style": {
-                "typography": {
-                  "family": "Inter",
-                  "size": 17,
-                  "weight": 420,
-                  "lineHeight": 1.55,
-                  "letterSpacing": -0.1,
-                  "align": "left",
-                  "wrap": true
-                },
-                "fills": [
-                  { "type": "solid", "color": { "token": "muted" } }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "ref": "metrics",
-          "type": "frame",
-          "name": "Key metrics",
-          "layout": {
-            "mode": "grid",
-            "columns": 3,
-            "width": { "unit": "fill" },
-            "height": { "unit": "hug" },
-            "maxWidth": 1180,
-            "gap": 16
-          }
-        }
-      ]
-    }
-  ]
+  }
 }
+// -> { "applied": true, "revision": 1, "document": { ... } }
 ```
 
-Save the returned permanent IDs for `metrics`, `main`, and
-`header-action`. Continue by inserting metric cards into the permanent
-`metrics` NodeRef.
+## Add a section
 
-## Add a reusable component and instances
-
-Create the component:
-
-`createComponent`
+Parents before children; the response revision is the next `expectedRevision`.
 
 ```json
 {
-  "designId": "DESIGN_ID",
-  "name": "Metric card",
-  "width": 360,
-  "height": 180,
-  "variants": ["default", "positive", "warning"],
-  "layout": {
-    "mode": "flex",
-    "direction": "column",
-    "gap": 18,
-    "padding": {
-      "top": 24,
-      "right": 24,
-      "bottom": 24,
-      "left": 24
-    }
-  },
-  "style": {
-    "fills": [
-      { "type": "solid", "color": { "token": "surface" } }
-    ],
-    "stroke": {
-      "color": { "token": "border" },
-      "width": 1
-    },
-    "radius": 12
-  },
-  "children": [
-    {
-      "ref": "label",
-      "type": "text",
-      "name": "Metric label",
-      "text": "Activation",
-      "layout": {
-        "width": { "unit": "fill" },
-        "height": { "unit": "hug" }
-      },
-      "style": {
-        "typography": {
-          "family": "Inter",
-          "size": 13,
-          "weight": 550,
-          "lineHeight": 1.3,
-          "letterSpacing": 0,
-          "align": "left"
-        },
-        "fills": [
-          { "type": "solid", "color": { "token": "muted" } }
-        ]
-      }
-    },
-    {
-      "ref": "value",
-      "type": "text",
-      "name": "Metric value",
-      "text": "68.4%",
-      "layout": {
-        "width": { "unit": "fill" },
-        "height": { "unit": "hug" }
-      },
-      "style": {
-        "typography": {
-          "family": "Inter",
-          "size": 36,
-          "weight": 620,
-          "lineHeight": 1,
-          "letterSpacing": -1.2,
-          "align": "left"
-        },
-        "fills": [
-          { "type": "solid", "color": { "token": "text" } }
-        ]
-      }
-    }
-  ]
-}
-```
-
-The returned variant names are only identities until their source-node
-overrides are defined. For example:
-
-`patchNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "changes": [
-    {
-      "ref": {
-        "nodeId": "METRIC_COMPONENT_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "variantOverrides": {
-          "positive": {
-            "METRIC_VALUE_SOURCE_ID": {
-              "style": {
-                "fills": [
-                  {
-                    "type": "solid",
-                    "color": {
-                      "token": "accent"
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "warning": {
-            "METRIC_VALUE_SOURCE_ID": {
-              "style": {
-                "fills": [
-                  {
-                    "type": "solid",
-                    "color": "#a85d22"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-Create three instances with separate `createInstance` calls, or include
-instance descriptors in a coherent insertion when the component ID already
-exists. Then patch the component descendants through instance NodeRefs returned
-by `readTree`:
-
-`patchNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "changes": [
-    {
-      "ref": {
-        "nodeId": "METRIC_LABEL_SOURCE_ID",
-        "instancePath": ["SECOND_INSTANCE_ID"]
-      },
-      "patch": { "text": "Weekly retention" }
-    },
-    {
-      "ref": {
-        "nodeId": "METRIC_VALUE_SOURCE_ID",
-        "instancePath": ["SECOND_INSTANCE_ID"]
-      },
-      "patch": { "text": "42.7%" }
-    }
-  ]
-}
-```
-
-Do not try to insert children into `SECOND_INSTANCE_ID`.
-
-## Patch a section responsively
-
-Read the real breakpoint ID from `getDesignContext`, then patch the grid and
-outer Page frame:
-
-`patchNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "changes": [
-    {
-      "ref": {
-        "nodeId": "METRICS_FRAME_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "responsive": {
-          "MOBILE_BREAKPOINT_ID": {
-            "layout": {
-              "columns": 1,
-              "gap": 12
-            }
-          }
-        }
-      }
-    },
-    {
-      "ref": {
-        "nodeId": "MAIN_FRAME_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "responsive": {
-          "MOBILE_BREAKPOINT_ID": {
-            "layout": {
-              "gap": 28,
-              "padding": {
-                "top": 36,
-                "right": 20,
-                "bottom": 64,
-                "left": 20
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "ref": {
-        "nodeId": "TITLE_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "responsive": {
-          "MOBILE_BREAKPOINT_ID": {
-            "style": {
-              "typography": {
-                "family": "Inter",
-                "size": 36,
-                "weight": 620,
-                "lineHeight": 1.1,
-                "letterSpacing": -1.2,
-                "align": "left",
-                "wrap": true
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-Render the Page at 1440 and a narrow width. A schema-valid responsive patch can
-still produce cramped or overflowing pixels.
-
-## Add interaction state
-
-Add state to the Page and wire a control:
-
-`patchNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "changes": [
-    {
-      "ref": {
-        "nodeId": "PAGE_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "states": {
-          "detailsOpen": {
-            "id": "detailsOpen",
-            "name": "Details open",
-            "type": "boolean",
-            "initial": false
-          }
-        }
-      }
-    },
-    {
-      "ref": {
-        "nodeId": "DETAILS_BUTTON_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "interactions": [
-          {
-            "trigger": "click",
-            "actions": [
-              {
-                "type": "toggle-state",
-                "stateId": "detailsOpen"
-              },
-              {
-                "type": "visibility",
-                "nodeId": "DETAILS_PANEL_ID",
-                "value": "toggle"
-              }
-            ]
-          }
-        ]
-      }
-    }
-  ]
-}
-```
-
-Use `readNode` afterward to verify the state record and interactions. Do not
-guess the details panel ID from its name.
-
-## Add restrained motion
-
-Define once:
-
-`setAnimations`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "presets": ["fade-in-up"]
-}
-```
-
-Apply to the actual refs in visual order:
-
-`animateNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "refs": [
-    { "nodeId": "CARD_1_ID", "instancePath": [] },
-    { "nodeId": "CARD_2_ID", "instancePath": [] },
-    { "nodeId": "CARD_3_ID", "instancePath": [] }
-  ],
-  "play": [
-    {
-      "animationId": "fade-in-up",
-      "trigger": "in-view",
-      "once": true
-    }
-  ],
-  "hover": "lift",
-  "stagger": 60
-}
-```
-
-Avoid adding this before inspecting the static cards.
-
-## Refine through screenshots
-
-Render:
-
-`getScreenshot`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "pageId": "PAGE_ID",
-  "width": 1440,
-  "pixelRatio": 1
-}
-```
-
-Suppose the screenshot shows a weak title, over-wide body copy, and cards that
-blend into the background. Fix those related issues in one `patchNodes` call,
-then render again. Do not rebuild the Page or apply random decoration.
-
-Render narrow:
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "pageId": "PAGE_ID",
-  "width": 390,
-  "pixelRatio": 2
-}
-```
-
-Check both the PNG and `skippedImages`. Finish by calling `viewPage` to return
-the canonical editor URL.
-
-Without image vision, still run both screenshots to exercise the renderer and
-record their computed width, height, revision, target, and skipped images. Then
-verify the Page hierarchy and effective layout fields with `readTree`, inspect
-changed nodes with `readNode`, and report the result as structural/render-only.
-Do not claim that contrast, clipping, hierarchy, or aesthetic quality was
-visually checked.
-
-## Add a dark theme on a branch
-
-Create an isolated branch before changing a shared visual system:
-
-`createBranch`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "name": "Dark theme"
-}
-```
-
-Save the returned `id` as `BRANCH_ID`. Use it as `draftId` on every later read
-and write. Call `getDesignContext` on that branch and copy the complete existing
-token definitions before adding modes; `setTokens` replaces each token object
-that it upserts.
-
-Suppose the existing base values below came from that context. Add the theme and
-preserve each base value and any pre-existing modes while adding `dark`:
-
-`setTokens`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "draftId": "BRANCH_ID",
-  "themes": [
-    { "id": "dark", "name": "Dark" }
-  ],
-  "tokens": [
-    {
-      "id": "canvas",
-      "name": "Canvas",
-      "type": "color",
-      "value": "#f4f3ef",
-      "modes": {
-        "dark": "#151614"
-      }
-    },
-    {
-      "id": "surface",
-      "name": "Surface",
-      "type": "color",
-      "value": "#ffffff",
-      "modes": {
-        "dark": "#20221f"
-      }
-    },
-    {
-      "id": "text",
-      "name": "Text",
-      "type": "color",
-      "value": "#1b1d1a",
-      "modes": {
-        "dark": "#f1f2ed"
-      }
-    }
-  ]
-}
-```
-
-If the context has no existing `light` theme, include
-`{ "id": "light", "name": "Light" }` in the same `themes` array. Tokens
-without an explicit light mode fall back to their base `value`.
-
-Read the exact Page root and theme-control node. A real Light/Dark toggle needs
-Page state: the control toggles a boolean, and Page `state-change` rules select
-the corresponding named theme. The example below assumes `light` is an existing
-theme ID and that both reads returned empty `states`/`interactions`. If they did
-not, preserve every existing record/array entry and append these because
-`states` and `interactions` are complete assignments:
-
-`patchNodes`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "draftId": "BRANCH_ID",
-  "changes": [
-    {
-      "ref": {
-        "nodeId": "PAGE_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "states": {
-          "darkMode": {
-            "id": "darkMode",
-            "name": "Dark mode",
-            "type": "boolean",
-            "initial": false
-          }
-        },
-        "interactions": [
-          {
-            "trigger": "state-change",
-            "stateId": "darkMode",
-            "when": [
-              {
-                "stateId": "darkMode",
-                "operator": "equals",
-                "value": true
-              }
-            ],
-            "actions": [
-              {
-                "type": "set-theme",
-                "themeId": "dark"
-              }
-            ]
-          },
-          {
-            "trigger": "state-change",
-            "stateId": "darkMode",
-            "when": [
-              {
-                "stateId": "darkMode",
-                "operator": "equals",
-                "value": false
-              }
-            ],
-            "actions": [
-              {
-                "type": "set-theme",
-                "themeId": "light"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "ref": {
-        "nodeId": "THEME_TOGGLE_ID",
-        "instancePath": []
-      },
-      "patch": {
-        "interactions": [
-          {
-            "trigger": "click",
-            "actions": [
-              {
-                "type": "toggle-state",
-                "stateId": "darkMode"
-              }
-            ]
-          }
-        ]
-      }
-    }
-  ]
-}
-```
-
-Call `getDesignContext` again with `draftId` and verify the `dark` theme plus all
-token modes. Call `readNode` on the Page and toggle; verify the state record,
-both conditional theme actions, and the toggle action. Render the default
-composition, but do not claim the dark pixels were checked: `getScreenshot`
-cannot select a temporary runtime theme. Dark-mode visual verification requires
-actually exercising the interaction in Sheet with a human or vision-capable
-client. Finally call `compareBranch` and present the branch URL; do not propose
-or apply unless authorized.
-
-## Complete a branch review
-
-Compare:
-
-`compareBranch`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "draftId": "BRANCH_ID"
-}
-```
-
-If the user authorizes application and conflicts are understood:
-
-`applyBranch`
-
-```json
-{
-  "designId": "DESIGN_ID",
-  "draftId": "BRANCH_ID",
-  "expectedMainRevision": 14,
-  "expectedDraftRevision": 9,
-  "resolutions": {
-    "CONFLICT_ID_FROM_COMPARE": "draft"
+  "designId": "design_abc",
+  "expectedRevision": 1,
+  "transaction": {
+    "id": "hero-1",
+    "label": "Hero section",
+    "operations": [
+      { "type": "node.insert", "node": {
+        "id": "hero", "kind": "element", "namespace": "html", "tag": "section",
+        "parentId": "page", "order": 1024, "attributes": { "class": "hero" },
+        "styles": { "padding": "120px 0" } } },
+      { "type": "node.insert", "node": {
+        "id": "hero-inner", "kind": "element", "namespace": "html", "tag": "div",
+        "parentId": "hero", "order": 1024, "attributes": { "class": "container" },
+        "styles": { "display": "flex", "flex-direction": "column", "gap": "24px", "align-items": "flex-start" } } },
+      { "type": "node.insert", "node": {
+        "id": "hero-title", "kind": "element", "namespace": "html", "tag": "h1",
+        "parentId": "hero-inner", "order": 1024, "attributes": {},
+        "styles": { "font-size": "64px", "line-height": "1.05", "margin": "0", "max-width": "16ch" } } },
+      { "type": "node.insert", "node": {
+        "id": "hero-title-text", "kind": "text", "parentId": "hero-title", "order": 1024,
+        "text": "Ship the invoice, not the spreadsheet" } },
+      { "type": "node.insert", "node": {
+        "id": "hero-cta", "kind": "element", "namespace": "html", "tag": "a",
+        "parentId": "hero-inner", "order": 2048, "attributes": { "class": "btn", "href": "#pricing" },
+        "styles": {} } },
+      { "type": "node.insert", "node": {
+        "id": "hero-cta-text", "kind": "text", "parentId": "hero-cta", "order": 1024,
+        "text": "Start free" } }
+    ]
   }
 }
 ```
 
-Use the revisions and conflict IDs from the immediately preceding comparison.
-If the call says either target changed, compare again. Do not automatically
-choose `"draft"` for every conflict; explain consequential choices.
+## Define and place a component
+
+```json
+{
+  "designId": "design_abc",
+  "expectedRevision": 2,
+  "transaction": {
+    "id": "card-component-1",
+    "label": "Feature card component",
+    "operations": [
+      {
+        "type": "component.define",
+        "component": { "id": "feature-card", "name": "Feature card", "templateRootIds": ["fc-root"], "stylesheetId": "feature-card-css" },
+        "template": [
+          { "id": "fc-root", "kind": "element", "namespace": "html", "tag": "article",
+            "parentId": null, "order": 1024, "attributes": { "class": "fc" }, "styles": {} },
+          { "id": "fc-title", "kind": "element", "namespace": "html", "tag": "h3",
+            "parentId": "fc-root", "order": 1024, "attributes": {}, "styles": { "margin": "0" } },
+          { "id": "fc-title-text", "kind": "text", "parentId": "fc-title", "order": 1024, "text": "Feature" }
+        ],
+        "stylesheet": {
+          "id": "feature-card-css", "name": "feature-card", "order": 2048, "ruleOrder": ["fc-rule"],
+          "rules": { "fc-rule": { "id": "fc-rule", "order": 1024, "conditions": [], "selector": ".fc",
+            "declarations": { "padding": "24px", "border": "1px solid #262b33", "border-radius": "var(--radius)" } } }
+        }
+      },
+      { "type": "instance.create", "id": "fc-1", "componentId": "feature-card", "parentId": "hero-inner", "order": 3072 }
+    ]
+  }
+}
+```
+
+Re-read the document to find the live id bound to `fc-title-text`, then:
+
+```json
+{ "type": "instance.setOverride", "instanceId": "fc-1", "id": "<live text node id>",
+  "override": { "kind": "text", "text": "Auto-reminders" } }
+```
+
+## Add a shader backdrop
+
+```json
+// listShaders -> names, params, ranges, defaults
+
+// insertShader
+{
+  "designId": "design_abc",
+  "shader": "mesh-gradient",
+  "parentId": "hero",
+  "params": { "colors": ["#0b0d10", "#123d33", "#7cf5c4"], "speed": 0.3, "distortion": 0.7 }
+}
+// -> { "nodeId": "element_...", "result": { "applied": true, "revision": 3, ... } }
+```
+
+Make it a backdrop, using the returned `nodeId` and the new revision:
+
+```json
+{
+  "designId": "design_abc",
+  "expectedRevision": 3,
+  "transaction": {
+    "id": "hero-backdrop-1",
+    "label": "Shader as hero backdrop",
+    "operations": [
+      { "type": "node.patch", "id": "hero", "patch": { "kind": "element",
+        "styles": { "position": "relative", "overflow": "hidden", "background-color": "#0b0d10" } } },
+      { "type": "node.patch", "id": "<shader nodeId>", "patch": { "kind": "element",
+        "styles": { "position": "absolute", "inset": "0", "width": "100%", "height": "100%", "z-index": "0" } } },
+      { "type": "node.patch", "id": "hero-inner", "patch": { "kind": "element",
+        "styles": { "position": "relative", "z-index": "1" } } }
+    ]
+  }
+}
+```
+
+The parent keeps a solid `background-color` because screenshots and exports show
+the shader box empty.
+
+## Refine with a rule patch
+
+Restyle every `.btn` at once, and collapse the layout on narrow screens:
+
+```json
+{ "type": "rule.patch", "stylesheetId": "theme", "id": "r-btn",
+  "patch": { "declarations": { "padding": "14px 24px", "font-weight": null } } }
+
+{ "type": "rule.insert", "stylesheetId": "theme", "rule": {
+  "id": "r-hero-narrow", "order": 7168, "selector": ".hero .container",
+  "conditions": [{ "kind": "media", "query": "(max-width: 720px)" }],
+  "declarations": { "padding": "0 20px" } } }
+```
+
+A `null` declaration removes that property.
+
+## Branch, compare, apply
+
+```json
+// createBranch { designId, name: "Bolder hero" } -> { id: "draft_1" }
+// Every following call carries "draftId": "draft_1"
+// ... edits and screenshots on the branch ...
+// compareBranch { designId, draftId } -> { mainRevision: 4, draftRevision: 7, conflicts: [...] }
+// applyBranch (only when the user authorizes changing Main)
+{
+  "designId": "design_abc",
+  "draftId": "draft_1",
+  "expectedMainRevision": 4,
+  "expectedDraftRevision": 7,
+  "resolutions": { "<conflict id>": "draft" }
+}
+```

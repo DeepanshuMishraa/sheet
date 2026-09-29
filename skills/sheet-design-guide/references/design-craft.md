@@ -58,9 +58,9 @@ Use a consistent spacing rhythm. A practical starting scale is 4, 8, 12, 16,
 
 Use three layers:
 
-1. **Page:** viewport, background, global vertical flow
+1. **Page:** root element, background, global vertical flow
 2. **Section:** full-width band and vertical rhythm
-3. **Content frame:** centered, width-constrained layout
+3. **Content frame:** centered, `max-width` container
 
 This makes full-bleed backgrounds compatible with aligned content.
 
@@ -80,8 +80,8 @@ For narrow screens:
 - hide decoration only when it carries no meaning
 - prevent horizontal overflow
 
-Do not assume a desktop screenshot proves responsive quality. Render at a
-narrow width after responsive patches.
+Do not assume a desktop screenshot proves responsive quality. Render with
+`getWebScreenshot` at a narrow `width` after adding responsive rules.
 
 ## Use typography, color, and depth
 
@@ -214,12 +214,12 @@ Inspect the actual PNG at normal scale, then zoom into important areas.
 
 - Does motion clarify state, hierarchy, or continuity?
 - Is hover/press feedback restrained?
-- Is a transition used for a state change and a named keyframe animation used
-  for a timeline, rather than conflating the two?
-- Does stagger follow visual reading order?
-- Would the Page remain fully understandable with reduced motion?
-- Are interaction targets wired to valid state, node, Page, variant, or theme
-  IDs?
+- Are hover, press, and focus states expressed as short transitions rather
+  than large movements?
+- Does any continuous motion (a shader) sit behind content without hurting
+  legibility?
+- Would the page remain fully understandable with reduced motion?
+- Do interactive controls have visible `:hover` and `:focus-visible` rules?
 
 ## Refinement order
 
