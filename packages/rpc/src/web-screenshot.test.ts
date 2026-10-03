@@ -15,7 +15,7 @@ import {
 } from '@sheet/canvas/web-model'
 import { serializeWebStylesheets } from '@sheet/canvas/web-css'
 import { compileWebStandaloneHtml } from '@sheet/canvas/web-export'
-import { findChromiumExecutable } from '@sheet/canvas/web-test-browser'
+import { completeCapture, NO_WINDOW_MESSAGE, registerCapturer, type CaptureRequest } from './capture-broker'
 import { createSheetToolExecutor } from './mcp-server'
 import type { McpUsageController } from './mcp-server'
 
@@ -25,7 +25,20 @@ import type { McpUsageController } from './mcp-server'
  * revisions, history, or the document.
  */
 
-const executable = findChromiumExecutable()
+/** A stand-in for the app window: answers every capture with a fixed image and records the requests. */
+function fakeWindow() {
+  const requests: CaptureRequest[] = []
+  const bytes = new Uint8Array(2_000).fill(7)
+  const unregister = registerCapturer({
+    send: (request) => {
+      requests.push(request)
+      queueMicrotask(() =>
+        completeCapture(request.id, { ok: true, bytes, mimeType: 'image/png', width: request.width, height: 600 }),
+      )
+    },
+  })
+  return { requests, unregister }
+}
 
 function shotFixture() {
   const document = createWebDocument('Shot', 'shot')
@@ -106,7 +119,7 @@ describe('web screenshots', () => {
     expect(serializeWebDocument(document)).not.toContain('data-sheet-node')
   })
 
-  it.skipIf(!executable)('renders PNG without touching revisions, history, or the document', async () => {
+  it('renders through the app window without touching revisions, history, or the document', async () => {
     const document = shotFixture()
     const designId = await seedDesign(document)
     const before = JSON.stringify(document)
@@ -115,15 +128,18 @@ describe('web screenshots', () => {
       .from(designVersion)
       .where(and(eq(designVersion.designId, designId), eq(designVersion.userId, LOCAL_USER_ID)))
 
+    const window = fakeWindow()
     const { renderWebScreenshot } = await import('@sheet/rpc/mcp-screenshot')
     const full = await renderWebScreenshot(LOCAL_USER_ID, document, { width: 800 })
     expect(full.png.byteLength).toBeGreaterThan(1_000)
     expect(full.width).toBe(800)
     expect(full.height).toBeGreaterThan(0)
     expect(full.rootId).toBeNull()
+    expect(window.requests[0]?.html).toContain('data-sheet-export-root="true"')
 
     const scoped = await renderWebScreenshot(LOCAL_USER_ID, document, { rootId: 'title' })
     expect(scoped.rootId).toBe('title')
+    expect(window.requests[1]?.rootId).toBe('title')
     expect(scoped.width).toBeLessThanOrEqual(full.width)
     await expect(
       renderWebScreenshot(LOCAL_USER_ID, document, { rootId: 'missing' }),
@@ -142,11 +158,13 @@ describe('web screenshots', () => {
       .from(designVersion)
       .where(and(eq(designVersion.designId, designId), eq(designVersion.userId, LOCAL_USER_ID)))
     expect(versionsAfter).toEqual(versionsBefore)
+    window.unregister()
   }, 60_000)
 
-  it.skipIf(!executable)('exposes the render through the MCP envelope with revision metadata', async () => {
+  it('exposes the render through the MCP envelope with revision metadata', async () => {
     const designId = await seedDesign(shotFixture())
     const execute = createSheetToolExecutor(LOCAL_USER_ID, usage())
+    const window = fakeWindow()
     const result = await execute('getWebScreenshot', { designId, width: 800 }) as {
       isError?: boolean
       content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>
@@ -163,5 +181,11 @@ describe('web screenshots', () => {
     expect(image?.type).toBe('image')
     expect(image?.mimeType).toBe('image/png')
     expect((image?.data ?? '').length).toBeGreaterThan(1_000)
+    window.unregister()
   }, 60_000)
+
+  it('says so plainly when no Sheet window is open', async () => {
+    const { renderWebScreenshot } = await import('@sheet/rpc/mcp-screenshot')
+    await expect(renderWebScreenshot(LOCAL_USER_ID, shotFixture(), {})).rejects.toThrow(NO_WINDOW_MESSAGE)
+  })
 })

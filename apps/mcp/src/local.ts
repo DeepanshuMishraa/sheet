@@ -9,7 +9,10 @@ import {
   messageTargetsRoom,
   subscribeLocalEvents,
 } from '@sheet/realtime/local-bus'
+import { completeCapture, registerCapturer, type CaptureResult } from '@sheet/rpc/capture-broker'
+import { installAgent, isInstallableAgent } from './agent-install'
 import { configFrom } from './config'
+import { installSkill } from './skill-install'
 import { createAppState, handleRequest } from './handler'
 
 /**
@@ -112,6 +115,151 @@ function serveCanvasEvents(request: Request) {
   })
 }
 
+function isLoopbackOrigin(origin: string) {
+  try {
+    const { hostname, protocol } = new URL(origin)
+    if (protocol === 'tauri:') return true
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Writes the Sheet MCP entry into an agent's own config file. It edits files
+ * outside the app, so a page on another origin must never be able to call it.
+ */
+function blockedOrigin(request: Request) {
+  const origin = request.headers.get('origin')
+  if (origin === null || isLoopbackOrigin(origin)) return null
+  return Response.json({ ok: false, message: 'Blocked: request came from a non-local origin.' }, { status: 403 })
+}
+
+/** The app window listens here and renders screenshots on request. */
+function serveCaptureEvents(request: Request) {
+  const blocked = blockedOrigin(request)
+  if (blocked) return blocked
+  let unregister = () => {}
+  let heartbeat: ReturnType<typeof setInterval> | undefined
+  let closed = false
+  const stream = new ReadableStream({
+    start(controller) {
+      const send = (chunk: string) => {
+        if (!closed) controller.enqueue(new TextEncoder().encode(chunk))
+      }
+      send(sseEvent('ready', { sentAt: Date.now() }))
+      unregister = registerCapturer({ send: (capture) => send(sseEvent('capture', capture)) })
+      heartbeat = setInterval(() => send(':keepalive\n\n'), 20_000)
+      request.signal.addEventListener('abort', () => {
+        closed = true
+        if (heartbeat) clearInterval(heartbeat)
+        unregister()
+        controller.close()
+      })
+    },
+  })
+  return new Response(stream, {
+    headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' },
+  })
+}
+
+function parseTimings(raw: string | null) {
+  const timings: Record<string, number> = {}
+  try {
+    const parsed: unknown = JSON.parse(raw ?? '{}')
+    if (typeof parsed === 'object' && parsed !== null) {
+      for (const [key, value] of Object.entries(parsed)) if (typeof value === 'number') timings[key] = value
+    }
+  } catch {
+    // Timings are advisory.
+  }
+  return timings
+}
+
+/** The window posts the rendered image (body) or an error (`?error=`) for one request id. */
+async function serveCaptureResult(request: Request, url: URL) {
+  const blocked = blockedOrigin(request)
+  if (blocked) return blocked
+  const id = url.searchParams.get('id') ?? ''
+  const error = url.searchParams.get('error')
+  const width = Number(url.searchParams.get('width'))
+  const height = Number(url.searchParams.get('height'))
+  const mime = url.searchParams.get('mime')
+  const result: CaptureResult = error
+    ? { ok: false, message: error }
+    : (mime === 'image/png' || mime === 'image/jpeg') && width > 0 && height > 0
+      ? { ok: true, bytes: new Uint8Array(await request.arrayBuffer()), mimeType: mime, width, height, timings: parseTimings(url.searchParams.get('timings')) }
+      : { ok: false, message: 'The window sent an unreadable screenshot.' }
+  return Response.json({ ok: completeCapture(id, result) }, { headers: { 'cache-control': 'no-store' } })
+}
+
+const IMAGE_PROXY_MAX_BYTES = 8 * 1024 * 1024
+
+function privateHost(hostname: string) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host === '::1' ||
+    host.startsWith('fc') ||
+    host.startsWith('fd') ||
+    host.startsWith('fe80') ||
+    /^(127|10|0)\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  )
+}
+
+/**
+ * Lets the window read images from other origins while rendering a screenshot.
+ * Public http(s) hosts only, no redirects: it fetches on the user's behalf.
+ */
+async function serveCaptureImage(request: Request, url: URL) {
+  const blocked = blockedOrigin(request)
+  if (blocked) return blocked
+  let target: URL
+  try {
+    target = new URL(url.searchParams.get('url') ?? '')
+  } catch {
+    return new Response('Bad image URL', { status: 400 })
+  }
+  if ((target.protocol !== 'https:' && target.protocol !== 'http:') || privateHost(target.hostname)) {
+    return new Response('That image URL is not allowed', { status: 400 })
+  }
+  try {
+    const upstream = await fetch(target, { redirect: 'error', signal: AbortSignal.timeout(10_000) })
+    const type = upstream.headers.get('content-type') ?? ''
+    if (!upstream.ok || !type.startsWith('image/')) return new Response('Not an image', { status: 502 })
+    const bytes = new Uint8Array(await upstream.arrayBuffer())
+    if (bytes.byteLength > IMAGE_PROXY_MAX_BYTES) return new Response('Image too large', { status: 413 })
+    return new Response(bytes, { headers: { 'content-type': type, 'cache-control': 'private, max-age=300' } })
+  } catch {
+    return new Response('Could not fetch the image', { status: 502 })
+  }
+}
+
+async function serveSkillInstall(request: Request) {
+  const blocked = blockedOrigin(request)
+  if (blocked) return blocked
+  const entries = await installSkill()
+  const failed = entries.some((entry) => entry.status === 'failed')
+  return Response.json({ ok: !failed, entries }, { status: failed ? 500 : 200, headers: { 'cache-control': 'no-store' } })
+}
+
+async function serveAgentInstall(request: Request) {
+  const blocked = blockedOrigin(request)
+  if (blocked) return blocked
+  const body: unknown = await request.json().catch(() => null)
+  const agent = typeof body === 'object' && body !== null && 'agent' in body ? body.agent : null
+  if (!isInstallableAgent(agent)) {
+    return Response.json({ ok: false, message: 'Unknown agent.' }, { status: 400 })
+  }
+  const result = await installAgent(agent, `http://127.0.0.1:${config.port}/mcp`)
+  return Response.json(result, { status: result.ok ? 200 : 500, headers: { 'cache-control': 'no-store' } })
+}
+
 async function route(request: Request, state: ReturnType<typeof createAppState>) {
   const url = new URL(request.url)
   const path = url.pathname.replace(/\/+$/, '') || '/'
@@ -149,6 +297,21 @@ async function route(request: Request, state: ReturnType<typeof createAppState>)
   if (path === '/api/handoff' && request.method === 'GET') {
     return new Response('Not found', { status: 404 })
   }
+  if (path === '/api/agent-install' && request.method === 'POST') {
+    return serveAgentInstall(request)
+  }
+  if (path === '/api/capture-events' && request.method === 'GET') {
+    return serveCaptureEvents(request)
+  }
+  if (path === '/api/capture-image' && request.method === 'GET') {
+    return serveCaptureImage(request, url)
+  }
+  if (path === '/api/capture-result' && request.method === 'POST') {
+    return serveCaptureResult(request, url)
+  }
+  if (path === '/api/skill-install' && request.method === 'POST') {
+    return serveSkillInstall(request)
+  }
   if (path === '/api/realtime-ticket') {
     // No socket service locally — the client falls back to the event stream.
     return Response.json(
@@ -177,7 +340,8 @@ const server = Bun.serve({
   port: config.port,
   fetch: (request, server) => {
     // Bun closes connections idle for 10s; a quiet event stream is idle by design.
-    if (new URL(request.url).pathname === '/api/canvas-events') server.timeout(request, 0)
+    const { pathname } = new URL(request.url)
+    if (pathname === '/api/canvas-events' || pathname === '/api/capture-events') server.timeout(request, 0)
     return route(request, state)
   },
 })

@@ -70,7 +70,12 @@ export function validWebId(id: string) {
 }
 
 export function validStyleName(name: string) {
-  return /^--[a-z0-9_-]+$/i.test(name) || /^[a-z][a-z0-9-]*$/i.test(name)
+  return (
+    /^--[a-z0-9_-]+$/i.test(name) ||
+    /^[a-z][a-z0-9-]*$/i.test(name) ||
+    // Vendor prefixes such as -webkit-font-smoothing.
+    /^-[a-z]+-[a-z][a-z0-9-]*$/i.test(name)
+  )
 }
 
 export function validStyleValue(value: string) {
@@ -129,8 +134,16 @@ function assertStringRecord(
 ) {
   if (!record(value)) throw new Error(`${name} must be an object`)
   for (const [key, entry] of Object.entries(value)) {
-    if (!validateKey(key) || typeof entry !== 'string' || !validateValue(key, entry)) {
-      throw new Error(`${name}.${key} is invalid`)
+    if (!validateKey(key)) {
+      throw new Error(
+        `${name}.${key} is invalid: "${key}" is not a valid name.${/styles|declarations/.test(name) ? ' Use a lowercase CSS property like "font-size", a vendor-prefixed one like "-webkit-font-smoothing", or a "--custom-property".' : ''}`,
+      )
+    }
+    if (typeof entry !== 'string') throw new Error(`${name}.${key} is invalid: must be a string`)
+    if (!validateValue(key, entry)) {
+      throw new Error(
+        `${name}.${key} is invalid: values must be under 10,000 characters and cannot contain <style>, <script>, comments, expression() or javascript: URLs.`,
+      )
     }
   }
 }
@@ -199,27 +212,38 @@ export function assertWebStyleSheet(value: unknown, id: string): WebStyleSheet {
     throw new Error(`stylesheets.${id} has an invalid order`)
   }
   if (!record(value.rules)) throw new Error(`stylesheets.${id}.rules is invalid`)
-  if (!Array.isArray(value.ruleOrder)) {
-    throw new Error(`stylesheets.${id}.ruleOrder is invalid`)
+  // ruleOrder is optional: it is derived from each rule's `order` (then id).
+  if (value.ruleOrder !== undefined && !Array.isArray(value.ruleOrder)) {
+    throw new Error(`stylesheets.${id}.ruleOrder must be an array of rule ids, or omitted`)
   }
   const entries = Object.entries(value.rules)
   if (entries.length > MAX_WEB_RULES_PER_SHEET) {
     throw new Error(`stylesheets.${id} has too many rules`)
   }
   const rules: Record<string, WebStyleRule> = {}
+  const problems: string[] = []
   for (const [ruleId, rule] of entries) {
-    if (!validWebId(ruleId)) throw new Error(`stylesheets.${id} has an invalid rule id`)
-    rules[ruleId] = assertWebStyleRule(rule, ruleId)
+    try {
+      if (!validWebId(ruleId)) throw new Error(`stylesheets.${id} has an invalid rule id "${ruleId}"`)
+      rules[ruleId] = assertWebStyleRule(rule, ruleId)
+    } catch (error) {
+      problems.push(error instanceof Error ? error.message : String(error))
+    }
   }
+  if (problems.length > 0) throw new Error(problems.join('; '))
   const expectedOrder = Object.values(rules)
     .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
     .map((rule) => rule.id)
-  const ruleOrder = value.ruleOrder as unknown[]
-  if (
-    ruleOrder.length !== expectedOrder.length ||
-    ruleOrder.some((ruleId, index) => ruleId !== expectedOrder[index])
-  ) {
-    throw new Error(`stylesheets.${id}.ruleOrder does not match its rules`)
+  if (value.ruleOrder !== undefined) {
+    // Any permutation of the rule ids is accepted; the canonical order is re-derived below.
+    const listed = new Set(value.ruleOrder as unknown[])
+    const missing = expectedOrder.filter((ruleId) => !listed.has(ruleId))
+    const unknown = [...listed].filter((ruleId) => typeof ruleId !== 'string' || !rules[ruleId])
+    if (missing.length > 0 || unknown.length > 0 || listed.size !== (value.ruleOrder as unknown[]).length) {
+      throw new Error(
+        `stylesheets.${id}.ruleOrder must list every rule id exactly once (or be omitted). Missing: [${missing.join(', ')}]. Unknown or repeated: [${unknown.join(', ')}].`,
+      )
+    }
   }
   return {
     id,

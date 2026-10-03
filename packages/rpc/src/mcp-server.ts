@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import { serializeWebDocument } from '@sheet/canvas/web-model'
+import { applyWebTransaction, parseWebTransaction, serializeWebDocument } from '@sheet/canvas/web-model'
 import { serializeWebStylesheets } from '@sheet/canvas/web-css'
 import {
   ICON_LIBRARIES,
@@ -101,6 +101,12 @@ function requireApplied<T extends { applied: boolean; reason?: string; revision:
     )
   }
   return result
+}
+
+/** The document grows with every edit; tools report the revision and changed ids, and getWebDocument reads the rest. */
+function withoutDocument<T extends { document?: unknown }>(result: T) {
+  const { document: _document, ...rest } = result
+  return rest
 }
 
 const iconLibrary = z
@@ -350,7 +356,7 @@ function createSheetRuntime(
     'applyWebTransaction',
     {
       description:
-        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. To resize the page, node.patch the root element width and height, for example 1440px by 2400px. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting.',
+        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. To resize a page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.',
       inputSchema: {
         designId,
         draftId: z
@@ -375,6 +381,14 @@ function createSheetRuntime(
               .describe('WebOperations validated exactly like editor transactions.'),
           })
           .describe('One atomic batch; applied fully or not at all.'),
+        dryRun: z
+          .boolean()
+          .optional()
+          .describe('Validate only: check every operation (and apply it in memory against Main) without saving. Reports all problems at once.'),
+        verbose: z
+          .boolean()
+          .optional()
+          .describe('Also return the full updated document. Off by default: the response is just applied, revision and changedNodeIds.'),
       },
     },
     tool('applyWebTransaction', async (args: {
@@ -382,16 +396,36 @@ function createSheetRuntime(
       draftId?: string
       expectedRevision: number
       transaction: unknown
-    }) =>
-      applyWebCanvasTransactionToStore(
+      dryRun?: boolean
+      verbose?: boolean
+    }) => {
+      if (args.dryRun) {
+        const transaction = parseWebTransaction(args.transaction)
+        if (args.draftId) {
+          return { applied: false, dryRun: true, valid: true, checked: 'syntax', operations: transaction.operations.length }
+        }
+        const found = await requireWebDocument(userId, args.designId)
+        const result = applyWebTransaction(found.document, transaction)
+        return {
+          applied: false,
+          dryRun: true,
+          valid: true,
+          checked: 'syntax and document',
+          revision: found.revision,
+          changedNodeIds: [...result.changedNodeIds],
+        }
+      }
+      const { document, ...result } = await applyWebCanvasTransactionToStore(
         userId,
         userId,
         args.designId,
         args.expectedRevision,
         args.transaction,
         args.draftId ?? null,
-      ),
-    ),
+      )
+      // The document grows with every edit; send it only when asked.
+      return args.verbose ? { ...result, document } : result
+    }),
   )
 
 
@@ -399,7 +433,7 @@ function createSheetRuntime(
     'getWebScreenshot',
     {
       description:
-        'Render a real PNG of a web-native document with the same standalone HTML/CSS serialization the editor materializes. Call this after meaningful edits to verify the visual result. Read-only: revisions, history, and the document are untouched.',
+        'Render a real PNG of a web-native document with the same standalone HTML/CSS serialization the editor materializes. Rendered by the open Sheet app window, so the app must be running; if it is not, the call fails with a message saying so. Call this after meaningful edits to verify the visual result. Read-only: revisions, history, and the document are untouched.',
       inputSchema: {
         designId,
         rootId: z.string().min(1).max(200).optional().describe('Web node id to capture; omit for the whole document.'),
@@ -437,6 +471,7 @@ function createSheetRuntime(
               rootId: screenshot.rootId,
             },
             skippedImages: screenshot.skippedImages,
+            timings: screenshot.timings,
             openUrl: appUrl(args.designId, undefined, {
               node: screenshot.rootId ?? undefined,
             }),
@@ -722,7 +757,7 @@ function createSheetRuntime(
         args.draftId ?? null,
       )
       requireApplied(result)
-      return { nodeId: nodes[0]?.id, result }
+      return { nodeId: nodes[0]?.id, result: withoutDocument(result) }
     }),
   )
 
@@ -760,7 +795,7 @@ function createSheetRuntime(
         { id: `icon-${crypto.randomUUID()}`, label: 'Style icon', operations: [operation] },
         args.draftId ?? null,
       )
-      return requireApplied(result)
+      return withoutDocument(requireApplied(result))
     }),
   )
 
@@ -789,7 +824,7 @@ function createSheetRuntime(
     'createPage',
     {
       description:
-        'Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.',
+        'Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Use one page per screen or design variant (for example light and dark, or options A, B and C); never place variants side by side inside one page or enlarge a page to hold them. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.',
       inputSchema: {
         ...targetShape,
         name: z.string().trim().min(1).max(200).optional().describe('Page name; defaults to the next "Page N"'),
@@ -827,7 +862,7 @@ function createSheetRuntime(
         args.draftId ?? null,
       )
       requireApplied(result)
-      return { pageId: node.id, result }
+      return { pageId: node.id, result: withoutDocument(result) }
     }),
   )
 
@@ -901,7 +936,7 @@ function createSheetRuntime(
         args.draftId ?? null,
       )
       requireApplied(result)
-      return { nodeId: node.id, result }
+      return { nodeId: node.id, result: withoutDocument(result) }
     }),
   )
 
@@ -942,7 +977,7 @@ function createSheetRuntime(
         { id: `shader-${crypto.randomUUID()}`, label: 'Style shader', operations: [operation] },
         args.draftId ?? null,
       )
-      return requireApplied(result)
+      return withoutDocument(requireApplied(result))
     }),
   )
 

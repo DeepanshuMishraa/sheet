@@ -51,6 +51,8 @@ COPY --from=deps /app/packages/editor/node_modules ./packages/editor/node_module
 COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 COPY package.json bun.lock bunfig.toml ./
 COPY apps/mcp ./apps/mcp
+# The skill folder is embedded into the server (apps/mcp/src/skill-files.ts).
+COPY skills ./skills
 # Full sources: the server executes @sheet/rpc + @sheet/db TypeScript
 # directly on Bun (no bundling step), so the whole backend import chain ships.
 COPY packages/db ./packages/db

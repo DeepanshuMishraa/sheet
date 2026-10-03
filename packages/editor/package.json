@@ -16,6 +16,7 @@
     "@sheet/ui": "workspace:*",
     "@tanstack/react-router": "latest",
     "lucide": "^0.544.0",
+    "modern-screenshot": "^4.7.0",
     "motion": "^12.42.2"
   },
   "peerDependencies": {

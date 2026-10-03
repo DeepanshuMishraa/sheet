@@ -43,6 +43,26 @@ schema-display limitation, not permission to guess. Use `references/web-schema.m
 For a one-field text or spacing tweak, read `web-schema.md` and the target node;
 do not load every reference.
 
+## Put every variant or screen on its own page
+
+When the user asks for variants, options, alternates, themes (light and dark),
+breakpoints, or more than one screen, each one is its own page.
+
+- Call `createPage` once per variant, with its own name ("Hero A", "Hero B",
+  "Dark") and the size that variant needs. Insert that variant's nodes with
+  `parentId` set to that page's `pageId`.
+- Never place two variants side by side inside one page. Never widen or resize a
+  page (root `width`/`height` patch) to make room for another variant. A page's
+  size is the size of one design, so a 3040px-wide page holding two 1440px
+  layouts is wrong.
+- Build variants in sequence, one page at a time, and screenshot each with
+  `getWebScreenshot` and `rootId = pageId`.
+- Share the system, not the nodes: reuse one `theme` stylesheet and the same
+  custom properties, and give each variant different values or classes. Do not
+  duplicate ids or copy a page's nodes into another page.
+- If a page already holds the first variant, leave it at its original size and
+  create new pages for the rest. Move nodes out of it only if the user asks.
+
 ## Follow the core loop
 
 1. **Check capability and orient.** Confirm the required tools are callable.
@@ -60,7 +80,8 @@ do not load every reference.
    a `theme` stylesheet with custom properties on `:root` and reusable class
    rules before repeating values.
 5. **Build in meaningful batches.** Call `createPage` first; every page is an
-   isolated canvas. Then one `applyWebTransaction` per coherent section under
+   isolated canvas, and every variant or extra screen gets its own page (see
+   above). Then one `applyWebTransaction` per coherent section under
    that page's `pageId`: insert nodes, then stylesheet rules. Prefer flex/grid;
    reserve absolute positioning for deliberate overlays. Name layers with
    `data-name` so the layers panel reads "Hero", not "Frame".

@@ -1,20 +1,9 @@
-import { existsSync } from 'node:fs'
-import {
-  chromium,
-  type Browser,
-  type ElementHandle,
-} from 'playwright-core'
 import { compileWebStandaloneHtml } from '@sheet/canvas/web-export'
-import {
-  assertWebDocument,
-  type WebDocument,
-} from '@sheet/canvas/web-model'
+import { assertWebDocument, type WebDocument } from '@sheet/canvas/web-model'
+import { requestCapture } from './capture-broker'
 import { BoundedConcurrencyGate } from './mcp-concurrency'
-import { IdleResource } from './mcp-idle-resource'
 
-const MAX_SCREENSHOT_DIMENSION = 4_096
-const MAX_SCREENSHOT_AREA = 12_000_000
-const MAX_PNG_BYTES = 8 * 1024 * 1024
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 function integerEnvironment(
   name: string,
@@ -34,49 +23,6 @@ const screenshotGate = new BoundedConcurrencyGate(
   integerEnvironment('MCP_SCREENSHOT_QUEUE_TIMEOUT_MS', 20_000, 1_000, 120_000),
 )
 
-
-function chromiumExecutable() {
-  const configured =
-    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim() ||
-    process.env.CHROMIUM_PATH?.trim()
-  const candidates = [
-    configured,
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    chromium.executablePath(),
-  ].filter((value): value is string => Boolean(value))
-  return candidates.find((candidate) => existsSync(candidate)) ?? null
-}
-
-const screenshotBrowser = new IdleResource(
-  async () => {
-    const executablePath = chromiumExecutable()
-    if (!executablePath) {
-      throw new Error(
-        'Screenshot rendering needs Chromium. Set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.',
-      )
-    }
-    const launched = await chromium.launch({
-      executablePath,
-      headless: true,
-      args: ['--disable-dev-shm-usage', '--no-sandbox'],
-    })
-    launched.on('disconnected', () => {
-      screenshotBrowser.invalidate(launched)
-    })
-    return launched
-  },
-  integerEnvironment(
-    'MCP_SCREENSHOT_IDLE_TIMEOUT_MS',
-    5_000,
-    5_000,
-    30 * 60_000,
-  ),
-)
-
-
 export interface WebScreenshotOptions {
   rootId?: string
   width?: number
@@ -93,129 +39,47 @@ export interface WebScreenshot {
   height: number
   rootId: string | null
   skippedImages: string[]
+  /** Milliseconds per stage, for finding what is slow. */
+  timings: Record<string, number>
 }
 
 /**
- * Web screenshot: the same standalone serialization the editor
- * materializes from, rendered by the same Chromium pool through the same
- * route-interception, settle, clamp, and PNG-limit stages. External images
- * are skipped deterministically (route abort), exactly like the legacy
- * path; only the compile stage is model-specific.
+ * Web screenshot: the same standalone serialization the editor materializes
+ * from, rendered by the open Sheet window's own engine (see capture-broker).
+ * No browser is launched here.
  */
-async function renderWebScreenshotWithBrowser(
-  activeBrowser: Browser,
+async function renderWebScreenshotInWindow(
   source: WebDocument,
-  options: WebScreenshotOptions = {},
+  options: WebScreenshotOptions,
 ): Promise<WebScreenshot> {
   const width = Math.round(Math.max(200, Math.min(options.width ?? 1_440, 3_840)))
   const pixelRatio = Math.max(1, Math.min(options.pixelRatio ?? 1, 2))
-  const webDocument = assertWebDocument(structuredClone(source))
-  if (options.rootId !== undefined && !webDocument.nodes[options.rootId]) {
+  const document = assertWebDocument(structuredClone(source))
+  if (options.rootId !== undefined && !document.nodes[options.rootId]) {
     throw new Error(`Web node "${options.rootId}" does not exist`)
   }
-  const skippedImages: string[] = []
-  for (const node of Object.values(webDocument.nodes)) {
-    if (
-      node.kind === 'element' &&
-      node.tag === 'img' &&
-      /^\s*https?:\/\//i.test(node.attributes.src ?? '')
-    ) {
-      skippedImages.push(node.attributes.src as string)
-    }
-  }
-  const html = compileWebStandaloneHtml(webDocument, { title: webDocument.name })
-  const context = await activeBrowser.newContext({
-    viewport: { width, height: 900 },
-    deviceScaleFactor: pixelRatio,
+  const format = options.format ?? 'png'
+  const startedAt = performance.now()
+  const result = await requestCapture({
+    html: compileWebStandaloneHtml(document, { title: document.name }),
+    width,
+    pixelRatio,
+    rootId: options.rootId ?? null,
+    format,
+    quality: Math.round(Math.max(1, Math.min(options.quality ?? 90, 100))),
   })
-  try {
-    await context.route('**/*', (route) => route.abort())
-    const page = await context.newPage()
-    page.setDefaultTimeout(15_000)
-    await page.setContent(html, { waitUntil: 'load' })
-    await page.evaluate(async () => {
-      await document.fonts?.ready
-      await Promise.all(
-        [...document.images].map((image) =>
-          image.complete
-            ? Promise.resolve()
-            : new Promise<void>((resolve) => {
-                image.addEventListener('load', () => resolve(), { once: true })
-                image.addEventListener('error', () => resolve(), { once: true })
-              }),
-        ),
-      )
-    })
-
-    const root = page.locator('[data-sheet-export-root="true"]').first()
-    await root.waitFor({ state: 'visible' })
-    const handle = (
-      options.rootId === undefined
-        ? await root.elementHandle()
-        : (
-            await root.evaluateHandle(
-              (element, nodeId) =>
-                [...element.querySelectorAll('[data-sheet-node]')].find(
-                  (node) => node.getAttribute('data-sheet-node') === nodeId,
-                ) ?? null,
-              options.rootId,
-            )
-          ).asElement()
-    ) as ElementHandle<HTMLElement> | null
-    if (!handle) {
-      throw new Error(`Web node "${options.rootId}" did not render`)
-    }
-
-    await handle.evaluate(
-      (element, limits) => {
-        const htmlElement = element as HTMLElement
-        const bounds = htmlElement.getBoundingClientRect()
-        const areaScale = Math.sqrt(
-          limits.maxArea /
-            Math.max(1, bounds.width * bounds.height),
-        )
-        const scale = Math.min(
-          1,
-          limits.maxDimension / Math.max(1, bounds.width),
-          limits.maxDimension / Math.max(1, bounds.height),
-          areaScale,
-        )
-        if (scale < 1) {
-          htmlElement.style.transformOrigin = 'top left'
-          htmlElement.style.transform = `scale(${scale})`
-        }
-      },
-      {
-        maxArea: MAX_SCREENSHOT_AREA / (pixelRatio * pixelRatio),
-        maxDimension: MAX_SCREENSHOT_DIMENSION / pixelRatio,
-      },
-    )
-    const bounds = await handle.boundingBox()
-    if (!bounds) throw new Error('Web screenshot target has no visible bounds')
-    const format = options.format ?? 'png'
-    const png = await handle.screenshot({
-      type: format,
-      ...(format === 'jpeg'
-        ? { quality: Math.round(Math.max(1, Math.min(options.quality ?? 90, 100))) }
-        : {}),
-      animations: 'disabled',
-      caret: 'hide',
-    })
-    if (png.byteLength > MAX_PNG_BYTES) {
-      throw new Error(
-        'The image is too large for one response. Use a smaller width, pixelRatio, or rootId.',
-      )
-    }
-    return {
-      png,
-      mimeType: format === 'jpeg' ? ('image/jpeg' as const) : ('image/png' as const),
-      width: Math.max(1, Math.round(bounds.width * pixelRatio)),
-      height: Math.max(1, Math.round(bounds.height * pixelRatio)),
-      rootId: options.rootId ?? null,
-      skippedImages,
-    }
-  } finally {
-    await context.close()
+  if (!result.ok) throw new Error(result.message)
+  if (result.bytes.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error('The image is too large for one response. Use a smaller width, pixelRatio, or rootId.')
+  }
+  return {
+    png: result.bytes,
+    mimeType: result.mimeType,
+    width: result.width,
+    height: result.height,
+    rootId: options.rootId ?? null,
+    skippedImages: [],
+    timings: { ...result.timings, roundTripMs: Math.round(performance.now() - startedAt) },
   }
 }
 
@@ -224,9 +88,5 @@ export function renderWebScreenshot(
   source: WebDocument,
   options: WebScreenshotOptions = {},
 ) {
-  return screenshotGate.run(() =>
-    screenshotBrowser.run((activeBrowser) =>
-      renderWebScreenshotWithBrowser(activeBrowser, source, options),
-    ),
-  )
+  return screenshotGate.run(() => renderWebScreenshotInWindow(source, options))
 }

@@ -231,8 +231,16 @@ function assertStringRecord(
 ) {
   if (!record(value)) throw new Error(`${name} must be an object`)
   for (const [key, entry] of Object.entries(value)) {
-    if (!validateKey(key) || typeof entry !== 'string' || !validateValue(key, entry)) {
-      throw new Error(`${name}.${key} is invalid`)
+    if (!validateKey(key)) {
+      throw new Error(
+        `${name}.${key} is invalid: "${key}" is not a valid name.${/styles|declarations/.test(name) ? ' Use a lowercase CSS property like "font-size", a vendor-prefixed one like "-webkit-font-smoothing", or a "--custom-property".' : ''}`,
+      )
+    }
+    if (typeof entry !== 'string') throw new Error(`${name}.${key} is invalid: must be a string`)
+    if (!validateValue(key, entry)) {
+      throw new Error(
+        `${name}.${key} is invalid: values must be under 10,000 characters and cannot contain <style>, <script>, comments, expression() or javascript: URLs.`,
+      )
     }
   }
 }
@@ -244,19 +252,20 @@ function assertWebNode(value: unknown, id: string): asserts value is WebNode {
     typeof value.order !== 'number' ||
     !Number.isFinite(value.order)
   ) {
-    throw new Error(`nodes.${id} has invalid tree metadata`)
+    throw new Error(`nodes.${id} needs "parentId" (a node id or null) and a numeric "order"`)
   }
   if (value.kind === 'text') {
     if (typeof value.text !== 'string') throw new Error(`nodes.${id}.text is invalid`)
     return
   }
-  if (
-    value.kind !== 'element' ||
-    (value.namespace !== 'html' && value.namespace !== 'svg') ||
-    typeof value.tag !== 'string' ||
-    !validTag(value.tag)
-  ) {
-    throw new Error(`nodes.${id} is not a valid web element`)
+  if (value.kind !== 'element') {
+    throw new Error(`nodes.${id}.kind must be "element" or "text", got ${JSON.stringify(value.kind)}. Put the tag name in "tag", for example { "kind": "element", "tag": "span" }`)
+  }
+  if (value.namespace !== 'html' && value.namespace !== 'svg') {
+    throw new Error(`nodes.${id}.namespace must be "html" or "svg"`)
+  }
+  if (typeof value.tag !== 'string' || !validTag(value.tag)) {
+    throw new Error(`nodes.${id}.tag ${JSON.stringify(value.tag)} is not a valid tag name`)
   }
   assertStringRecord(
     value.attributes,
@@ -686,11 +695,23 @@ export function parseWebTransaction(value: unknown): WebTransaction {
   ) {
     throw new Error('Web transaction is invalid')
   }
-  return {
-    id: value.id,
-    label: value.label,
-    operations: value.operations.map(parseWebOperation),
+  // Check every operation so one pass reports every problem, not just the first.
+  const operations: WebOperation[] = []
+  const problems: string[] = []
+  value.operations.forEach((operation, index) => {
+    try {
+      operations.push(parseWebOperation(operation))
+    } catch (error) {
+      const type = record(operation) && typeof operation.type === 'string' ? ` (${operation.type})` : ''
+      problems.push(`operations[${index}]${type}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  })
+  if (problems.length > 0) {
+    const shown = problems.slice(0, 25)
+    const more = problems.length > shown.length ? `\n…and ${problems.length - shown.length} more` : ''
+    throw new Error(`${problems.length} invalid operation${problems.length === 1 ? '' : 's'}. Nothing was applied.\n${shown.join('\n')}${more}`)
   }
+  return { id: value.id, label: value.label, operations }
 }
 
 export function createWebDocument(name = 'Untitled', id = webId('doc')): WebDocument {

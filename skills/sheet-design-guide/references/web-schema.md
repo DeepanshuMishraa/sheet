@@ -86,6 +86,8 @@ type WebNode =
 - Void tags (`img`, `input`, `br`, `hr`, …) take no children.
 - SVG elements use `namespace: 'svg'`, including the children of an `svg`.
 - Text is its own node: a `p` with copy is an element plus a child text node.
+- `kind` is only `"element"` or `"text"`. The tag name goes in `tag`
+  (`{ "kind": "element", "tag": "span", ... }`), never in `kind`.
 
 ## Stylesheets and rules
 
@@ -96,6 +98,13 @@ rule = { id, selector, declarations: Record<string,string>,
          order }
 ```
 
+- `ruleOrder` is optional. When omitted it is derived from each rule's `order`
+  (then id). When given, it must list every rule id in `rules` exactly once; a
+  missing or unknown id is rejected with the ids named.
+- Declaration names are lowercase CSS properties (`font-size`), vendor-prefixed
+  properties (`-webkit-font-smoothing`), or `--custom-properties`. Values are
+  strings under 10,000 characters with no `<style>`, `<script>`, comments,
+  `expression()` or `javascript:` URLs.
 - Conditions hold the prelude without `@` or braces:
   `{ "kind": "media", "query": "(max-width: 720px)" }`.
 - Selectors are ordinary CSS. Rejected: empty or padded selectors, `{ } ; \``,
@@ -187,7 +196,7 @@ content or no other page exists.
   `insertIcon` / `insertShader`, and as `rootId` to `getWebScreenshot` and
   `exportDesign` to capture one page.
 - Rename: `node.patch` the root's `data-sheet-page`. Resize: `node.patch` its
-  `width`/`height` styles (`page.resize` is only for the original page).
+  `width`/`height` styles (`page.resize` is only for the original page). Resize to correct one design's size, never to fit several variants side by side; variants each get their own `createPage`.
   Delete: `node.delete` the `pageId`.
 
 Layer names come from `data-name`. Without it the editor shows: the icon or

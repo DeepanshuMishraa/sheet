@@ -191,3 +191,17 @@ export as empty boxes.
 | Main or branch changed before apply | `compareBranch` again and use fresh revisions |
 | Legacy design, migration required | Stop; the design is unsupported over MCP |
 | Screenshot fails | Keep the edit; state visual verification is incomplete |
+
+## Keep transactions small and verifiable
+
+- Send the theme stylesheet in its own `applyWebTransaction` first, then each
+  section's nodes and rules. A transaction is all or nothing, so one bad rule
+  in a 90-node batch discards everything.
+- Use `dryRun: true` to validate a payload without saving. It reports every
+  invalid operation in one pass, so fix them all before resending.
+- Responses are small by default: `applied`, `revision`, `changedNodeIds`.
+  Pass `verbose: true` only when you need the full document back; do not
+  re-read the document after every edit, and take a screenshot only to judge
+  visuals, not to confirm that an edit applied.
+- For repeated structures, `component.define` once and place it with
+  `instance.create`; the payload shrinks sharply.

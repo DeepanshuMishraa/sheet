@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { syncThemePreference } from '@sheet/shell/lib/theme'
 import { syncUiScale } from '@sheet/shell/lib/ui-scale'
 import { syncUiFonts } from '@sheet/shell/lib/ui-font'
+import { useCaptureResponder } from '@sheet/editor/lib/capture-client'
 
 export const Route = createRootRoute({ component: RootLayout })
 
@@ -19,6 +20,7 @@ function RootLayout() {
   useEffect(() => syncThemePreference(), [])
   useEffect(() => syncUiScale(), [])
   useEffect(() => syncUiFonts(), [])
+  useCaptureResponder()
   useEffect(() => {
     document.getElementById('boot-splash')?.remove()
   }, [])

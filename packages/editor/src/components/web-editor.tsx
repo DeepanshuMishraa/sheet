@@ -55,7 +55,6 @@ import {
   applyWebTransaction,
   webId,
   createWebElement,
-  createWebStyleRule,
   createWebStyleSheet,
   createWebText,
   orderedWebChildren,
@@ -66,6 +65,7 @@ import {
   type WebTransaction,
 } from '@sheet/canvas/web-model'
 import type { WebStyleRule } from '@sheet/canvas/web-css'
+import { ThemePanel } from './theme-panel'
 import { boundNodeIndex, type WebOverride } from '@sheet/canvas/web-components'
 import {
   NAME_ATTRIBUTE,
@@ -176,6 +176,20 @@ interface OverlayRect {
   top: number
   width: number
   height: number
+}
+
+const cameraTransform = (camera: Camera) => `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`
+
+/** Keep the previous object when nothing changed, so React skips the render. */
+const keepRect = (next: OverlayRect | null) => (prev: OverlayRect | null) =>
+  prev === next ||
+  (prev && next && prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height)
+    ? prev
+    : next
+
+const keepRecord = (next: Record<string, string>) => (prev: Record<string, string>) => {
+  const keys = Object.keys(next)
+  return keys.length === Object.keys(prev).length && keys.every((key) => prev[key] === next[key]) ? prev : next
 }
 
 interface DrawingDraft {
@@ -1789,6 +1803,7 @@ export function WebCanvasEditor({
   const [redo, setRedo] = useState<WebTransaction[]>([])
   const stageRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement | null>(null)
+  const pageBoundsRef = useRef<HTMLDivElement | null>(null)
   const documentRef = useRef(document)
   const revisionRef = useRef(initialRevision)
   const selectedRef = useRef(selectedId)
@@ -1817,7 +1832,8 @@ export function WebCanvasEditor({
     if (!stage) return
     const host = hostRef.current
     if (host) {
-      setContentSize({ width: host.scrollWidth, height: host.scrollHeight })
+      const { scrollWidth: width, scrollHeight: height } = host
+      setContentSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }))
     }
     const stageRect = stage.getBoundingClientRect()
     const rectFor = (id: string | null): OverlayRect | null => {
@@ -1831,30 +1847,38 @@ export function WebCanvasEditor({
         height: rect.height,
       }
     }
-    setSelectionRect(rectFor(selectedRef.current))
-    setHoverRect(rectFor(hoveredRef.current))
+    setSelectionRect(keepRect(rectFor(selectedRef.current)))
+    setHoverRect(keepRect(rectFor(hoveredRef.current)))
     const selected = findElement(selectedRef.current)
     if (!selected) {
-      setComputed({})
+      setComputed(keepRecord({}))
       return
     }
     const style = getComputedStyle(selected)
-    setComputed(Object.fromEntries(
+    setComputed(keepRecord(Object.fromEntries(
       STYLE_GROUPS.flatMap((group) => group.properties).map((property) => [
         property,
         style.getPropertyValue(property),
       ]),
-    ))
+    )))
   }, [findElement])
 
+  // One measure pass per frame, however many wheel/pointer events landed in it.
+  // The camera state commits in the same callback so React renders once.
+  const measureFrameRef = useRef<number | null>(null)
   const scheduleMeasure = useCallback(() => {
-    requestAnimationFrame(measure)
+    if (measureFrameRef.current !== null) return
+    measureFrameRef.current = requestAnimationFrame(() => {
+      measureFrameRef.current = null
+      setCamera(cameraRef.current)
+      measure()
+    })
   }, [measure])
 
   const onMaterialize = useCallback((element: HTMLDivElement) => {
     hostRef.current = element
-    requestAnimationFrame(measure)
-  }, [measure])
+    scheduleMeasure()
+  }, [scheduleMeasure])
 
   useEffect(() => {
     let active = true
@@ -2567,7 +2591,8 @@ export function WebCanvasEditor({
 
   const setNextCamera = useCallback((next: Camera) => {
     cameraRef.current = next
-    setCamera(next)
+    // Move the page now, without waiting for a React render; state catches up next frame.
+    if (pageBoundsRef.current) pageBoundsRef.current.style.transform = cameraTransform(next)
     scheduleMeasure()
   }, [scheduleMeasure])
 
@@ -3133,75 +3158,7 @@ export function WebCanvasEditor({
                 <IconsPanel onInsert={insertLibraryIcon} />
               </>
             ) : (
-              /* Theme Tab */
-              <div className="min-h-0 flex-1 overflow-y-auto flex flex-col">
-                <div className="flex h-9 items-center justify-between border-b border-line px-3 text-xs text-muted-foreground">
-                  <span>No tokens</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-                      title="Add token"
-                      onClick={() => {
-                        const sheet = createWebStyleSheet('theme:primary', {})
-                        transact('Create token stylesheet', [{
-                          type: 'stylesheet.insert',
-                          stylesheet: sheet,
-                        }])
-                      }}
-                    >
-                      <PlusIcon className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Empty State */}
-                <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-3 grid size-12 place-items-center rounded-xl border border-line bg-surface-2">
-                    <LayoutGridIcon className="size-6 text-muted-foreground" />
-                  </div>
-                  <h4 className="text-sm font-medium text-foreground">Theme tokens</h4>
-                  <p className="mt-1.5 max-w-[12.5rem] text-xs text-muted-foreground leading-relaxed">
-                    Create tokens to get started, or explore the starter theme.
-                  </p>
-                  <div className="mt-5 w-full max-w-[11.25rem] space-y-2">
-                    <button
-                      type="button"
-                      className="w-full rounded-lg border border-line bg-surface-2 hover:bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors shadow-xs"
-                      onClick={() => {
-                        const sheet = createWebStyleSheet('theme:primary', {})
-                        transact('Create token stylesheet', [{
-                          type: 'stylesheet.insert',
-                          stylesheet: sheet,
-                        }])
-                      }}
-                    >
-                      Create token
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full rounded-lg bg-transparent hover:bg-secondary px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={() => {
-                        const starterRule = createWebStyleRule(':root', {
-                          '--font-sans': 'Inter, sans-serif',
-                          '--color-primary': '#3b82f6',
-                          '--radius-card': '12px',
-                        })
-                        const sheet = createWebStyleSheet('tokens:starter', {
-                          rules: { [starterRule.id]: starterRule },
-                          ruleOrder: [starterRule.id],
-                        })
-                        transact('Apply starter theme', [{
-                          type: 'stylesheet.insert',
-                          stylesheet: sheet,
-                        }])
-                      }}
-                    >
-                      Use starter theme
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ThemePanel document={document} transact={transact} />
             )}
 
           </aside>
@@ -3381,12 +3338,13 @@ export function WebCanvasEditor({
 
           {/* Rendered Document View */}
           <div
+            ref={pageBoundsRef}
             data-testid="page-bounds"
             className={cn('absolute origin-top-left shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-xs', pageSelected && 'ring-2 ring-blue-500')}
             style={{
               width: pageResizePreview?.width ?? canvasWidth,
               height: pageResizePreview?.height ?? canvasHeight,
-              transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
+              transform: cameraTransform(camera),
             }}
           >
             <WebDocumentView

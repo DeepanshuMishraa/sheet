@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
-import { CheckIcon, CopyIcon, ExternalLinkIcon, MoreHorizontalIcon } from '@sheet/ui/icons'
+import { apiUrl } from '@sheet/platform'
+import { CheckIcon, CopyIcon, MoreHorizontalIcon } from '@sheet/ui/icons'
+import { Spinner } from '@sheet/ui/spinner'
 import { cn } from '@sheet/ui/utils'
 import {
   AntigravityLogo,
@@ -24,121 +26,74 @@ interface Step {
   /** Text to copy, shown in a code block. */
   code?: string
   file?: string
-  /** One-click install link the agent's app handles. */
-  action?: { label: string; href: string }
 }
 
 interface Agent {
   key: string
   name: string
   icon: (props: IconProps) => ReactNode
-  steps: Step[]
+  /** The local server writes the MCP entry into this agent's config. Absent: manual setup. */
+  restartHint?: string
+  manual?: Step[]
   note?: string
 }
 
 const jsonRemote = (key: string, extra: Record<string, unknown>) =>
   JSON.stringify({ [key]: { sheet: extra } }, null, 2)
 
-const CURSOR_LINK = `cursor://anysphere.cursor-deeplink/mcp/install?name=sheet&config=${
-  typeof btoa === 'function' ? btoa(JSON.stringify({ url: MCP_URL })) : ''
-}`
-const VSCODE_LINK = `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: 'sheet', type: 'http', url: MCP_URL }))}`
-
-const VSCODE_STEPS: Step[] = [
-  { title: 'Install with one click', action: { label: 'Add to VS Code', href: VSCODE_LINK } },
-  {
-    title: 'Or add it to your workspace',
-    file: '.vscode/mcp.json',
-    code: jsonRemote('servers', { type: 'http', url: MCP_URL }),
-  },
-  { title: 'Start the server', body: 'Open Chat in Agent mode, click the tools icon, and start the "sheet" server.' },
-]
-
 export const AGENTS: Agent[] = [
-  {
-    key: 'cursor',
-    name: 'Cursor',
-    icon: CursorLogo,
-    steps: [
-      { title: 'Install with one click', action: { label: 'Add to Cursor', href: CURSOR_LINK } },
-      {
-        title: 'Or add it to your config',
-        file: '~/.cursor/mcp.json',
-        code: jsonRemote('mcpServers', { url: MCP_URL }),
-      },
-    ],
-  },
-  {
-    key: 'claude-code',
-    name: 'Claude Code',
-    icon: ClaudeCodeLogo,
-    steps: [
-      { title: 'Run in your terminal', code: `claude mcp add --transport http sheet ${MCP_URL}` },
-      { title: 'Check the connection', body: 'Run /mcp inside Claude Code. "sheet" should show as connected.' },
-    ],
-  },
+  { key: 'cursor', name: 'Cursor', icon: CursorLogo, restartHint: 'Restart Cursor or reload MCP servers to pick it up.' },
+  { key: 'claude-code', name: 'Claude Code', icon: ClaudeCodeLogo, restartHint: 'Run /mcp in Claude Code to check the connection.' },
   {
     key: 'github-copilot',
     name: 'Copilot',
     icon: GithubCopilotLogo,
-    steps: VSCODE_STEPS,
+    restartHint: 'Start the "sheet" server from the tools icon in Agent mode.',
     note: 'Copilot reads the same MCP config as VS Code.',
   },
-  { key: 'vscode', name: 'VS Code', icon: VSCodeLogo, steps: VSCODE_STEPS },
-  {
-    key: 'opencode',
-    name: 'OpenCode',
-    icon: OpenCodeLogo,
-    steps: [
-      {
-        title: 'Add it to your config',
-        file: 'opencode.json',
-        code: JSON.stringify({ $schema: 'https://opencode.ai/config.json', mcp: { sheet: { type: 'remote', url: MCP_URL, enabled: true } } }, null, 2),
-      },
-      { title: 'Verify', code: 'opencode mcp list' },
-    ],
-  },
-  {
-    key: 'codex',
-    name: 'Codex',
-    icon: CodexLogo,
-    steps: [
-      {
-        title: 'Add it to your Codex config',
-        file: '~/.codex/config.toml',
-        code: `[mcp_servers.sheet]\nurl = "${MCP_URL}"`,
-      },
-      { title: 'Restart Codex', body: 'Reopen the app so it picks up the new server.' },
-    ],
-  },
-  {
-    key: 'antigravity',
-    name: 'Antigravity',
-    icon: AntigravityLogo,
-    steps: [
-      {
-        title: 'Add it to your MCP config',
-        body: 'Open the agent panel → MCP servers → Manage → View raw config.',
-        file: 'mcp_config.json',
-        code: jsonRemote('mcpServers', { serverUrl: MCP_URL }),
-      },
-    ],
-  },
+  { key: 'vscode', name: 'VS Code', icon: VSCodeLogo, restartHint: 'Start the "sheet" server from the tools icon in Agent mode.' },
+  { key: 'opencode', name: 'OpenCode', icon: OpenCodeLogo, restartHint: 'Run `opencode mcp list` to check the connection.' },
+  { key: 'codex', name: 'Codex', icon: CodexLogo, restartHint: 'Restart Codex so it picks up the new server.' },
+  { key: 'antigravity', name: 'Antigravity', icon: AntigravityLogo, restartHint: 'Reload the agent panel to pick it up.' },
   {
     key: 'other',
     name: 'Other',
     icon: OtherGlyph,
-    steps: [
+    manual: [
       { title: 'Point your agent at the endpoint', body: 'Any client that speaks Streamable HTTP MCP works. No auth, loopback only.', code: MCP_URL },
-      {
-        title: 'Or use a JSON config',
-        file: 'mcp.json',
-        code: jsonRemote('mcpServers', { url: MCP_URL }),
-      },
+      { title: 'Or use a JSON config', file: 'mcp.json', code: jsonRemote('mcpServers', { url: MCP_URL }) },
     ],
     note: 'Config formats differ between harnesses. Check your agent’s docs and adjust the shape.',
   },
 ]
+
+type InstallState =
+  | { phase: 'idle' }
+  | { phase: 'installing' }
+  | { phase: 'done'; path: string; already: boolean }
+  | { phase: 'failed'; message: string }
+
+type InstallResponse =
+  | { ok: true; path: string; status: 'installed' | 'updated' | 'already-installed' }
+  | { ok: false; message: string }
+
+async function requestInstall(agent: string): Promise<InstallState> {
+  try {
+    const response = await fetch(apiUrl('/api/agent-install'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ agent }),
+    })
+    const body: InstallResponse = await response.json()
+    if (body.ok) return { phase: 'done', path: body.path, already: body.status === 'already-installed' }
+    return { phase: 'failed', message: body.message }
+  } catch {
+    return {
+      phase: 'failed',
+      message: 'Could not reach the local Sheet server. Make sure it is running, then try again. Nothing was changed.',
+    }
+  }
+}
 
 const EXAMPLE_PROMPTS = [
   'Create a hero section with a headline and two buttons in Sheet',
@@ -184,6 +139,140 @@ function CodeBlock({ code, file }: { code: string; file?: string }) {
       </div>
       <pre className="overflow-x-auto p-3 font-mono text-xs leading-relaxed text-foreground">{code}</pre>
     </div>
+  )
+}
+
+function InstallButton({ agent }: { agent: Agent }) {
+  const [state, setState] = useState<InstallState>({ phase: 'idle' })
+  const installing = state.phase === 'installing'
+  const done = state.phase === 'done'
+
+  const install = async () => {
+    setState({ phase: 'installing' })
+    setState(await requestInstall(agent.key))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        disabled={installing}
+        onClick={() => void install()}
+        className="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-line bg-foreground px-4 text-xs font-medium text-background transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-70"
+      >
+        {installing ? <Spinner className="size-3.5" /> : done ? <CheckIcon className="size-3.5" /> : null}
+        {installing ? `Connecting ${agent.name}…` : done ? `Connected to ${agent.name}` : `Connect ${agent.name}`}
+      </button>
+      {state.phase === 'done' ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {state.already ? 'Already set up in' : 'Added to'} <span className="font-mono">{state.path}</span>. {agent.restartHint}
+        </p>
+      ) : null}
+      {state.phase === 'failed' ? (
+        <p role="alert" className="text-xs leading-relaxed text-destructive-foreground">{state.message}</p>
+      ) : null}
+    </div>
+  )
+}
+
+type SkillEntry =
+  | { label: string; path: string; status: 'installed' | 'updated' }
+  | { label: string; path: string; status: 'skipped' | 'failed'; message: string }
+
+type SkillState =
+  | { phase: 'idle' }
+  | { phase: 'installing' }
+  | { phase: 'done'; entries: SkillEntry[] }
+  | { phase: 'failed'; message: string; entries: SkillEntry[] }
+
+async function requestSkillInstall(): Promise<SkillState> {
+  try {
+    const response = await fetch(apiUrl('/api/skill-install'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    })
+    const body: { ok: boolean; entries?: SkillEntry[]; message?: string } = await response.json()
+    const entries = body.entries ?? []
+    if (body.ok) return { phase: 'done', entries }
+    return {
+      phase: 'failed',
+      message: body.message ?? 'Some folders could not be written. The ones listed as installed are fine.',
+      entries,
+    }
+  } catch {
+    return {
+      phase: 'failed',
+      message: 'Could not reach the local Sheet server. Make sure it is running, then try again. Nothing was changed.',
+      entries: [],
+    }
+  }
+}
+
+/** One click copies the Sheet design skill into every agent skills folder on this machine. */
+function SkillInstall() {
+  const [state, setState] = useState<SkillState>({ phase: 'idle' })
+  const installing = state.phase === 'installing'
+  const entries = state.phase === 'done' || state.phase === 'failed' ? state.entries : []
+
+  const install = async () => {
+    setState({ phase: 'installing' })
+    setState(await requestSkillInstall())
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-line pt-4">
+      <h4 className="text-xs font-medium text-foreground">Install the design skill</h4>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Teaches your agent how to design well in Sheet. Installs into the skills folder of every agent found on this machine.
+      </p>
+      <button
+        type="button"
+        disabled={installing}
+        onClick={() => void install()}
+        className="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-line bg-foreground px-4 text-xs font-medium text-background transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-70"
+      >
+        {installing ? <Spinner className="size-3.5" /> : state.phase === 'done' ? <CheckIcon className="size-3.5" /> : null}
+        {installing ? 'Installing skill…' : state.phase === 'done' ? 'Skill installed' : 'Install skill'}
+      </button>
+      {entries.length > 0 ? (
+        <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {entries.map((entry) => (
+            <li key={entry.path} className="flex min-w-0 items-baseline gap-2">
+              <span className="w-16 shrink-0 text-foreground">
+                {entry.status === 'installed' ? 'Added' : entry.status === 'updated' ? 'Updated' : entry.status === 'skipped' ? 'Skipped' : 'Failed'}
+              </span>
+              <span className="min-w-0 truncate" title={entry.status === 'failed' ? entry.message : entry.path}>
+                {entry.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {state.phase === 'failed' ? <p role="alert" className="text-xs leading-relaxed text-destructive-foreground">{state.message}</p> : null}
+    </div>
+  )
+}
+
+function ManualSteps({ steps }: { steps: Step[] }) {
+  return (
+    <ol className="flex flex-col">
+      {steps.map((step, index) => (
+        <li key={step.title} className="relative flex gap-3 pb-5 last:pb-0">
+          {index < steps.length - 1 ? (
+            <span className="absolute start-[0.6875rem] top-6 bottom-0 w-px bg-line" aria-hidden="true" />
+          ) : null}
+          <span className="relative grid size-[1.375rem] shrink-0 place-items-center rounded-full border border-line bg-surface-2 font-mono text-[10px] text-muted-foreground">
+            {index + 1}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <h4 className="text-sm font-medium leading-[1.375rem] text-foreground">{step.title}</h4>
+            {step.body ? <p className="text-xs leading-relaxed text-muted-foreground">{step.body}</p> : null}
+            {step.code ? <CodeBlock code={step.code} file={step.file} /> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -237,34 +326,10 @@ export function ConnectAgent({ className }: { className?: string }) {
         })}
       </div>
 
-      {/* Steps */}
-      <ol className="flex flex-col">
-        {agent.steps.map((step, index) => (
-          <li key={step.title} className="relative flex gap-3 pb-5 last:pb-0">
-            {index < agent.steps.length - 1 ? (
-              <span className="absolute start-[0.6875rem] top-6 bottom-0 w-px bg-line" aria-hidden="true" />
-            ) : null}
-            <span className="relative grid size-[1.375rem] shrink-0 place-items-center rounded-full border border-line bg-surface-2 font-mono text-[10px] text-muted-foreground">
-              {index + 1}
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <h4 className="text-sm font-medium leading-[1.375rem] text-foreground">{step.title}</h4>
-              {step.body ? <p className="text-xs leading-relaxed text-muted-foreground">{step.body}</p> : null}
-              {step.action ? (
-                <a
-                  href={step.action.href}
-                  className="inline-flex h-8 w-fit items-center gap-2 rounded-lg border border-line bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90 active:scale-[0.98]"
-                >
-                  {step.action.label}
-                  <ExternalLinkIcon className="size-3.5" />
-                </a>
-              ) : null}
-              {step.code ? <CodeBlock code={step.code} file={step.file} /> : null}
-            </div>
-          </li>
-        ))}
-      </ol>
-      {agent.note ? <p className="text-xs leading-relaxed text-muted-foreground">{agent.note}</p> : null}
+      {agent.manual ? <ManualSteps steps={agent.manual} /> : <InstallButton key={agent.key} agent={agent} />}
+      {agent.note ?<p className="text-xs leading-relaxed text-muted-foreground">{agent.note}</p> : null}
+
+      <SkillInstall />
 
       {/* First prompt */}
       <div className="flex flex-col gap-2 border-t border-line pt-4">
