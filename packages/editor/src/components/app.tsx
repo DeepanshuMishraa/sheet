@@ -13,7 +13,7 @@ import { WebCanvasEditor } from './web-editor'
 import { type DesignSummary } from '../lib/designs'
 import { orpc } from '@sheet/rpc/client'
 import { Button } from '@sheet/ui/button'
-import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
+import { Loader } from '@sheet/ui/loader'
 import {
   Dialog,
   DialogDescription,
@@ -161,23 +161,7 @@ export function CanvasApp({
     return (
       <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
         <main className="grid min-h-0 flex-1 place-items-center">
-          <div className="flex flex-col items-center gap-5">
-            <img
-              src="/app-icon.png"
-              alt="Sheet"
-              width={48}
-              height={48}
-              className="size-12"
-              draggable={false}
-            />
-            <DotMatrixLoader
-              rows={3}
-              columns={5}
-              className="size-8 text-foreground"
-              aria-label={progress}
-            />
-            <p className="text-xs text-muted-foreground">{progress}</p>
-          </div>
+          <Loader label={progress} />
         </main>
       </div>
     )

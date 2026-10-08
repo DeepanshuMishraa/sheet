@@ -1,9 +1,8 @@
-import { DotMatrixLoader } from './dot-matrix-loader.tsx'
+import { Loader } from './loader.tsx'
 import { cn } from '../lib/utils.ts'
 
 /**
- * A full-area loading state: the dot-matrix mark, centred, with an optional
- * caption underneath. For blank screens — route transitions, boot, a canvas
+ * A full-area loading state: the loader, centred. For blank screens — route transitions, boot, a canvas
  * that has not opened yet — where a skeleton would have no shape to mimic.
  */
 export function AppLoading({
@@ -16,9 +15,6 @@ export function AppLoading({
 }): React.ReactElement {
   return (
     <div
-      role="status"
-      aria-label={label ?? 'Loading'}
-      aria-busy="true"
       className={cn(
         // `h-full` centres against the flex-determined route outlet; the
         // minimum keeps the mark visible where the outlet has no height yet.
@@ -26,17 +22,7 @@ export function AppLoading({
         className,
       )}
     >
-      <div className="flex flex-col items-center gap-4">
-        <DotMatrixLoader
-          aria-hidden="true"
-          rows={3}
-          columns={3}
-          className="size-8 text-foreground"
-        />
-        {label ? (
-          <p className="text-xs text-muted-foreground">{label}</p>
-        ) : null}
-      </div>
+      <Loader label={label ?? 'Loading'} />
     </div>
   )
 }

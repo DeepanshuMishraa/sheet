@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabs, and whatever the current screen puts at the far end. */}
       <header
         data-tauri-drag-region
-        className="flex h-11 shrink-0 select-none items-center gap-2 bg-frame ps-20 pe-3"
+        className="flex h-[31px] shrink-0 select-none items-center gap-2 bg-frame ps-[78px] pe-3"
       >
         {isEditor ? (
           // The editor fills this with its own panel switch.
@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={() => setSidebar(!collapsed)}
             data-cuelume-select=""
             data-cuelume-emphasis="subtle"
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90"
+            className="flex size-[24px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90"
           >
             <PanelLeftIcon className="size-4" />
           </button>
@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <div className={cn('min-w-0 flex-1 pb-1.5 pe-1.5', sidebarHidden ? 'ps-1.5' : 'ps-0')}>
+        <div className={cn('min-w-0 flex-1 pb-1.5 pe-1.5 pt-1', sidebarHidden ? 'ps-1.5' : 'ps-0')}>
           <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-background shadow-panel">
             <div className={cn('min-h-0 flex-1', isEditor ? 'overflow-hidden' : 'overflow-y-auto')}>
               <ChromeSlotsContext.Provider value={slots}>{children}</ChromeSlotsContext.Provider>

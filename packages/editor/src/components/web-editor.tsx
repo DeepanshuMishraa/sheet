@@ -93,6 +93,7 @@ import { WebDocumentView } from '@sheet/canvas/web-react'
 import { AssetsPanel, assetSrc } from './assets-panel'
 import { useRegisterOpenTab } from '../lib/open-tabs'
 import { useChromeSlots } from './chrome-slots'
+import { Sound } from '@sheet/ui/sound'
 import { createPortal } from 'react-dom'
 import { useDesignComments } from '../lib/use-comments'
 import { CommentPin, CommentThread, CommentsList } from './comments'
@@ -114,7 +115,7 @@ import {
   type BuiltInShortcutId,
   type ShortcutConfig,
 } from '../lib/shortcuts'
-import { subscribeCanvasChanges } from '../lib/canvas-events'
+import { subscribeCanvasChanges, type AgentActivity } from '../lib/canvas-events'
 
 const ELEMENT_TAGS = [
   'div',
@@ -1813,6 +1814,7 @@ export function WebCanvasEditor({
     () => pageLayerIds(initialDocument, resolvePageId(initialDocument, null))[0] ?? null,
   )
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [agentActivity, setAgentActivity] = useState<AgentActivity | null>(null)
   useRegisterOpenTab({ id: designId, name: document.name || name || 'Untitled' })
   const [selectionRect, setSelectionRect] = useState<OverlayRect | null>(null)
   const [hoverRect, setHoverRect] = useState<OverlayRect | null>(null)
@@ -1927,10 +1929,31 @@ export function WebCanvasEditor({
     () => [...new Set(comments.filter((comment) => !comment.resolved).map((comment) => comment.nodeId))],
     [comments],
   )
+  const agentNodeIds = useMemo(() => agentActivity?.nodeIds.slice(0, 8) ?? [], [agentActivity])
   useEffect(() => {
-    pinIdsRef.current = threadNodeId && !openCommentNodeIds.includes(threadNodeId) ? [...openCommentNodeIds, threadNodeId] : openCommentNodeIds
+    const ids = new Set([...openCommentNodeIds, ...agentNodeIds])
+    if (threadNodeId) ids.add(threadNodeId)
+    pinIdsRef.current = [...ids]
     scheduleMeasure()
-  }, [openCommentNodeIds, threadNodeId, scheduleMeasure])
+  }, [openCommentNodeIds, agentNodeIds, threadNodeId, scheduleMeasure])
+
+  // The indicator clears itself when the server's window for it runs out, and a
+  // finished run is marked with one quiet cue.
+  useEffect(() => {
+    if (!agentActivity) return
+    const wait = Math.max(0, agentActivity.expiresAt - Date.now())
+    const timer = window.setTimeout(
+      () => setAgentActivity((current) => (current?.id === agentActivity.id && current.phase === agentActivity.phase ? null : current)),
+      wait,
+    )
+    return () => window.clearTimeout(timer)
+  }, [agentActivity])
+  const agentWasWorkingRef = useRef(false)
+  useEffect(() => {
+    const phase = agentActivity?.phase
+    if (agentWasWorkingRef.current && phase === 'settled') Sound.ready()
+    agentWasWorkingRef.current = phase === 'working'
+  }, [agentActivity?.phase])
 
   const onMaterialize = useCallback((element: HTMLDivElement) => {
     hostRef.current = element
@@ -1973,7 +1996,7 @@ export function WebCanvasEditor({
     syncLatestRef.current = sync
     // Any announcement triggers a sync (the revision check happens on the
     // fetched result), and every (re)connect resyncs what a dropped stream missed.
-    const stop = subscribeCanvasChanges(designId, sync, { draftId, onReady: sync })
+    const stop = subscribeCanvasChanges(designId, sync, { draftId, onReady: sync, onAgentActivity: setAgentActivity })
     return () => {
       active = false
       stop()
@@ -2970,7 +2993,7 @@ export function WebCanvasEditor({
 
   const slots = useChromeSlots()
   const barButtonClassName =
-    'flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 aria-pressed:text-foreground'
+    'flex size-[24px] shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 aria-pressed:text-foreground'
   const panelToggle = (
     <button
       type="button"
@@ -2987,6 +3010,27 @@ export function WebCanvasEditor({
   )
   const trailingControls = (
     <>
+      {agentActivity ? (
+        <span
+          role="status"
+          aria-live="polite"
+          className={cn(
+            'flex h-[24px] min-w-0 items-center gap-1.5 truncate rounded-md px-2 text-xs transition-opacity duration-300',
+            agentActivity.phase === 'working' ? 'text-foreground' : 'text-muted-foreground',
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              'size-1.5 shrink-0 rounded-full bg-cx-accent',
+              agentActivity.phase === 'working' ? 'animate-pulse' : 'opacity-50',
+            )}
+          />
+          <span className="truncate">
+            {agentActivity.phase === 'working' ? agentActivity.label : 'Agent finished'}
+          </span>
+        </span>
+      ) : null}
       {notice ? (
         <div className="flex min-w-0 max-w-[45%] shrink items-center">
           <span
@@ -3038,7 +3082,7 @@ export function WebCanvasEditor({
 
       {/* Main Workspace Layout */}
       <div className={cn(
-        'grid min-h-0 min-w-0 flex-1 gap-2 p-2 pt-0',
+        'grid min-h-0 min-w-0 flex-1',
         leftPanelOpen && rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
         leftPanelOpen && !rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)]',
         !leftPanelOpen && rightPanelOpen && 'grid-cols-[minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
@@ -3046,7 +3090,7 @@ export function WebCanvasEditor({
       )}>
         {/* Left Sidebar: Pages, Layers, Theme */}
         {leftPanelOpen ? (
-          <aside aria-label="Layers" className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-foreground shadow-panel">
+          <aside aria-label="Layers" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-e border-line bg-surface text-foreground">
             {/* The file's name, and the switch that hides this panel. */}
             <div className="flex h-12 shrink-0 items-center justify-between gap-2 ps-4 pe-2.5">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -3273,7 +3317,7 @@ export function WebCanvasEditor({
           ref={stageRef}
           style={stageDots(camera)}
           className={cn(
-            'relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]',
+            'relative min-h-0 flex-1 overflow-hidden bg-cx-canvas',
             isPanningActive ? 'cursor-grab active:cursor-grabbing' : tool === 'comment' ? 'cursor-crosshair' : 'cursor-default',
           )}
           onPointerDown={(event) => { startDrawing(event); if (!drawingRef.current) startPan(event) }}
@@ -3573,6 +3617,23 @@ export function WebCanvasEditor({
             </div>
           ) : null}
 
+          {/* The agent's current target, ringed while it works */}
+          {agentActivity
+            ? agentNodeIds.map((nodeId) => {
+                const rect = pinRects[nodeId]
+                if (!rect) return null
+                return (
+                  <div
+                    key={nodeId}
+                    aria-hidden="true"
+                    className="cx-agent-ring pointer-events-none z-20"
+                    data-phase={agentActivity.phase}
+                    style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+                  />
+                )
+              })
+            : null}
+
           {/* Comment pins and the open thread */}
           {openCommentNodeIds.map((nodeId) => {
             const rect = pinRects[nodeId]
@@ -3615,7 +3676,7 @@ export function WebCanvasEditor({
 
         {/* Right Inspector Panel: Design (Image 2 & 4) */}
         {rightPanelOpen ? (
-        <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-foreground shadow-panel">
+        <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 text-sm font-medium text-foreground">
             <span>Design</span>
             <button

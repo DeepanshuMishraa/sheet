@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@sheet/ui/dropdown-menu'
 import { Input } from '@sheet/ui/input'
-import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
+import { Loader } from '@sheet/ui/loader'
 import { Skeleton } from '@sheet/ui/skeleton'
 import { Spinner } from '@sheet/ui/spinner'
 import { orpc } from '@sheet/rpc/client'
@@ -145,7 +145,7 @@ function FileCardPreview({ designId, revision }: { designId: string; revision: n
   return (
     <span className="relative flex size-full items-center justify-center">
       {!loaded && showLoader ? (
-        <DotMatrixLoader className="size-5 text-muted-foreground" />
+        <Loader label={null} className="text-muted-foreground" />
       ) : null}
       <WebDocumentPreview
         document={doc}

@@ -135,7 +135,7 @@ export function DotMatrixLoader({
       fill="none"
       role="status"
       aria-label="Loading"
-      className={cn('size-4 shrink-0 text-current', className)}
+      className={cn('size-[14px] shrink-0 text-current', className)}
       style={{
         ...style,
         ['--dot-min-opacity' as string]: inactiveOpacity.toString(),

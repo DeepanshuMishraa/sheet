@@ -10,6 +10,7 @@ Select tools, preserve the target, and finish safely. Grounded in
 - [Create a new design](#create-a-new-design)
 - [Edit an existing design](#edit-an-existing-design)
 - [Use branches safely](#use-branches-safely)
+- [Work from element comments](#work-from-element-comments)
 - [Validate the visual result](#validate-the-visual-result)
 - [Export](#export)
 - [Failure guide](#failure-guide)
@@ -42,6 +43,7 @@ your next `applyWebTransaction`.
 | `listAssets` | Uploaded image assets (use as `/api/asset/<id>`) |
 | `listPages` | Pages: `pageId`, name, size |
 | `listVersions` | History for Main or a branch |
+| `listComments` | Comments pinned to elements: open by default, filter by `nodeId`, `status` (`open`, `resolved`, `all`); each carries the element's current tag, id, class, and text |
 
 ### Authoring
 
@@ -64,6 +66,7 @@ your next `applyWebTransaction`.
 | Tool | Use |
 |---|---|
 | `createDesign` / `renameDesign` | Manage design identity |
+| `resolveComment` | Mark a comment resolved after acting on it (`resolved: false` reopens). Does not touch the document or its revision |
 | `deleteDesign` | Archive after explicit confirmation (`confirmed: true`) |
 | `listBranches` / `createBranch` | Inspect or fork Main into an isolated branch |
 | `compareBranch` | Field-level semantic comparison against Main |
@@ -127,6 +130,27 @@ Pass those exact revisions to `applyBranch` as `expectedMainRevision` and
 
 Never propose just to mark work done: proposing freezes the branch. Never apply
 merely because it looks good unless the request authorizes changing Main.
+
+## Work from element comments
+
+Comments are notes people pin to one element of a design. They are stored beside
+the document, so they never show up in `getWebDocument`, HTML, CSS, or exports,
+and answering one is an ordinary edit.
+
+1. `listComments { designId }` for open comments, or add `nodeId` to read one
+   element. Use `status: "all"` to see what was already resolved. Add the same
+   `draftId` you use for edits when working on a branch.
+2. For each comment, read the named node with `getWebDocument` (or rely on the
+   `element` summary for a quick look) and decide whether the request is clear.
+3. Make the smallest change that answers it: `node.patch` for one element,
+   `rule.patch` only when the comment is about a shared class and the blast
+   radius is acceptable. Send the revision you last read.
+4. Check the result with `getWebScreenshot` or the structural path below.
+5. `resolveComment { designId, commentId }` for each comment you answered. Leave
+   unclear, declined, or `element.exists: false` comments open and say why.
+
+A comment on a node inside a component template is about the template; change
+the template, not one instance, unless the comment is about a single instance.
 
 ## Validate the visual result
 

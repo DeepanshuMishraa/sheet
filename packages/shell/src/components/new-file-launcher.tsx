@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { SearchIcon } from '@sheet/ui/icons'
-import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
+import { Loader } from '@sheet/ui/loader'
 import { Spinner } from '@sheet/ui/spinner'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
@@ -50,7 +50,7 @@ function LauncherThumbnail({ designId, revision }: { designId: string; revision:
   return (
     <div className="relative flex aspect-[16/10] w-18 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-cx-canvas sm:w-22">
       {!loaded && showLoader ? (
-        <DotMatrixLoader className="size-4 text-muted-foreground" />
+        <Loader label={null} className="text-muted-foreground" />
       ) : null}
       <WebDocumentPreview
         document={doc}

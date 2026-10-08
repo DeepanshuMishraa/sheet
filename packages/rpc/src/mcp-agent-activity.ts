@@ -45,6 +45,15 @@ const TOOL_LABELS: Record<string, string> = {
   compareBranch: 'Comparing a branch',
   applyBranch: 'Applying a branch',
   closeBranch: 'Closing a branch',
+  getWebDocument: 'Reading the design',
+  getWebHTML: 'Reading the markup',
+  getWebCSS: 'Reading the styles',
+  getWebScreenshot: 'Taking a screenshot',
+  applyWebTransaction: 'Editing the design',
+  styleIcon: 'Styling an icon',
+  exportDesign: 'Exporting the design',
+  listComments: 'Reading comments',
+  resolveComment: 'Resolving a comment',
 }
 
 /** The overlay rings one node; the rest are only there to pick a visible one. */
@@ -70,6 +79,16 @@ function pushRef(into: string[], value: unknown) {
   if (record(value)) pushId(into, value.nodeId)
 }
 
+/** Nodes a web transaction touches: the `id` of node operations and the id of an inserted node. */
+function pushTransactionIds(into: string[], transaction: unknown) {
+  if (!record(transaction) || !Array.isArray(transaction.operations)) return
+  for (const operation of transaction.operations) {
+    if (!record(operation) || typeof operation.type !== 'string') continue
+    if (operation.type.startsWith('node.')) pushId(into, operation.id)
+    if (record(operation.node)) pushId(into, operation.node.id)
+  }
+}
+
 /**
  * Which nodes this call is about, read from the arguments rather than the
  * result: the editor can ring them the moment the call starts instead of after
@@ -91,6 +110,8 @@ export function agentActivityNodeIds(args: unknown) {
   pushRef(ids, args.ref)
   pushRef(ids, args.parent)
   pushRef(ids, args.root)
+  pushId(ids, args.nodeId)
+  pushTransactionIds(ids, args.transaction)
   pushId(ids, args.componentId)
   pushId(ids, args.pageId)
   return ids.slice(0, MAX_NODE_IDS)

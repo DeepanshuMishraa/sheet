@@ -65,7 +65,7 @@ export function ExportMenu({
         aria-label="Export design"
         title="Export design"
         disabled={busy !== null}
-        className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-surface px-2.5 text-xs text-foreground shadow-lift outline-none transition-[box-shadow,transform] duration-150 ease-smooth hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring active:scale-95 disabled:opacity-60"
+        className="flex h-[24px] shrink-0 items-center gap-1.5 rounded-md bg-surface px-2 text-xs text-foreground shadow-lift outline-none transition-[box-shadow,transform] duration-150 ease-smooth hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring active:scale-95 disabled:opacity-60"
       >
         <DownloadIcon className="size-3.5 text-muted-foreground" />
         <span className="max-md:sr-only">{busy ? 'Exporting…' : 'Export'}</span>

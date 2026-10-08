@@ -140,11 +140,11 @@
           "description": "One atomic batch; applied fully or not at all."
         },
         "dryRun": {
-          "description": "Validate only: check every operation without saving. Reports all problems at once.",
+          "description": "Validate only: check every operation (and apply it in memory against Main) without saving. Reports all problems at once.",
           "type": "boolean"
         },
         "verbose": {
-          "description": "Also return the full updated document. Off by default.",
+          "description": "Also return the full updated document. Off by default: the response is just applied, revision and changedNodeIds.",
           "type": "boolean"
         }
       },
@@ -954,6 +954,79 @@
       "required": [
         "designId",
         "nodeId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "listComments",
+    "description": "Read the comments a person pinned to elements of a design. Each comment names the element it is about (nodeId, plus its current tag, text and id/class so you can find it without a second call), who wrote it, and whether it is resolved. Pass nodeId to read only the comments on one element; by default only open comments come back. Treat each comment as an instruction from the designer about that element: read the node with getWebDocument, make the change with applyWebTransaction, then call resolveComment. Comments sit beside the document and are never part of the HTML, CSS or JSON exports.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "nodeId": {
+          "description": "Only comments on this element",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "status": {
+          "description": "open (default), resolved or all",
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "all"
+          ]
+        },
+        "draftId": {
+          "description": "Read element details from this branch instead of Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "resolveComment",
+    "description": "Mark a comment as resolved once you have acted on it, or pass resolved: false to reopen it. The designer sees the change in the editor straight away. Does not edit the design.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "commentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Comment id from listComments"
+        },
+        "resolved": {
+          "description": "Defaults to true",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "designId",
+        "commentId"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     }

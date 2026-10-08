@@ -227,7 +227,8 @@ export function CommentThread({
           data-cuelume-emphasis="subtle"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+            // Enter sends, Shift+Enter breaks the line. Skip while an input method is composing.
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
               void submit()
             }
@@ -240,7 +241,7 @@ export function CommentThread({
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-2xs text-muted-foreground">⌘↵ to send</span>
+          <span className="text-2xs text-muted-foreground">↵ to send · ⇧↵ new line</span>
           <Button size="sm" disabled={!draft.trim() || saving} loading={saving} onClick={() => void submit()}>
             Comment
           </Button>

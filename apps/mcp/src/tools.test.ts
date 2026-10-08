@@ -12,7 +12,7 @@ import {
 describe('MCP tool manifest', () => {
   test('embeds the complete TypeScript tool manifest', () => {
     const names = toolNames()
-    expect(names).toHaveLength(28)
+    expect(names).toHaveLength(30)
     expect(names[0]).toBe('getUsage')
     expect(names).not.toContain('getScreenshot')
     expect(names).not.toContain('createPage')
@@ -32,6 +32,8 @@ describe('MCP tool manifest', () => {
     expect(names).toContain('applyWebTransaction')
     expect(names).toContain('createBranch')
     expect(names).toContain('applyBranch')
+    expect(names).toContain('listComments')
+    expect(names).toContain('resolveComment')
     expect(names.at(-1)).toBe('listAssets')
     for (const name of validationSchemas.keys()) {
       expect(names).toContain(name)

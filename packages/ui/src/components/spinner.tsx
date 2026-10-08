@@ -12,7 +12,7 @@ export function Spinner({
       aria-label="Loading"
       role="status"
       className={cn(
-        'size-4 shrink-0 text-current motion-safe:animate-[spin_0.7s_linear_infinite] motion-reduce:animate-none',
+        'size-[14px] shrink-0 text-current motion-safe:animate-[spin_0.7s_linear_infinite] motion-reduce:animate-none',
         className,
       )}
       {...props}

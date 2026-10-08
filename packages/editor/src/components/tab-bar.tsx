@@ -80,7 +80,7 @@ export function DocumentTabBar({
         to="/app"
         hasRouter={hasRouter}
         className={cn(
-          'flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-[0.985]',
+          'flex h-[24px] shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-[0.985]',
           isDashboard
             ? 'bg-surface font-medium text-foreground shadow-lift'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -102,7 +102,7 @@ export function DocumentTabBar({
             <div
               key={tab.id}
               className={cn(
-                'group flex h-7 min-w-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth',
+                'group flex h-[24px] min-w-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth',
                 isActive && 'shrink-0',
                 isActive
                   ? 'bg-surface font-medium text-foreground shadow-lift'
@@ -141,7 +141,7 @@ export function DocumentTabBar({
         to="/app/new"
         hasRouter={hasRouter}
         className={cn(
-          'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-95',
+          'flex size-[24px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-95',
           isLauncher && 'bg-surface text-foreground shadow-lift',
         )}
         aria-label="New tab"
