@@ -3,6 +3,7 @@
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import type React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 
 export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
   PopoverPrimitive.createHandle;
@@ -47,6 +48,7 @@ export function PopoverPopup({
 }): React.ReactElement {
   return (
     <PopoverPrimitive.Portal {...portalProps}>
+      <OpenCue emphasis="subtle" />
       <PopoverPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
@@ -58,7 +60,7 @@ export function PopoverPopup({
       >
         <PopoverPrimitive.Popup
           className={cn(
-            "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) overflow-hidden rounded-lg border-0 bg-surface-2 text-popover-foreground shadow-panel-lg outline-none transition-[width,height,scale,opacity] has-data-[slot=calendar]:rounded-lg data-starting-style:scale-98 data-starting-style:opacity-0",
+            "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) overflow-hidden rounded-lg border-0 bg-popover text-popover-foreground shadow-panel-lg outline-none transition-[width,height,scale,opacity] has-data-[slot=calendar]:rounded-lg data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.98] data-ending-style:opacity-0 duration-150 ease-smooth",
             tooltipStyle &&
               "w-fit text-balance rounded-md text-xs",
             className,

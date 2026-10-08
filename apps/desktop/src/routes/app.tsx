@@ -1,12 +1,4 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
-import { AppShell } from '@sheet/shell/app-page-shell'
 
-export const Route = createFileRoute('/app')({ component: AppLayout })
-
-function AppLayout() {
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  )
-}
+/** The shell around `/app` pages is mounted once, in the root route. */
+export const Route = createFileRoute('/app')({ component: Outlet })

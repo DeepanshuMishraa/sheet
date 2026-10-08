@@ -8,7 +8,7 @@ import { cn } from "../lib/utils.ts";
 import { Spinner } from "./spinner.tsx";
 
 export const buttonVariants = cva(
-  "relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border font-medium text-sm outline-none transition-all duration-150 ease-out active:scale-[0.98] pointer-coarse:after:absolute pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-56 data-loading:select-none data-loading:text-transparent sm:text-xs [&_svg:not([class*='opacity-'])]:opacity-72 [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border font-medium text-sm outline-none transition-[background-color,box-shadow,color,transform] duration-150 ease-smooth active:scale-[0.97] pointer-coarse:after:absolute pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-56 data-loading:select-none data-loading:text-transparent sm:text-xs [&_svg:not([class*='opacity-'])]:opacity-72 [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     defaultVariants: {
       size: "default",
@@ -31,18 +31,18 @@ export const buttonVariants = cva(
       },
       variant: {
         default:
-          "border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 hover:shadow-sm active:shadow-none *:data-[slot=button-loading-indicator]:text-primary-foreground",
+          "border-transparent bg-primary text-primary-foreground shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/18%)] hover:bg-primary/92 hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_4px_10px_-3px_--alpha(var(--color-black)/30%),inset_0_1px_0_--alpha(var(--color-white)/22%)] active:shadow-none *:data-[slot=button-loading-indicator]:text-primary-foreground",
         destructive:
-          "border-destructive bg-destructive text-white shadow-xs hover:bg-destructive/90 hover:shadow-sm active:shadow-none *:data-[slot=button-loading-indicator]:text-white",
+          "border-transparent bg-destructive text-white shadow-[0_0_0_1px_--alpha(var(--color-black)/20%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/22%)] hover:bg-destructive/92 hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/20%),0_4px_10px_-3px_--alpha(var(--destructive)/45%),inset_0_1px_0_--alpha(var(--color-white)/26%)] active:shadow-none *:data-[slot=button-loading-indicator]:text-white",
         "destructive-outline":
-          "border-input bg-transparent text-destructive-foreground hover:border-destructive/32 hover:bg-destructive/8 data-pressed:border-destructive/32 data-pressed:bg-destructive/8 *:data-[slot=button-loading-indicator]:text-foreground",
+          "border-transparent bg-transparent text-destructive-foreground shadow-hairline hover:bg-destructive/8 hover:shadow-[0_0_0_1px_--alpha(var(--destructive)/40%)] data-pressed:bg-destructive/8 *:data-[slot=button-loading-indicator]:text-foreground",
         ghost:
           "border-transparent text-foreground hover:bg-accent data-pressed:bg-accent *:data-[slot=button-loading-indicator]:text-foreground",
         link: "border-transparent text-foreground underline-offset-4 hover:underline data-pressed:underline *:data-[slot=button-loading-indicator]:text-foreground",
         outline:
-          "border-line bg-surface text-foreground shadow-xs hover:bg-surface-2 hover:border-line/90 *:data-[slot=button-loading-indicator]:text-foreground",
+          "border-transparent bg-surface text-foreground shadow-lift hover:shadow-lift-hover active:shadow-lift *:data-[slot=button-loading-indicator]:text-foreground",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/90 hover:shadow-sm active:shadow-none *:data-[slot=button-loading-indicator]:text-secondary-foreground [:active,[data-pressed]]:bg-secondary/80",
+          "border-transparent bg-secondary text-secondary-foreground shadow-hairline hover:bg-secondary/80 hover:shadow-lift active:shadow-none *:data-[slot=button-loading-indicator]:text-secondary-foreground",
       },
     },
   },
@@ -84,6 +84,10 @@ export function Button({
     "aria-disabled": loading || undefined,
     "data-loading": loading ? "" : undefined,
     "data-slot": "button",
+    // The primary action is heard at full weight; everything quieter is subtle.
+    "data-cuelume-tap": "",
+    "data-cuelume-emphasis":
+      variant === undefined || variant === "default" ? undefined : "subtle",
     disabled: isDisabled,
     type: typeValue,
   };

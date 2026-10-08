@@ -25,6 +25,8 @@ function TabLink({
   if (hasRouter) {
     return (
       <Link
+        data-cuelume-navigate=""
+        data-cuelume-emphasis="subtle"
         to={to as any}
         params={params as any}
         className={className}
@@ -42,7 +44,7 @@ function TabLink({
     }
   }
   return (
-    <a href={href} className={className} aria-label={ariaLabel} title={title}>
+    <a href={href} data-cuelume-navigate="" data-cuelume-emphasis="subtle" className={className} aria-label={ariaLabel} title={title}>
       {children}
     </a>
   )
@@ -63,6 +65,7 @@ export function DocumentTabBar({
     hasRouter = false
   }
   const { tabs, closeTab } = useOpenTabs(activeDocument)
+  const activeId = activeDocument?.id ?? pathname.match(/^\/design\/([^/]+)/)?.[1]
 
   const isDashboard =
     pathname === '/app' ||
@@ -77,10 +80,10 @@ export function DocumentTabBar({
         to="/app"
         hasRouter={hasRouter}
         className={cn(
-          'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-normal transition-all duration-150 ease-out active:scale-[0.985]',
+          'flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-[0.985]',
           isDashboard
-            ? 'border border-line/80 bg-surface font-medium text-foreground shadow-xs'
-            : 'border border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
+            ? 'bg-surface font-medium text-foreground shadow-lift'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         aria-label="Back to dashboard"
       >
@@ -94,16 +97,16 @@ export function DocumentTabBar({
       {/* Open Document Tabs */}
       <div className="flex min-w-0 items-center gap-1">
         {tabs.map((tab) => {
-          const isActive = activeDocument?.id === tab.id
+          const isActive = activeId === tab.id
           return (
             <div
               key={tab.id}
               className={cn(
-                'group flex min-w-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-normal transition-all duration-150 ease-out',
+                'group flex h-7 min-w-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth',
                 isActive && 'shrink-0',
                 isActive
-                  ? 'border border-line/80 bg-surface font-medium text-foreground shadow-xs'
-                  : 'border border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
+                  ? 'bg-surface font-medium text-foreground shadow-lift'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
               <TabLink
@@ -138,8 +141,8 @@ export function DocumentTabBar({
         to="/app/new"
         hasRouter={hasRouter}
         className={cn(
-          'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 ease-out hover:bg-surface hover:text-foreground active:scale-95',
-          isLauncher && 'border border-line/80 bg-surface text-foreground shadow-xs',
+          'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-95',
+          isLauncher && 'bg-surface text-foreground shadow-lift',
         )}
         aria-label="New tab"
         title="New tab"

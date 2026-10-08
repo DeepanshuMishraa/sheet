@@ -5,7 +5,7 @@ import {
   ClockIcon,
   LayoutGridIcon,
   LinkIcon,
-  SearchIcon,
+  PlusIcon,
   SettingsIcon,
   SunIcon,
 } from '@sheet/ui/icons'
@@ -17,13 +17,20 @@ import {
   DropdownMenuTrigger,
 } from '@sheet/ui/dropdown-menu'
 import { cn } from '@sheet/ui/utils'
-import { useDashboardSearchQuery } from '../lib/dashboard-search'
 
-export type AppSection =
-  | 'recents'
-  | 'appearance'
-  | 'integrations'
-  | 'files'
+export type AppSection = 'recents' | 'appearance' | 'integrations' | 'files'
+
+const NAV_ITEMS = [
+  { to: '/app', section: 'recents', label: 'Recents', Icon: ClockIcon },
+  { to: '/app/files', section: 'files', label: 'Files', Icon: LayoutGridIcon },
+  { to: '/app/appearance', section: 'appearance', label: 'Appearance', Icon: SunIcon },
+  { to: '/app/integrations', section: 'integrations', label: 'Integrations', Icon: LinkIcon },
+] as const satisfies ReadonlyArray<{
+  to: string
+  section: AppSection
+  label: string
+  Icon: typeof ClockIcon
+}>
 
 type DesktopProfile = {
   firstName: string
@@ -48,14 +55,30 @@ async function loadDesktopProfile(): Promise<DesktopProfile> {
   return { firstName, imageUrl }
 }
 
-export function AppNavigation({
+/** One row of the sidebar. Selected rows lift; the rest only tint on hover. */
+const rowClassName = (selected: boolean) =>
+  cn(
+    'group/row relative flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-start text-xs outline-none transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+    selected
+      ? 'bg-surface text-foreground shadow-lift'
+      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+  )
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="px-2.5 pb-1.5 pt-4 text-2xs uppercase tracking-[0.14em] text-muted-foreground/70">
+      {children}
+    </p>
+  )
+}
+
+export function AppSidebar({
   active,
   onSettings,
 }: {
-  active: AppSection
-  onSettings?: () => void
+  active: AppSection | null
+  onSettings: () => void
 }) {
-  const [searchQuery, setSearchQuery] = useDashboardSearchQuery()
   const { data: profile } = useQuery({
     queryKey: ['desktop-profile'],
     queryFn: loadDesktopProfile,
@@ -67,194 +90,68 @@ export function AppNavigation({
   const initial = firstName.charAt(0).toUpperCase()
 
   return (
-    <div className="flex h-full flex-col">
-      {/* User profile dropdown at top of sidebar */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-label={`Menu for ${firstName}`}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors duration-fast ease-out hover:bg-surface active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1">
+        <SectionLabel>Home</SectionLabel>
+        <nav className="flex flex-col gap-0.5" aria-label="Main navigation">
+          {NAV_ITEMS.map(({ to, section, label, Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              preload="intent"
+              data-cuelume-navigate=""
+              data-cuelume-emphasis="subtle"
+              aria-current={active === section ? 'page' : undefined}
+              className={rowClassName(active === section)}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </Link>
+          ))}
+          <Link
+            to="/app/new"
+            preload="intent"
+            data-cuelume-tap=""
+            data-cuelume-emphasis="subtle"
+            className={rowClassName(false)}
           >
-            <Avatar className="size-6 shrink-0 rounded-md bg-surface-2 text-2xs font-semibold shadow-xs">
-              {profile?.imageUrl ? (
-                <AvatarImage src={profile.imageUrl} alt={firstName} />
-              ) : null}
-              <AvatarFallback className="bg-zinc-700 text-zinc-200">
-                {initial}
-              </AvatarFallback>
-            </Avatar>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-              {firstName}
-            </span>
-            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-150" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-52">
-          {onSettings ? (
+            <PlusIcon className="size-4 shrink-0" />
+            <span className="truncate">New file</span>
+          </Link>
+        </nav>
+
+      </div>
+
+      <div className="shrink-0 border-t border-line p-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Menu for ${firstName}`}
+              className={cn(rowClassName(false), 'h-9 px-2')}
+            >
+              <Avatar className="size-5 shrink-0 rounded-md text-2xs font-semibold">
+                {profile?.imageUrl ? (
+                  <AvatarImage src={profile.imageUrl} alt="" />
+                ) : null}
+                <AvatarFallback className="bg-foreground text-background">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                {firstName}
+              </span>
+              <ChevronDownIcon className="size-3.5 shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-52">
             <DropdownMenuItem onClick={onSettings}>
               <SettingsIcon data-slot="icon" />
               Settings
             </DropdownMenuItem>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Search Input (no cmd+f as instructed) */}
-      <div className="relative mb-2 mt-3">
-        <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          aria-label="Search files"
-          placeholder="Search"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          className="w-full rounded-lg border border-line bg-surface py-1.5 pe-3 ps-8 text-xs text-foreground shadow-xs transition-[background-color,border-color,box-shadow] duration-fast ease-spring placeholder:text-muted-foreground hover:border-ring/40 focus-visible:border-ring focus-visible:bg-surface focus-visible:shadow-panel focus-visible:outline-none"
-        />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-
-      {/* Nav list */}
-      <nav className="flex flex-col gap-0.5" aria-label="Main Navigation">
-        {/* Recents */}
-        <Link
-          to="/app"
-          preload="intent"
-          aria-current={active === 'recents' ? 'page' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
-            active === 'recents'
-              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
-          )}
-        >
-          <ClockIcon className="size-4 shrink-0" />
-          <span>Recents</span>
-        </Link>
-
-        {/* Files */}
-        <Link
-          to="/app/files"
-          preload="intent"
-          aria-current={active === 'files' ? 'page' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
-            active === 'files'
-              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
-          )}
-        >
-          <LayoutGridIcon className="size-4 shrink-0" />
-          <span>Files</span>
-        </Link>
-
-        {/* Appearance */}
-        <Link
-          to="/app/appearance"
-          preload="intent"
-          aria-current={active === 'appearance' ? 'page' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
-            active === 'appearance'
-              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
-          )}
-        >
-          <SunIcon className="size-4 shrink-0" />
-          <span>Appearance</span>
-        </Link>
-
-        {/* Integrations */}
-        <Link
-          to="/app/integrations"
-          preload="intent"
-          aria-current={active === 'integrations' ? 'page' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-fast ease-out active:scale-[0.985] motion-reduce:transition-none',
-            active === 'integrations'
-              ? 'border-line/80 bg-surface font-medium text-foreground shadow-xs'
-              : 'border-transparent text-muted-foreground hover:bg-surface/60 hover:text-foreground',
-          )}
-        >
-          <LinkIcon className="size-4 shrink-0" />
-          <span>Integrations</span>
-        </Link>
-      </nav>
     </div>
-  )
-}
-
-export function AppAccountMenu({
-  onSettings,
-  compact = false,
-}: {
-  onSettings?: () => void
-  compact?: boolean
-}) {
-  const { data: profile } = useQuery({
-    queryKey: ['desktop-profile'],
-    queryFn: loadDesktopProfile,
-    staleTime: Infinity,
-    retry: false,
-  })
-  const firstName = profile?.firstName || 'Deepanshu'
-  const initial = firstName.charAt(0).toUpperCase()
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Menu for ${firstName}`}
-          className={cn(
-            'flex items-center gap-2 rounded-md text-start hover:bg-secondary',
-            compact ? 'p-1' : 'w-full px-1.5 py-1',
-          )}
-        >
-          <Avatar className="size-5 bg-accent text-2xs font-semibold">
-            {profile?.imageUrl ? (
-              <AvatarImage src={profile.imageUrl} alt="" />
-            ) : null}
-            <AvatarFallback>{initial}</AvatarFallback>
-          </Avatar>
-          {compact ? null : (
-            <span className="min-w-0 flex-1 truncate text-xs font-medium">
-              {firstName}
-            </span>
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
-        <DropdownMenuItem asChild>
-          <Link to="/app" preload="intent">
-            <ClockIcon data-slot="icon" />
-            Recents
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/app/files" preload="intent">
-            <LayoutGridIcon data-slot="icon" />
-            Files
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/app/appearance" preload="intent">
-            <SunIcon data-slot="icon" />
-            Appearance
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/app/integrations" preload="intent">
-            <LinkIcon data-slot="icon" />
-            Integrations
-          </Link>
-        </DropdownMenuItem>
-        {onSettings ? (
-          <DropdownMenuItem onClick={onSettings}>
-            <SettingsIcon data-slot="icon" />
-            Settings
-          </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }

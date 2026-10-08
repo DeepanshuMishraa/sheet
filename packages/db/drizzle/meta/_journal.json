@@ -15,6 +15,13 @@
       "when": 1790539802535,
       "tag": "0001_yummy_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791480667771,
+      "tag": "0002_material_mongoose",
+      "breakpoints": true
     }
   ]
 }

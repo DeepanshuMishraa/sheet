@@ -6,6 +6,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { XIcon } from "../icons/index.tsx";
 import type React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 import { Button } from "./button.tsx";
 import { ScrollArea } from "./scroll-area.tsx";
 
@@ -36,7 +37,7 @@ export function DialogBackdrop({
   return (
     <DialogPrimitive.Backdrop
       className={cn(
-        "fixed inset-0 z-50 bg-black/28 backdrop-blur-[2px] transition-all duration-160 data-ending-style:opacity-0 data-starting-style:opacity-0",
+        "fixed inset-0 z-50 bg-black/28 transition-opacity duration-160 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className,
       )}
       data-slot="dialog-backdrop"
@@ -77,6 +78,7 @@ export function DialogPopup({
 }): React.ReactElement {
   return (
     <DialogPortal {...portalProps}>
+      <OpenCue emphasis="normal" />
       <DialogBackdrop />
       <DialogViewport
         className={cn(
@@ -86,7 +88,7 @@ export function DialogPopup({
       >
         <DialogPrimitive.Popup
           className={cn(
-            "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg origin-center flex-col overflow-hidden rounded-lg bg-surface-2 text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-panel-lg outline-none transition-[scale,opacity,translate] duration-160 ease-out will-change-transform data-ending-style:opacity-0 data-starting-style:opacity-0 sm:scale-[calc(1-0.08*var(--nested-dialogs))] sm:data-ending-style:scale-98 sm:data-starting-style:scale-98",
+            "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg origin-center flex-col overflow-hidden rounded-xl bg-surface text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-panel-lg outline-none transition-[scale,opacity,translate] duration-220 ease-smooth will-change-transform data-ending-style:opacity-0 data-starting-style:opacity-0 sm:scale-[calc(1-0.08*var(--nested-dialogs))] sm:data-ending-style:scale-[0.98] sm:data-starting-style:scale-[0.96] sm:data-starting-style:translate-y-1.5",
             bottomStickOnMobile &&
               "max-sm:max-w-none max-sm:origin-bottom max-sm:rounded-none max-sm:shadow-[inset_0_1px_0_0_var(--line)] max-sm:data-ending-style:translate-y-4 max-sm:data-starting-style:translate-y-4 max-sm:before:hidden max-sm:before:rounded-none",
             className,

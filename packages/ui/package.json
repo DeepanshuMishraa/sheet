@@ -5,6 +5,7 @@
   "exports": {
     "./styles.css": "./src/styles.css",
     "./utils": "./src/lib/utils.ts",
+    "./sound": "./src/lib/sound.ts",
     "./icons": "./src/icons/index.tsx",
     "./hooks/*": "./src/hooks/*.ts",
     "./*": "./src/components/*.tsx"
@@ -15,6 +16,7 @@
     "@hugeicons/react": "^1.1.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cuelume": "^0.2.4",
     "radix-ui": "^1.6.2",
     "react-day-picker": "^10.0.1",
     "tailwind-merge": "^3.6.0"

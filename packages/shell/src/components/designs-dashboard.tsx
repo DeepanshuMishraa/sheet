@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   EllipsisIcon,
   LayoutGridIcon,
+  SearchIcon,
   ListIcon,
   PencilIcon,
   PlusIcon,
@@ -169,7 +170,7 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-md border border-line bg-surface p-4 shadow-xs transition-[box-shadow,border-color,transform] duration-base ease-out hover:border-line hover:shadow-md hover:-translate-y-0.5 focus-within:border-ring/40 focus-within:shadow-md">
+    <div className="group relative flex flex-col rounded-xl bg-surface p-3 shadow-lift transition-[box-shadow,transform] duration-200 ease-smooth hover:-translate-y-0.5 hover:shadow-lift-hover focus-within:shadow-lift-hover">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
@@ -200,7 +201,7 @@ function FileCard({
         />
       </div>
 
-      <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line bg-cx-canvas shadow-inner">
+      <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-lg bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]">
         <div className="size-full">
           <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
         </div>
@@ -228,7 +229,7 @@ function FileRow({
         aria-label={`Open ${design.name}`}
         className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
       />
-      <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md border border-line bg-cx-canvas shadow-xs">
+      <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md bg-cx-canvas shadow-hairline">
         <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
       </div>
       <div className="pointer-events-none min-w-0 flex-1">
@@ -257,7 +258,7 @@ function FileRow({
   )
 }
 
-const GRID_CLASSES = 'grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+const GRID_CLASSES = 'grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 cx-stagger'
 
 /**
  * The empty state, drawn in the same language as the canvas it invites you
@@ -269,7 +270,7 @@ function EmptyCanvasPlate() {
   return (
     <div
       aria-hidden="true"
-      className="relative mb-6 h-28 w-44 shrink-0 overflow-hidden rounded-xl border border-line bg-cx-canvas shadow-inner"
+      className="relative mb-6 h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]"
     >
       <div
         className="absolute inset-0"
@@ -288,7 +289,7 @@ function FilesLoading({ view }: { view: FilesView }) {
   const rows = Array.from({ length: view === 'grid' ? 6 : 6 }, (_, index) => index)
   if (view === 'list') {
     return (
-      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-panel" aria-busy="true">
+      <div className="overflow-hidden rounded-xl bg-surface shadow-panel" aria-busy="true">
         {rows.map((row) => (
           <div key={row} className="flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0">
             <Skeleton className="size-9 shrink-0 rounded-md" />
@@ -301,7 +302,7 @@ function FilesLoading({ view }: { view: FilesView }) {
   return (
     <div className={GRID_CLASSES} aria-busy="true">
       {rows.map((row) => (
-        <div key={row} className="flex flex-col rounded-md border border-line bg-surface p-4 shadow-panel">
+        <div key={row} className="flex flex-col rounded-xl bg-surface p-3 shadow-panel">
           <div className="flex flex-col gap-1.5 pb-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-3 w-20" />
@@ -322,7 +323,6 @@ export function DesignsDashboard({
   title?: string
 } = {}) {
   const navigate = useNavigate()
-  const searchRef = useRef<HTMLInputElement | null>(null)
   const [designs, setDesigns] = useState<DesignSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useDashboardSearchQuery()
@@ -423,77 +423,88 @@ export function DesignsDashboard({
 
   return (
     <>
-      <main className="app-page-enter flex min-w-0 flex-1 flex-col overflow-y-auto bg-background">
-        {/* Hidden accessible search input for screen readers / tests */}
-        <input
-          ref={searchRef}
-          type="search"
-          aria-label="Search files"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="sr-only"
-        />
-
-        {/* Dashboard Header matching screenshot */}
-        <header className="flex flex-wrap items-center justify-between gap-4 px-8 pb-6 pt-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance">
-            {title}
+      <main className="app-page-enter flex min-h-full min-w-0 flex-col">
+        <section className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 pb-12 pt-[9vh] text-center">
+          <h1 className="text-xl font-medium tracking-tight text-foreground text-balance">
+            What are you designing?
           </h1>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Search your files, or start something new.
+          </p>
 
-          <div className="flex items-center gap-3">
+          <div className="mt-7 flex h-12 w-full items-center gap-1.5 rounded-2xl bg-surface ps-2 pe-3 shadow-lift transition-[box-shadow] duration-200 ease-smooth focus-within:shadow-[0_0_0_1.5px_var(--cx-accent),0_0_0_5px_--alpha(var(--cx-accent)/14%),0_8px_20px_-8px_--alpha(var(--color-black)/18%)]">
             <button
               type="button"
+              aria-label="New file"
+              title="New file"
               onClick={() => void newFile()}
               disabled={creating}
-              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs transition-[transform,box-shadow,opacity] duration-fast ease-spring hover:-translate-y-px hover:shadow-sm hover:opacity-95 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
+              data-cuelume-tap=""
+              className="flex size-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90 disabled:opacity-50"
             >
-              {creating ? (
-                <Spinner className="size-3.5" />
-              ) : (
-                <PlusIcon className="size-3.5 stroke-[2.5]" />
-              )}
-              <span>New file</span>
+              {creating ? <Spinner className="size-4" /> : <PlusIcon className="size-4" />}
             </button>
-
-            <div
-              role="group"
-              aria-label="Layout"
-              className="flex items-center gap-0.5 rounded-lg border border-line bg-well p-0.5 shadow-xs"
-            >
-              <button
-                type="button"
-                aria-label="Grid view"
-                aria-pressed={view === 'grid'}
-                onClick={() => setView('grid')}
-                className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-all duration-fast ease-spring active:scale-95',
-                  view === 'grid'
-                    ? 'bg-surface text-foreground shadow-xs font-medium'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <LayoutGridIcon className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="List view"
-                aria-pressed={view === 'list'}
-                onClick={() => setView('list')}
-                className={cn(
-                  'flex size-7 items-center justify-center rounded-md transition-all duration-fast ease-spring active:scale-95',
-                  view === 'list'
-                    ? 'bg-surface text-foreground shadow-xs font-medium'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <ListIcon className="size-3.5" />
-              </button>
-            </div>
+            <input
+              type="search"
+              aria-label="Search files"
+              placeholder="Search files"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              data-cuelume-type=""
+              data-cuelume-emphasis="subtle"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70 [&::-webkit-search-cancel-button]:appearance-none"
+            />
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground/70" />
           </div>
-        </header>
+        </section>
+
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-8 pb-4">
+          <p className="text-2xs uppercase tracking-[0.14em] text-muted-foreground/70">
+            {title}
+            {designs ? <span className="ms-2 tabular-nums">{visible.length}</span> : null}
+          </p>
+          <div
+            role="group"
+            aria-label="Layout"
+            className="flex items-center gap-0.5 rounded-full bg-well p-0.5 shadow-[inset_0_1px_2px_--alpha(var(--color-black)/8%),0_0_0_1px_var(--edge)]"
+          >
+            <button
+              type="button"
+              aria-label="Grid view"
+              data-cuelume-select=""
+              data-cuelume-emphasis="subtle"
+              aria-pressed={view === 'grid'}
+              onClick={() => setView('grid')}
+              className={cn(
+                'flex size-6 items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
+                view === 'grid'
+                  ? 'bg-surface text-foreground shadow-lift'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <LayoutGridIcon className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="List view"
+              data-cuelume-select=""
+              data-cuelume-emphasis="subtle"
+              aria-pressed={view === 'list'}
+              onClick={() => setView('list')}
+              className={cn(
+                'flex size-6 items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
+                view === 'list'
+                  ? 'bg-surface text-foreground shadow-lift'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <ListIcon className="size-3.5" />
+            </button>
+          </div>
+        </div>
 
         {error ? (
-          <div className="mx-8 mb-4 flex items-center gap-2 rounded-md border border-destructive/32 bg-destructive/8 px-3 py-2 text-xs text-destructive-foreground">
+          <div className="mx-auto mb-4 flex w-full max-w-5xl items-center gap-2 rounded-xl bg-destructive/8 shadow-hairline px-3 py-2 text-xs text-destructive-foreground">
             <span className="min-w-0 flex-1">{error}</span>
             <Button size="xs" variant="outline" onClick={() => void loadDesigns()}>
               Try again
@@ -504,11 +515,11 @@ export function DesignsDashboard({
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 px-8 pb-12">
+        <div className="mx-auto min-h-0 w-full max-w-5xl flex-1 px-8 pb-16">
           {designs === null ? (
             <FilesLoading view={view} />
           ) : visible.length === 0 ? (
-            <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-md border border-line bg-surface px-6 py-12 text-center shadow-panel">
+            <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-xl bg-surface px-6 py-12 text-center shadow-panel">
               <EmptyCanvasPlate />
               <p className="text-sm font-medium">
                 {designs.length === 0 ? 'No design files yet' : 'No files match that search'}
@@ -523,7 +534,8 @@ export function DesignsDashboard({
                   type="button"
                   onClick={() => void newFile()}
                   disabled={creating}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background shadow-xs transition-[transform,box-shadow,opacity] duration-fast ease-spring hover:-translate-y-px hover:shadow-sm hover:opacity-95 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none"
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/18%)] transition-[transform,box-shadow] duration-150 ease-smooth hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_6px_14px_-4px_--alpha(var(--color-black)/35%),inset_0_1px_0_--alpha(var(--color-white)/22%)] active:scale-[0.97] disabled:opacity-50 motion-reduce:transition-none"
+              data-cuelume-tap=""
                 >
                   {creating ? <Spinner className="size-3.5" /> : <PlusIcon className="size-3.5 stroke-[2.5]" />}
                   <span>New file</span>
@@ -545,7 +557,7 @@ export function DesignsDashboard({
               ))}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
+            <div className="overflow-hidden rounded-xl bg-surface shadow-panel">
               {visible.map((design) => (
                 <FileRow
                   key={design.id}

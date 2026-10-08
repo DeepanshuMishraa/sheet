@@ -4,6 +4,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { ChevronRightIcon } from "../icons/index.tsx";
 import type * as React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 
 export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
   MenuPrimitive.createHandle;
@@ -48,6 +49,7 @@ export function MenuPopup({
 }): React.ReactElement {
   return (
     <MenuPortal {...portalProps}>
+      <OpenCue emphasis="subtle" />
       <MenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
@@ -59,7 +61,7 @@ export function MenuPopup({
       >
         <MenuPrimitive.Popup
           className={cn(
-            "relative flex not-[class*='w-']:min-w-28 origin-(--transform-origin) rounded-lg border bg-popover shadow-panel-lg outline-none focus:outline-none",
+            "relative flex not-[class*='w-']:min-w-28 origin-(--transform-origin) rounded-lg bg-popover shadow-panel-lg outline-none transition-[opacity,scale] duration-150 ease-smooth focus:outline-none data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.98] data-ending-style:opacity-0",
             className,
           )}
           data-slot="menu-popup"
@@ -92,11 +94,13 @@ export function MenuItem({
   return (
     <MenuPrimitive.Item
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&>svg:not([class*='opacity-'])]:opacity-72 [&>svg:not([class*='size-'])]:size-4 sm:[&>svg:not([class*='size-'])]:size-3 [&>svg]:pointer-events-none [&>svg]:shrink-0",
+        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&>svg:not([class*='opacity-'])]:opacity-72 [&>svg:not([class*='size-'])]:size-4 sm:[&>svg:not([class*='size-'])]:size-3 [&>svg]:pointer-events-none [&>svg]:shrink-0",
         className,
       )}
       data-inset={inset}
       data-slot="menu-item"
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
       data-variant={variant}
       {...props}
     />
@@ -116,7 +120,7 @@ export function MenuLinkItem({
   return (
     <MenuPrimitive.LinkItem
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&>svg:not([class*='opacity-'])]:opacity-72 [&>svg:not([class*='size-'])]:size-4 sm:[&>svg:not([class*='size-'])]:size-3 [&>svg]:pointer-events-none [&>svg]:shrink-0",
+        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&>svg:not([class*='opacity-'])]:opacity-72 [&>svg:not([class*='size-'])]:size-4 sm:[&>svg:not([class*='size-'])]:size-3 [&>svg]:pointer-events-none [&>svg]:shrink-0",
         className,
       )}
       closeOnClick={closeOnClick}
@@ -148,6 +152,7 @@ export function MenuCheckboxItem({
         className,
       )}
       data-slot="menu-checkbox-item"
+      data-cuelume-toggle=""
       {...props}
     >
       {variant === "switch" ? (
@@ -203,6 +208,7 @@ export function MenuRadioItem({
         className,
       )}
       data-slot="menu-radio-item"
+      data-cuelume-select=""
       {...props}
     >
       <MenuPrimitive.RadioItemIndicator className="col-start-1 -ms-0.5">
@@ -292,7 +298,7 @@ export function MenuSubTrigger({
   return (
     <MenuPrimitive.SubmenuTrigger
       className={cn(
-        "flex min-h-7 items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-popup-open:bg-accent data-inset:ps-7 data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none",
+        "flex min-h-7 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-popup-open:bg-accent data-inset:ps-7 data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none",
         className,
       )}
       data-inset={inset}

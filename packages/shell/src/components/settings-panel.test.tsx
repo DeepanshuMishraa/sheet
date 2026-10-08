@@ -69,21 +69,15 @@ function renderSettings(searchParams = '') {
 describe('SettingsPanel', () => {
   beforeEach(() => {
     window.localStorage.removeItem('sheet:theme')
-    window.localStorage.removeItem('sheet:ui-sans')
-    window.localStorage.removeItem('sheet:ui-mono')
+    window.localStorage.removeItem('sheet:sound')
     document.documentElement.classList.remove('dark')
-    document.documentElement.style.removeProperty('--sheet-font-sans')
-    document.documentElement.style.removeProperty('--sheet-font-mono')
   })
 
   afterEach(() => {
     cleanup()
     window.localStorage.removeItem('sheet:theme')
-    window.localStorage.removeItem('sheet:ui-sans')
-    window.localStorage.removeItem('sheet:ui-mono')
+    window.localStorage.removeItem('sheet:sound')
     document.documentElement.classList.remove('dark')
-    document.documentElement.style.removeProperty('--sheet-font-sans')
-    document.documentElement.style.removeProperty('--sheet-font-mono')
   })
 
   test('opens on appearance with no account surface', async () => {
@@ -112,23 +106,13 @@ describe('SettingsPanel', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
 
-  test('picks the interface font from the grouped dropdown', async () => {
+  test('turns sound off and persists the choice', async () => {
     renderSettings()
 
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Interface font' }))
+    const off = await screen.findByRole('button', { name: 'Off' })
+    fireEvent.click(off)
 
-    // Sans and Monospace groups, each option set in its own face.
-    expect(await screen.findByText('Sans')).toBeTruthy()
-    expect(screen.getByText('Monospace')).toBeTruthy()
-
-    // Base UI only honours a mouse click that starts on the item.
-    const option = await screen.findByRole('option', { name: 'JetBrains Mono' })
-    fireEvent.pointerDown(option)
-    fireEvent.click(option)
-
-    expect(window.localStorage.getItem('sheet:ui-sans')).toBe('jetbrains-mono')
-    expect(
-      document.documentElement.style.getPropertyValue('--sheet-font-sans'),
-    ).toContain('JetBrains Mono')
+    expect(off.getAttribute('aria-pressed')).toBe('true')
+    expect(window.localStorage.getItem('sheet:sound')).toBe('off')
   })
 })

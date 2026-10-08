@@ -19,6 +19,10 @@ import HugeCheckIcon from '@hugeicons/core-free-icons/CheckIcon'
 import HugeChevronDownIcon from '@hugeicons/core-free-icons/ChevronDownIcon'
 import HugeChevronLeftIcon from '@hugeicons/core-free-icons/ChevronLeftIcon'
 import HugeChevronRightIcon from '@hugeicons/core-free-icons/ChevronRightIcon'
+import HugeMessageSquareIcon from '@hugeicons/core-free-icons/Comment01Icon'
+import HugeArrowLeftIcon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
+import HugeArrowRightIcon from '@hugeicons/core-free-icons/ArrowRight02Icon'
+import HugeArrowUpIcon from '@hugeicons/core-free-icons/ArrowUp02Icon'
 import HugeChevronsUpDownIcon from '@hugeicons/core-free-icons/ChevronsDownUpIcon'
 import HugeChevronUpIcon from '@hugeicons/core-free-icons/ChevronUpIcon'
 import HugeCircleCheckIcon from '@hugeicons/core-free-icons/CircleCheckIcon'
@@ -207,6 +211,10 @@ export const ChevronDownIcon = createIcon(HugeChevronDownIcon, 'ChevronDownIcon'
 export const ChevronLeftIcon = createIcon(HugeChevronLeftIcon, 'ChevronLeftIcon')
 export const ChevronRightIcon = createIcon(HugeChevronRightIcon, 'ChevronRightIcon')
 export const ChevronUpIcon = createIcon(HugeChevronUpIcon, 'ChevronUpIcon')
+export const MessageSquareIcon = createIcon(HugeMessageSquareIcon, 'MessageSquareIcon')
+export const ArrowLeftIcon = createIcon(HugeArrowLeftIcon, 'ArrowLeftIcon')
+export const ArrowRightIcon = createIcon(HugeArrowRightIcon, 'ArrowRightIcon')
+export const ArrowUpIcon = createIcon(HugeArrowUpIcon, 'ArrowUpIcon')
 export const ChevronsUpDownIcon = createIcon(
   HugeChevronsUpDownIcon,
   'ChevronsUpDownIcon',

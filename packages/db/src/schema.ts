@@ -231,3 +231,46 @@ export const userPreferences = sqliteTable('user_preferences', {
     .$defaultFn(now)
     .notNull(),
 })
+
+export type CommentAuthor = 'user' | 'agent'
+
+/**
+ * A note pinned to one element of a design. It lives beside the document, not
+ * in it: comments never travel through a `WebTransaction`, never enter undo
+ * history, and never reach an export. `nodeLabel` keeps a readable name for the
+ * element at the time of writing, so a comment still makes sense after the node
+ * it points at has been deleted.
+ */
+export const designComment = sqliteTable(
+  'design_comment',
+  {
+    id: text('id').notNull(),
+    designId: text('design_id').notNull(),
+    userId: text('user_id').notNull(),
+    nodeId: text('node_id').notNull(),
+    nodeLabel: text('node_label').notNull(),
+    body: text('body').notNull(),
+    author: text('author').$type<CommentAuthor>().default('user').notNull(),
+    resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .$defaultFn(now)
+      .notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .$defaultFn(now)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id, table.userId] }),
+    foreignKey({
+      columns: [table.designId, table.userId],
+      foreignColumns: [design.id, design.userId],
+      name: 'design_comment_design_fk',
+    }).onDelete('cascade'),
+    index('design_comment_design_idx').on(
+      table.userId,
+      table.designId,
+      table.nodeId,
+      table.createdAt,
+    ),
+  ],
+)

@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
@@ -18,8 +19,12 @@ import {
   File01Icon,
   FrameIcon,
   HandIcon,
-  ImageIcon,
   LayoutGridIcon,
+  ImageIcon,
+  LayersIcon,
+  MessageSquareIcon,
+  ShapesIcon,
+  SlidersHorizontalIcon,
   MousePointer2Icon,
   PanelLeftIcon,
   PanelRightIcon,
@@ -86,7 +91,11 @@ import {
 } from '@sheet/canvas/web-pages'
 import { WebDocumentView } from '@sheet/canvas/web-react'
 import { AssetsPanel, assetSrc } from './assets-panel'
-import { DocumentTabBar } from './tab-bar'
+import { useRegisterOpenTab } from '../lib/open-tabs'
+import { useChromeSlots } from './chrome-slots'
+import { createPortal } from 'react-dom'
+import { useDesignComments } from '../lib/use-comments'
+import { CommentPin, CommentThread, CommentsList } from './comments'
 import { ExportMenu } from './export-menu'
 import { orpc } from '@sheet/rpc/client'
 import {
@@ -178,6 +187,17 @@ interface OverlayRect {
   height: number
 }
 
+/** The canvas floor: dots that travel and scale with the camera, so panning reads as movement. */
+const stageDots = (camera: Camera): CSSProperties => {
+  const step = 24 * camera.zoom
+  const size = step < 10 ? step * 4 : step
+  return {
+    backgroundImage: 'radial-gradient(var(--cx-dot) 1px, transparent 1px)',
+    backgroundSize: `${size}px ${size}px`,
+    backgroundPosition: `${camera.x}px ${camera.y}px`,
+  }
+}
+
 const cameraTransform = (camera: Camera) => `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`
 
 /** Keep the previous object when nothing changed, so React skips the render. */
@@ -186,6 +206,19 @@ const keepRect = (next: OverlayRect | null) => (prev: OverlayRect | null) =>
   (prev && next && prev.left === next.left && prev.top === next.top && prev.width === next.width && prev.height === next.height)
     ? prev
     : next
+
+/** Same idea as `keepRect`, for a record of rects keyed by node id. */
+const keepRects = (next: Record<string, OverlayRect>) => (prev: Record<string, OverlayRect>) => {
+  const keys = Object.keys(next)
+  return keys.length === Object.keys(prev).length &&
+    keys.every((key) => {
+      const before = prev[key]
+      const after = next[key]
+      return before && after && before.left === after.left && before.top === after.top && before.width === after.width && before.height === after.height
+    })
+    ? prev
+    : next
+}
 
 const keepRecord = (next: Record<string, string>) => (prev: Record<string, string>) => {
   const keys = Object.keys(next)
@@ -817,11 +850,13 @@ function WebToolButton({
       title={label}
       aria-pressed={active}
       disabled={disabled}
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
       className={cn(
-        'size-8 grid place-items-center rounded-lg transition-colors',
+        'size-8 grid place-items-center rounded-xl transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
         active
-          ? 'border border-cx-accent/60 bg-cx-accent/10 font-medium text-foreground shadow-xs'
-          : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+          ? 'bg-cx-accent text-white shadow-[0_1px_2px_--alpha(var(--color-black)/25%),0_4px_10px_-3px_--alpha(var(--cx-accent)/55%),inset_0_1px_0_--alpha(var(--color-white)/25%)]'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         disabled && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground',
       )}
       onClick={(event) => {
@@ -957,7 +992,7 @@ function WebInspector({
               if (Number.isFinite(size) && size > 0) onResizePage({ height: size })
             }} />
           </div>
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 p-1.5">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 shadow-hairline p-1.5">
             <div className="flex min-w-0 items-center gap-2">
               <input
                 ref={pagePickerRef}
@@ -1688,7 +1723,7 @@ function WebInspector({
           </p>
         ) : (
           matchingRules.map(({ stylesheetId, stylesheetName, rule, viaPseudoElement }) => (
-            <div key={rule.id} className="space-y-2 rounded-lg border border-line bg-surface-2 p-2.5">
+            <div key={rule.id} className="space-y-2 rounded-lg bg-surface-2 shadow-hairline p-2.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] text-foreground">
                   {stylesheetName}
@@ -1768,6 +1803,7 @@ export function WebCanvasEditor({
   initialRevision: number
   name: string
 }) {
+  // Opening a file puts it in the sidebar's open list; the name stays live.
   const [document, setDocument] = useState(initialDocument)
   const [activePageId, setActivePageId] = useState<string | null>(() => resolvePageId(initialDocument, null))
   const pageId = resolvePageId(document, activePageId)
@@ -1777,12 +1813,13 @@ export function WebCanvasEditor({
     () => pageLayerIds(initialDocument, resolvePageId(initialDocument, null))[0] ?? null,
   )
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  useRegisterOpenTab({ id: designId, name: document.name || name || 'Untitled' })
   const [selectionRect, setSelectionRect] = useState<OverlayRect | null>(null)
   const [hoverRect, setHoverRect] = useState<OverlayRect | null>(null)
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 })
   const [computed, setComputed] = useState<Record<string, string>>({})
   const [camera, setCamera] = useState<Camera>({ x: 320, y: 120, zoom: 0.75 })
-  const [tool, setToolState] = useState<'select' | 'pan' | 'frame' | 'box' | 'pen' | 'text' | 'image'>('select')
+  const [tool, setToolState] = useState<'select' | 'pan' | 'frame' | 'box' | 'pen' | 'text' | 'image' | 'comment'>('select')
   const [pageSelected, setPageSelected] = useState(false)
   const penDraftRef = useRef<{ pathId: string; points: { x: number; y: number }[] } | null>(null)
   const setTool = useCallback((next: typeof tool) => {
@@ -1795,7 +1832,11 @@ export function WebCanvasEditor({
   const [pagesOpen, setPagesOpen] = useState(true)
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
-  const [leftTab, setLeftTab] = useState<'design' | 'theme' | 'assets' | 'icons'>('design')
+  const [leftTab, setLeftTab] = useState<'design' | 'theme' | 'assets' | 'icons' | 'comments'>('design')
+  const { comments, create: createComment, resolve: resolveComment, remove: removeComment } = useDesignComments(designId)
+  const [threadNodeId, setThreadNodeId] = useState<string | null>(null)
+  const [pinRects, setPinRects] = useState<Record<string, OverlayRect>>({})
+  const pinIdsRef = useRef<string[]>([])
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [notice, setNotice] = useState<string | null>(null)
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadCachedShortcuts)
@@ -1849,6 +1890,12 @@ export function WebCanvasEditor({
     }
     setSelectionRect(keepRect(rectFor(selectedRef.current)))
     setHoverRect(keepRect(rectFor(hoveredRef.current)))
+    const nextPins: Record<string, OverlayRect> = {}
+    for (const id of pinIdsRef.current) {
+      const rect = rectFor(id)
+      if (rect) nextPins[id] = rect
+    }
+    setPinRects(keepRects(nextPins))
     const selected = findElement(selectedRef.current)
     if (!selected) {
       setComputed(keepRecord({}))
@@ -1874,6 +1921,16 @@ export function WebCanvasEditor({
       measure()
     })
   }, [measure])
+
+  // Pins sit on every element that has an open comment, plus the one whose thread is open.
+  const openCommentNodeIds = useMemo(
+    () => [...new Set(comments.filter((comment) => !comment.resolved).map((comment) => comment.nodeId))],
+    [comments],
+  )
+  useEffect(() => {
+    pinIdsRef.current = threadNodeId && !openCommentNodeIds.includes(threadNodeId) ? [...openCommentNodeIds, threadNodeId] : openCommentNodeIds
+    scheduleMeasure()
+  }, [openCommentNodeIds, threadNodeId, scheduleMeasure])
 
   const onMaterialize = useCallback((element: HTMLDivElement) => {
     hostRef.current = element
@@ -2675,7 +2732,7 @@ export function WebCanvasEditor({
   }
 
   const startDrawing = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || isSpacePanning || tool === 'select' || tool === 'pan' || tool === 'image') return
+    if (event.button !== 0 || isSpacePanning || tool === 'select' || tool === 'pan' || tool === 'image' || tool === 'comment') return
     if (event.target instanceof Element && event.target.closest('button, [role="toolbar"], input, select, textarea')) return
     const start = canvasPoint(event)
     const next: DrawingDraft = { pointerId: event.pointerId, tool, start, end: start, points: [start] }
@@ -2886,6 +2943,10 @@ export function WebCanvasEditor({
           e.preventDefault()
           wrapInFlex()
         }
+        if (!e.shiftKey && (e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault()
+          setTool('comment')
+        }
         return
       }
       e.preventDefault()
@@ -2907,62 +2968,77 @@ export function WebCanvasEditor({
     }
   }, [deleteSelected, fitToView, insertElement, insertPenPath, nudgeSelected, redoLast, select, setNextCamera, shortcutConfig, undo, wrapInFlex])
 
-  return (
-    <div className="grid h-full min-h-0 min-w-0 grid-rows-[2.5rem_minmax(0,1fr)] bg-background text-foreground font-sans antialiased">
-      {/* Top Header Bar */}
-      <header
-        data-tauri-drag-region
-        className="z-30 flex h-10 w-full min-w-0 shrink-0 select-none items-center gap-2 overflow-hidden border-b border-line bg-sidebar pe-3 ps-20"
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          {!leftPanelOpen ? (
-            <button
-              type="button"
-              aria-label="Open layers panel"
-              className="flex size-7 items-center justify-center rounded-lg border border-line bg-surface text-muted-foreground hover:bg-surface/80 hover:text-foreground transition-colors shadow-xs"
-              onClick={() => setLeftPanelOpen(true)}
-              title="Open layers panel"
-            >
-              <PanelLeftIcon className="size-3.5" />
-            </button>
+  const slots = useChromeSlots()
+  const barButtonClassName =
+    'flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 aria-pressed:text-foreground'
+  const panelToggle = (
+    <button
+      type="button"
+      aria-label={leftPanelOpen ? 'Hide layers panel' : 'Open layers panel'}
+      aria-pressed={leftPanelOpen}
+      title={leftPanelOpen ? 'Hide layers panel' : 'Open layers panel'}
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
+      className={barButtonClassName}
+      onClick={() => setLeftPanelOpen((open) => !open)}
+    >
+      <PanelLeftIcon className="size-4" />
+    </button>
+  )
+  const trailingControls = (
+    <>
+      {notice ? (
+        <div className="flex min-w-0 max-w-[45%] shrink items-center">
+          <span
+            role="alert"
+            className="min-w-0 truncate rounded-md bg-destructive/10 px-2 py-0.5 text-[11px] text-destructive-foreground"
+            title={notice}
+          >
+            {notice}
+          </span>
+          {pendingSavesRef.current.length > 0 && saveStatus === 'error' ? (
+            <button type="button" className="ms-1 shrink-0 whitespace-nowrap rounded-md px-2 text-xs text-foreground shadow-hairline" onClick={() => void flushSaves()}>Retry save</button>
           ) : null}
-          <DocumentTabBar activeDocument={{ id: designId, name: document.name || name || 'Untitled' }} />
         </div>
+      ) : null}
+      <ExportMenu designId={designId} draftId={draftId} onError={setNotice} />
+      <button
+        type="button"
+        aria-label={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
+        aria-pressed={rightPanelOpen}
+        title={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
+        data-cuelume-select=""
+        data-cuelume-emphasis="subtle"
+        className={barButtonClassName}
+        onClick={() => setRightPanelOpen((open) => !open)}
+      >
+        <PanelRightIcon className="size-4" />
+      </button>
+    </>
+  )
 
-        {/* Draggable header area */}
-        <div data-tauri-drag-region className="h-full min-w-2 flex-1" />
-
-        {/* Notice alert if any */}
-        {notice ? (
-          <div className="flex min-w-0 max-w-[45%] shrink items-center">
-            <span
-              role="alert"
-              className="min-w-0 truncate rounded bg-destructive/10 px-2 py-0.5 text-[11px] text-destructive border border-destructive/20"
-              title={notice}
-            >
-              {notice}
-            </span>
-            {pendingSavesRef.current.length > 0 && saveStatus === 'error' ? (
-              <button type="button" className="ms-1 shrink-0 whitespace-nowrap rounded border border-line px-2 text-xs text-foreground" onClick={() => void flushSaves()}>Retry save</button>
-            ) : null}
-          </div>
-        ) : null}
-        <ExportMenu designId={designId} draftId={draftId} onError={setNotice} />
-        <button
-          type="button"
-          aria-label={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
-          aria-pressed={rightPanelOpen}
-          title={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
-          className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-muted-foreground shadow-xs transition-colors hover:bg-surface/80 hover:text-foreground"
-          onClick={() => setRightPanelOpen((open) => !open)}
+  return (
+    <div className="flex h-full min-h-0 min-w-0 flex-col bg-background text-foreground font-sans antialiased">
+      {/* Tab bar controls: portaled into the shell's bar, or drawn here when there is none. */}
+      {slots.leading ? createPortal(panelToggle, slots.leading) : null}
+      {slots.trailing ? createPortal(trailingControls, slots.trailing) : null}
+      {slots.leading && slots.trailing ? null : (
+        <header
+          data-tauri-drag-region
+          className="z-30 flex h-12 w-full min-w-0 shrink-0 select-none items-center gap-2 overflow-hidden px-4"
         >
-          <PanelRightIcon className="size-3.5" />
-        </button>
-      </header>
+          {panelToggle}
+          <span className="min-w-0 truncate ps-1 text-sm font-medium text-foreground">
+            {document.name || name || 'Untitled'}
+          </span>
+          <div data-tauri-drag-region className="h-full min-w-2 flex-1" />
+          {trailingControls}
+        </header>
+      )}
 
       {/* Main Workspace Layout */}
       <div className={cn(
-        'grid min-h-0 min-w-0',
+        'grid min-h-0 min-w-0 flex-1 gap-2 p-2 pt-0',
         leftPanelOpen && rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
         leftPanelOpen && !rightPanelOpen && 'grid-cols-[clamp(13rem,20vw,17rem)_minmax(0,1fr)]',
         !leftPanelOpen && rightPanelOpen && 'grid-cols-[minmax(0,1fr)_clamp(15rem,22vw,19rem)]',
@@ -2970,41 +3046,59 @@ export function WebCanvasEditor({
       )}>
         {/* Left Sidebar: Pages, Layers, Theme */}
         {leftPanelOpen ? (
-          <aside aria-label="Layers" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-e border-line bg-surface">
-            {/* Header: Scratchpad + Collapse button */}
-            <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <File01Icon className="size-5 text-muted-foreground shrink-0" />
-                <span className="min-w-0 truncate text-sm font-medium text-foreground">{name || 'Scratchpad'}</span>
+          <aside aria-label="Layers" className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-foreground shadow-panel">
+            {/* The file's name, and the switch that hides this panel. */}
+            <div className="flex h-12 shrink-0 items-center justify-between gap-2 ps-4 pe-2.5">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <File01Icon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 truncate text-xs font-medium text-foreground">{name || 'Scratchpad'}</span>
               </div>
               <button
                 type="button"
                 aria-label="Toggle layers panel"
-                className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                data-cuelume-close=""
+                data-cuelume-emphasis="subtle"
+                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90"
                 onClick={() => setLeftPanelOpen(false)}
               >
-                <PanelLeftIcon className="size-3.5" />
+                <PanelLeftIcon className="size-4" />
               </button>
             </div>
 
-            {/* Segmented control: Design | Theme */}
-            <div className="mx-3 my-3 grid shrink-0 grid-cols-4 rounded-lg bg-well p-1">
-              {(['design', 'theme', 'assets', 'icons'] as const).map((tab) => (
+            {/* One icon per view. Names live in the tooltip, so nothing truncates. */}
+            <div role="tablist" aria-label="Panel view" className="mx-3 mb-2 flex shrink-0 items-center gap-1">
+              {([
+                { tab: 'design', label: 'Design', Icon: LayersIcon },
+                { tab: 'theme', label: 'Theme', Icon: SlidersHorizontalIcon },
+                { tab: 'assets', label: 'Assets', Icon: ImageIcon },
+                { tab: 'icons', label: 'Icons', Icon: ShapesIcon },
+                { tab: 'comments', label: 'Comments', Icon: MessageSquareIcon },
+              ] as const).map(({ tab, label, Icon }) => (
                 <button
                   key={tab}
                   type="button"
+                  role="tab"
+                  aria-selected={leftTab === tab}
+                  aria-label={tab}
+                  title={label}
+                  data-cuelume-select=""
+                  data-cuelume-emphasis="subtle"
                   className={cn(
-                    'min-w-0 truncate rounded-md px-1 py-1.5 text-[13px] capitalize transition-all duration-150',
+                    'relative flex h-8 flex-1 items-center justify-center rounded-lg outline-none transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring active:scale-95',
                     leftTab === tab
-                      ? 'bg-surface text-foreground font-medium shadow-xs ring-1 ring-line'
-                      : 'text-muted-foreground hover:text-foreground',
+                      ? 'bg-background text-foreground shadow-hairline'
+                      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
                   )}
                   onClick={() => setLeftTab(tab)}
                 >
-                  {tab}
+                  <Icon className="size-4" />
+                  {tab === 'comments' && openCommentNodeIds.length > 0 ? (
+                    <span className="absolute right-2 top-1.5 size-1.5 rounded-full bg-cx-accent" />
+                  ) : null}
                 </button>
               ))}
             </div>
+            <div className="mx-3 mb-1 h-px shrink-0 bg-line" />
 
             {leftTab === 'design' ? (
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -3152,6 +3246,16 @@ export function WebCanvasEditor({
                 setLeftTab('design')
                 setTool('select')
               }} />
+            ) : leftTab === 'comments' ? (
+              <CommentsList
+                comments={comments}
+                onSelectNode={(nodeId) => {
+                  if (document.nodes[nodeId]) select(nodeId)
+                  setThreadNodeId(nodeId)
+                }}
+                onResolve={resolveComment}
+                onDelete={removeComment}
+              />
             ) : leftTab === 'icons' ? (
               <>
                 <ShadersList onInsert={insertShader} />
@@ -3167,9 +3271,10 @@ export function WebCanvasEditor({
         {/* Canvas Stage & Floating Toolbar */}
         <main
           ref={stageRef}
+          style={stageDots(camera)}
           className={cn(
-            'relative min-h-0 flex-1 overflow-hidden bg-cx-canvas',
-            isPanningActive ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
+            'relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]',
+            isPanningActive ? 'cursor-grab active:cursor-grabbing' : tool === 'comment' ? 'cursor-crosshair' : 'cursor-default',
           )}
           onPointerDown={(event) => { startDrawing(event); if (!drawingRef.current) startPan(event) }}
           onPointerMove={(event) => { moveDrawing(event); movePan(event) }}
@@ -3182,6 +3287,11 @@ export function WebCanvasEditor({
             }
             const target = event.target
             if (!(target instanceof Element) || target.closest('[role="toolbar"], button, [role="button"]')) return
+            if (tool === 'comment') {
+              setThreadNodeId(pickTarget(documentRef.current, webNodeIdFromElement(target)))
+              return
+            }
+            setThreadNodeId(null)
             if (tool === 'select') {
               select(pickTarget(documentRef.current, webNodeIdFromElement(target)))
               return
@@ -3214,7 +3324,7 @@ export function WebCanvasEditor({
           <div
             role="toolbar"
             aria-label="Tools"
-            className="absolute left-3 top-3 z-30 flex flex-col items-center gap-0.5 rounded-xl border border-line bg-surface/95 p-1 text-foreground shadow-lg backdrop-blur-md"
+            className="absolute left-3 top-3 z-30 flex flex-col items-center gap-0.5 rounded-2xl bg-surface p-1 text-foreground shadow-panel-lg"
           >
             <WebToolButton
               label={`Select (${shortcutLabel('tool.select')})`}
@@ -3231,6 +3341,14 @@ export function WebCanvasEditor({
               onClick={() => setTool('pan')}
             >
               <HandIcon className="size-4" />
+            </WebToolButton>
+            <WebToolButton
+              label="Comment (C)"
+              aria-label="Comment"
+              active={tool === 'comment'}
+              onClick={() => setTool('comment')}
+            >
+              <MessageSquareIcon className="size-4" />
             </WebToolButton>
 
             <div className="my-0.5 h-px w-5 bg-line" />
@@ -3279,7 +3397,7 @@ export function WebCanvasEditor({
                 <PlusCircleIcon className="size-4" />
               </WebToolButton>
               {quickInsertOpen ? (
-                <div className="absolute left-full top-0 z-40 ms-2 w-36 rounded-lg border border-line bg-surface p-1 shadow-2xl z-40 text-foreground">
+                <div className="absolute left-full top-0 z-40 ms-2 w-36 rounded-xl bg-surface p-1 shadow-panel-lg z-40 text-foreground">
                   <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     Insert element
                   </div>
@@ -3371,7 +3489,7 @@ export function WebCanvasEditor({
                 onPointerUp={finishPageResize}
                 onPointerCancel={(event) => finishPageResize(event, true)}
               >
-                <span className="pointer-events-none absolute inset-2 rounded-full border-2 border-blue-600 bg-white shadow-sm" />
+                <span className="pointer-events-none absolute inset-2 rounded-full border-2 border-cx-accent bg-white shadow-sm" />
               </button>
             )) : null}
           </div>
@@ -3387,7 +3505,7 @@ export function WebCanvasEditor({
             ) : (
               <div
                 data-testid="drawing-preview"
-                className="pointer-events-none absolute z-20 border border-blue-500 bg-blue-500/15"
+                className="pointer-events-none absolute z-20 border border-cx-accent bg-cx-accent/15"
                 style={{
                   left: camera.x + Math.min(drawing.start.x, drawing.end.x) * camera.zoom,
                   top: camera.y + Math.min(drawing.start.y, drawing.end.y) * camera.zoom,
@@ -3401,7 +3519,7 @@ export function WebCanvasEditor({
           {/* Hover highlight */}
           {hoverRect && hoveredId !== selectedId ? (
             <div
-              className="pointer-events-none absolute border border-sky-400"
+              className="pointer-events-none absolute border border-cx-accent/50"
               style={hoverRect}
             />
           ) : null}
@@ -3409,13 +3527,13 @@ export function WebCanvasEditor({
           {/* Selection Rect & Handles (Image 4) */}
           {selectionRect ? (
             <div
-              className="pointer-events-none absolute border border-blue-500"
+              className="pointer-events-none absolute border border-cx-accent"
               style={selectionRect}
             >
               {/* Corner anchors */}
-              <div className="absolute -top-1 -left-1 size-2 rounded-xs border border-blue-500 bg-white pointer-events-none" />
-              <div className="absolute -top-1 -right-1 size-2 rounded-xs border border-blue-500 bg-white pointer-events-none" />
-              <div className="absolute -bottom-1 -left-1 size-2 rounded-xs border border-blue-500 bg-white pointer-events-none" />
+              <div className="absolute -top-1 -left-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
+              <div className="absolute -top-1 -right-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
+              <div className="absolute -bottom-1 -left-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
 
               {/* Move handle */}
               {bound ? (
@@ -3424,7 +3542,7 @@ export function WebCanvasEditor({
                 </div>
               ) : (
                 <div
-                  className="pointer-events-auto absolute -top-5 left-0 max-w-48 cursor-move truncate rounded-sm bg-blue-500 px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity hover:opacity-100"
+                  className="pointer-events-auto absolute -top-5 left-0 max-w-48 cursor-move truncate rounded-sm bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity hover:opacity-100"
                   onPointerDown={(event) => startElementDrag(event, 'move')}
                   onPointerMove={onDragMove}
                   onPointerUp={finishElementDrag}
@@ -3440,7 +3558,7 @@ export function WebCanvasEditor({
                   role="button"
                   aria-label="Resize element"
                   tabIndex={0}
-                  className="pointer-events-auto absolute -bottom-1 -right-1 size-2.5 cursor-nwse-resize rounded-xs border border-blue-600 bg-white"
+                  className="pointer-events-auto absolute -bottom-1 -right-1 size-2.5 cursor-nwse-resize rounded-xs border border-cx-accent bg-white"
                   onPointerDown={(event) => startElementDrag(event, 'resize')}
                   onPointerMove={onDragMove}
                   onPointerUp={finishElementDrag}
@@ -3449,16 +3567,55 @@ export function WebCanvasEditor({
               )}
 
               {/* Dimensions badge at bottom center (Image 4: 512 × 512) */}
-              <div className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-blue-600 px-1.5 py-0.5 font-mono text-[10px] font-medium text-white shadow-md">
+              <div className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] font-medium text-white shadow-md">
                 {Math.round(selectionRect.width / camera.zoom)} × {Math.round(selectionRect.height / camera.zoom)}
               </div>
             </div>
+          ) : null}
+
+          {/* Comment pins and the open thread */}
+          {openCommentNodeIds.map((nodeId) => {
+            const rect = pinRects[nodeId]
+            if (!rect) return null
+            return (
+              <CommentPin
+                key={nodeId}
+                rect={rect}
+                count={comments.filter((comment) => comment.nodeId === nodeId && !comment.resolved).length}
+                active={threadNodeId === nodeId}
+                onOpen={() => setThreadNodeId((current) => (current === nodeId ? null : nodeId))}
+              />
+            )
+          })}
+          {threadNodeId ? (
+            <CommentThread
+              key={threadNodeId}
+              rect={pinRects[threadNodeId] ?? null}
+              bounds={{
+                width: stageRef.current?.clientWidth ?? 0,
+                height: stageRef.current?.clientHeight ?? 0,
+              }}
+              nodeLabel={
+                document.nodes[threadNodeId]
+                  ? nodeLabel(document.nodes[threadNodeId], document)
+                  : comments.find((comment) => comment.nodeId === threadNodeId)?.nodeLabel ?? 'Deleted element'
+              }
+              comments={comments.filter((comment) => comment.nodeId === threadNodeId)}
+              onClose={() => setThreadNodeId(null)}
+              onSubmit={(body) => {
+                const node = document.nodes[threadNodeId]
+                const label = node ? nodeLabel(node, document) : 'Element'
+                return createComment(threadNodeId, label, body)
+              }}
+              onResolve={resolveComment}
+              onDelete={removeComment}
+            />
           ) : null}
         </main>
 
         {/* Right Inspector Panel: Design (Image 2 & 4) */}
         {rightPanelOpen ? (
-        <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
+        <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-foreground shadow-panel">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 text-sm font-medium text-foreground">
             <span>Design</span>
             <button
@@ -3511,7 +3668,7 @@ export function WebCanvasEditor({
 
       {/* Connect Agent Dialog */}
       <Dialog open={connectAgentOpen} onOpenChange={setConnectAgentOpen}>
-        <DialogPopup className="max-w-xl border border-line bg-surface text-foreground">
+        <DialogPopup className="max-w-xl bg-surface text-foreground">
           <DialogHeader>
             <DialogTitle className="text-base">Connect your agent</DialogTitle>
             <DialogDescription className="text-xs">

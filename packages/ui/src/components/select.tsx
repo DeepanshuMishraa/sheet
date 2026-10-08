@@ -7,6 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { ChevronDownIcon, ChevronsUpDownIcon, ChevronUpIcon } from "../icons/index.tsx";
 import type * as React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 
 export const Select: typeof SelectPrimitive.Root = SelectPrimitive.Root;
 
@@ -122,6 +123,7 @@ export function SelectPopup({
 }): React.ReactElement {
   return (
     <SelectPrimitive.Portal {...portalProps}>
+      <OpenCue emphasis="subtle" />
       <SelectPrimitive.Positioner
         align={align}
         alignItemWithTrigger={alignItemWithTrigger}
@@ -143,7 +145,7 @@ export function SelectPopup({
           >
             <ChevronUpIcon className="relative size-4.5 sm:size-3.5" />
           </SelectPrimitive.ScrollUpArrow>
-          <div className="relative h-full min-w-(--anchor-width) rounded-lg border bg-popover shadow-panel-lg">
+          <div className="relative h-full min-w-(--anchor-width) rounded-lg bg-popover shadow-panel-lg">
             <SelectPrimitive.List
               className={cn(
                 "max-h-(--available-height) overflow-y-auto p-1",
@@ -174,10 +176,12 @@ export function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        "grid min-h-7 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1rem)] cursor-default grid-cols-[.75rem_1fr] items-center gap-1.5 rounded-sm py-1 ps-2 pe-3 text-sm outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "grid min-h-7 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1rem)] cursor-default grid-cols-[.75rem_1fr] items-center gap-1.5 rounded-md py-1 ps-2 pe-3 text-sm outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
       )}
       data-slot="select-item"
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
       {...props}
     >
       <SelectPrimitive.ItemIndicator className="col-start-1">

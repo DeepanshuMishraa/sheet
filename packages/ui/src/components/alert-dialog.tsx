@@ -3,6 +3,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 
 export const AlertDialogCreateHandle: typeof AlertDialogPrimitive.createHandle =
   AlertDialogPrimitive.createHandle;
@@ -28,7 +29,7 @@ export function AlertDialogBackdrop({
   return (
     <AlertDialogPrimitive.Backdrop
       className={cn(
-        "fixed inset-0 z-50 bg-black/28 backdrop-blur-[2px] transition-all duration-160 data-ending-style:opacity-0 data-starting-style:opacity-0",
+        "fixed inset-0 z-50 bg-black/28 transition-opacity duration-160 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className,
       )}
       data-slot="alert-dialog-backdrop"
@@ -64,6 +65,7 @@ export function AlertDialogPopup({
 }): React.ReactElement {
   return (
     <AlertDialogPortal {...portalProps}>
+      <OpenCue emphasis="normal" />
       <AlertDialogBackdrop />
       <AlertDialogViewport
         className={cn(
@@ -73,7 +75,7 @@ export function AlertDialogPopup({
       >
         <AlertDialogPrimitive.Popup
           className={cn(
-            "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg origin-center flex-col rounded-lg border bg-popover text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-panel-lg transition-[scale,opacity,translate] duration-160 ease-out will-change-transform data-ending-style:opacity-0 data-starting-style:opacity-0 sm:scale-[calc(1-0.08*var(--nested-dialogs))] sm:data-ending-style:scale-98 sm:data-starting-style:scale-98",
+            "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg origin-center flex-col rounded-xl bg-popover text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-panel-lg transition-[scale,opacity,translate] duration-220 ease-smooth will-change-transform data-ending-style:opacity-0 data-starting-style:opacity-0 sm:scale-[calc(1-0.08*var(--nested-dialogs))] sm:data-ending-style:scale-98 sm:data-starting-style:scale-98",
             bottomStickOnMobile &&
               "max-sm:max-w-none max-sm:origin-bottom max-sm:rounded-none max-sm:border-x-0 max-sm:border-t max-sm:border-b-0 max-sm:data-ending-style:translate-y-4 max-sm:data-starting-style:translate-y-4 max-sm:before:hidden max-sm:before:rounded-none",
             className,

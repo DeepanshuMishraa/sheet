@@ -46,10 +46,10 @@ export function TabsList({
       {children}
       <TabsPrimitive.Indicator
         className={cn(
-          "absolute bottom-0 left-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-(--active-tab-bottom) transition-[width,translate] duration-200 ease-in-out",
+          "absolute bottom-0 left-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-(--active-tab-bottom) transition-[width,translate] duration-250 ease-smooth",
           variant === "underline"
             ? "z-10 bg-foreground data-[orientation=horizontal]:h-0.5 data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:-translate-x-px data-[orientation=horizontal]:translate-y-px"
-            : "-z-1 rounded-sm bg-card dark:bg-secondary",
+            : "-z-1 rounded-sm bg-surface shadow-lift dark:bg-secondary",
         )}
         data-slot="tab-indicator"
       />
@@ -68,6 +68,8 @@ export function TabsTab({
         className,
       )}
       data-slot="tabs-tab"
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
       {...props}
     />
   );

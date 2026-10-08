@@ -14,53 +14,50 @@
 
 
 :root {
-  /* The OpenAI Platform kit, inverted. The kit is dark-native and its light
-     counterpart keeps the same geometry, the same state hues, and the same
-     idea for `primary` — the extreme end of the neutral ramp, with the other
-     extreme as its text. Greys are true neutrals here, as they are in the kit;
-     a tint without a reason reads as indecision. */
-  --cx-canvas: #f0f1f4;
-  --cx-dot: #d8dadf;
-  --cx-ink: #0f1115;
-  --cx-accent: #7c3aed;
+  /* One idea: surfaces that sit slightly above the page. The page is a quiet
+     neutral, every panel is a step lighter than it, and the step is drawn with
+     light — a hairline, a contact shadow, a soft ambient one, and a catch of
+     highlight along the top edge — never with colour or borders. Greys are true
+     neutrals; the single accent is spent on selection and focus. */
+  --cx-canvas: #f4f4f5;
+  --cx-dot: #dcdce0;
+  --cx-ink: #0b0b0c;
+  --cx-accent: #3d4cf2;
 
-  --background: #f8f9fa;
+  --background: #f7f7f8;
   --foreground: var(--cx-ink);
   --card: #ffffff;
   --card-foreground: var(--cx-ink);
   --popover: #ffffff;
   --popover-foreground: var(--cx-ink);
-  --primary: #0f1115;
-  --primary-foreground: #ffffff;
-  /* `secondary` is a real fill in this kit, not a tint — the second button in
-     every footer sits on it. */
-  --secondary: #eceef2;
+  --primary: #0b0b0c;
+  --primary-foreground: #fafafa;
+  --secondary: #efeff1;
   --secondary-foreground: var(--cx-ink);
   /* Interaction tints stay translucent. A solid one matches whichever surface
      it lands on and the hover disappears. */
-  --muted: rgba(0, 0, 0, 0.04);
-  --muted-foreground: #666c75;
-  --accent: rgba(0, 0, 0, 0.05);
+  --muted: rgba(11, 11, 12, 0.04);
+  --muted-foreground: #6e6e76;
+  --accent: rgba(11, 11, 12, 0.055);
   --accent-foreground: var(--cx-ink);
-  --destructive: #d3302c;
+  --destructive: #d92d20;
   --destructive-foreground: #ffffff;
-  --border: #e2e4e8;
-  --input: #d1d5db;
-  --ring: rgba(15, 17, 21, 0.2);
-  /* Read off the kit's usage chart and its accent family — one scene. */
-  --chart-1: #7c3aed;
+  --border: #e6e6ea;
+  --input: #dcdce1;
+  --ring: rgba(61, 76, 242, 0.45);
+  --chart-1: #3d4cf2;
   --chart-2: #bd4d83;
   --chart-3: #d8874a;
   --chart-4: #10b981;
   --chart-5: #3b82f6;
   --radius: 0.5rem;
-  --sidebar: #f5f6f8;
+  --sidebar: #f7f7f8;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(0, 0, 0, 0.05);
+  --sidebar-accent: rgba(11, 11, 12, 0.055);
   --sidebar-accent-foreground: var(--cx-ink);
-  --sidebar-border: #e2e4e8;
+  --sidebar-border: #ececef;
   --sidebar-ring: var(--ring);
   --info: #3b82f6;
   --info-foreground: #1d4ed8;
@@ -68,49 +65,57 @@
   --success-foreground: #047857;
   --diff-added: #10b981;
   --diff-removed: #ef4444;
-  --skill: #8b5cf6;
+  --skill: var(--cx-accent);
   --warning: #f59e0b;
   --warning-foreground: #b45309;
-  /* The kit's tooltip is a light chip with dark text on a dark ground. Held as
-     its own pair so it can invert per theme rather than track a surface. */
-  --tooltip: #1e2025;
-  --tooltip-foreground: #f8f9fa;
-  /* The well a segmented control sits in. The kit sinks it below the page so
-     the selected option can be the lighter surface. */
-  --well: #eceef2;
+  --tooltip: #121214;
+  --tooltip-foreground: #f4f4f5;
+  /* The well a segmented control sits in: sunk below the page so the selected
+     option can be the lifted one. */
+  --well: #ebebee;
 
-  /* Chrome materials. Opaque on purpose: no blur, no translucency, no sheen.
-     Depth comes from two flat surface steps, a hairline, and a shadow. */
   --surface: #ffffff;
-  --surface-2: #eceef2;
-  /* The app-chrome typefaces. Overridden at runtime from Appearance
-     (`sheet:ui-sans` / `sheet:ui-mono` via `--sheet-font-*` on the root);
-     the defaults here are what a fresh account gets. Kept separate from
-     Tailwind's `--font-*` theme keys so a runtime pick always wins over the
-     compiled utilities. */
-  --sheet-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --sheet-font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --line: #e2e4e8;
-  /* A tight contact shadow says the panel touches the surface; a wide ambient
-     one says how far above it floats. One shadow alone reads as a smudge. */
+  --surface-2: #fbfbfc;
+   /* The frame the app sits in: the tab bar, the sidebar, and the margin around
+     the main panel. A step darker than the panel so the panel reads as lifted. */
+  --frame: #ececef;
+  /* Paper Mono is the only typeface in the chrome. Both names stay so every
+     `font-sans` / `font-mono` / `font-heading` utility lands on the same face;
+     a designer's own fonts live inside the canvas and are not touched here. */
+  --sheet-font-sans: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sheet-font-mono: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --line: #ececef;
+  /* The lift, in four layers. A hairline defines the edge, a tight shadow says
+     the panel touches the page, a wide soft one says how far above it floats,
+     and the inset highlight is the light catching the top edge. */
+  --edge: rgba(11, 11, 12, 0.07);
+  --highlight: rgba(255, 255, 255, 0.9);
   --panel-shadow:
-    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    0 0 0 1px var(--edge),
+    0 1px 1px rgba(11, 11, 12, 0.04),
+    0 2px 6px -2px rgba(11, 11, 12, 0.06),
+    inset 0 1px 0 var(--highlight);
   --panel-shadow-lg:
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 4px 12px -2px rgba(0, 0, 0, 0.08),
-    0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    0 0 0 1px var(--edge),
+    0 1px 1px rgba(11, 11, 12, 0.04),
+    0 4px 8px -2px rgba(11, 11, 12, 0.06),
+    0 16px 32px -8px rgba(11, 11, 12, 0.12),
+    inset 0 1px 0 var(--highlight);
   /* Durations. Three steps, so a hover, a disclosure, and a dialog entrance
-     cannot drift apart — the shortest is still legible as motion rather than as
-     a jump, the longest still reads as one gesture. */
+     cannot drift apart. */
   --duration-fast: 120ms;
   --duration-base: 180ms;
   --duration-slow: 280ms;
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-elevated: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
-  --shadow-elevated-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  --shadow-xs: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.03);
+  --shadow-sm: 0 0 0 1px var(--edge), 0 1px 2px rgba(11, 11, 12, 0.05), 0 2px 4px -2px rgba(11, 11, 12, 0.05);
+  --shadow-md: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.04), 0 4px 10px -3px rgba(11, 11, 12, 0.09);
+  --shadow-lg: var(--panel-shadow-lg);
+  --shadow-elevated: var(--panel-shadow);
+  --shadow-elevated-hover: var(--panel-shadow-lg);
+  /* Resting, hovered, and selected lift for small controls and cards. */
+  --lift: var(--panel-shadow);
+  --lift-hover: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.04), 0 6px 14px -4px rgba(11, 11, 12, 0.1), inset 0 1px 0 var(--highlight);
+  --lift-selected: 0 0 0 1.5px var(--cx-accent), 0 1px 1px rgba(11, 11, 12, 0.04), 0 4px 10px -3px rgba(61, 76, 242, 0.22), inset 0 1px 0 var(--highlight);
   color-scheme: light;
 }
 
@@ -122,22 +127,23 @@
      and body, which the dense editor chrome leans on. */
   --text-2xs: 0.625rem;
   --text-2xs--line-height: calc(0.875 / 0.625);
-  --text-xs: 0.75rem;
-  --text-xs--line-height: calc(1 / 0.75);
-  --text-sm: 0.8125rem;
-  --text-sm--line-height: calc(1.125 / 0.8125);
-  --text-base: 0.875rem;
-  --text-base--line-height: calc(1.25 / 0.875);
-  --text-lg: 1rem;
-  --text-lg--line-height: calc(1.25 / 1);
+  /* Paper Mono sets wide, so every step sits a notch under its sans
+     counterpart: the same measure, the same density, a quieter page. */
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: calc(1 / 0.6875);
+  --text-sm: 0.75rem;
+  --text-sm--line-height: calc(1.125 / 0.75);
+  --text-base: 0.8125rem;
+  --text-base--line-height: calc(1.25 / 0.8125);
+  --text-lg: 0.9375rem;
+  --text-lg--line-height: calc(1.375 / 0.9375);
   --text-xl: 1.25rem;
   --text-xl--line-height: calc(2 / 1.25);
   --text-2xl: 1.5rem;
   --text-2xl--line-height: calc(2 / 1.5);
   --text-3xl: 2.25rem;
   --text-3xl--line-height: calc(2.75 / 2.25);
-  /* The kit names OpenAI Sans and ships Inter as its explicit substitute.
-     Inter is what we have, and what the specimens were measured in. */
+  /* One face. `sans`, `heading`, and `mono` all resolve to Paper Mono. */
   --font-sans: var(--sheet-font-sans);
   --font-heading: var(--sheet-font-sans);
   --font-mono: var(--sheet-font-mono);
@@ -181,13 +187,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  /* Nothing rounder than 8px: lg and up all collapse to md. */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.5rem;
+  /* Radii nest: a control sits 6px, the panel that holds it 10px, the dialog
+     that holds the panel 14px — each is the inner radius plus its padding, so
+     curves stay concentric as things stack. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -211,6 +219,7 @@
   --color-skill: var(--skill);
   --color-info-foreground: var(--info-foreground);
   --color-info: var(--info);
+  --color-frame: var(--frame);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
@@ -222,8 +231,12 @@
   --shadow-float: var(--panel-shadow-lg);
   /* Hairline plus lift, as one utility. Themed through `--panel-shadow`, so no
      `.dark` override. `-lg` is for detached chrome: floating bars, popovers. */
-  --shadow-panel: inset 0 0 0 1px var(--line), var(--panel-shadow);
-  --shadow-panel-lg: inset 0 0 0 1px var(--line), var(--panel-shadow-lg);
+  --shadow-panel: var(--panel-shadow);
+  --shadow-panel-lg: var(--panel-shadow-lg);
+  --shadow-lift: var(--lift);
+  --shadow-lift-hover: var(--lift-hover);
+  --shadow-lift-selected: var(--lift-selected);
+  --shadow-hairline: 0 0 0 1px var(--edge);
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
@@ -231,7 +244,7 @@
   --shadow-elevated: var(--shadow-elevated);
   --shadow-elevated-hover: var(--shadow-elevated-hover);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-smooth: cubic-bezier(0.23, 1, 0.32, 1);
   @keyframes skeleton {
   to {
     background-position: -200% 0;
@@ -322,10 +335,10 @@ body,
 
    It sits on `html` rather than `body` so the two things a `body` rule misses
    get it too — anything portalled in (menus, dialogs, toasts) and the nodes
-   the canvas renderer mounts inside the document. Inter is a variable font, so
-   `auto` optical sizing picks the right grade per size and the ligature set
-   keeps pairs like "fi" and "//" from drifting apart. */
+   the canvas renderer mounts inside the document. Paper Mono is the one face
+   in the chrome; setting it here lets every portal inherit it. */
 html {
+  font-family: var(--sheet-font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -613,6 +626,11 @@ body {
     outline-offset: 2px;
   }
 
+  /* Form controls do not inherit the face by default. */
+  :where(button, input, select, textarea) {
+    font-family: inherit;
+  }
+
   /* Selection is the one place text inverts against a fill, and the OS default
      (a hard blue) is the loudest thing on a neutral screen. Tinting it with the
      accent keeps the hue count at one. */
@@ -704,17 +722,25 @@ body {
   }
 }
 
-/* `/app` keeps its chrome mounted while route content changes. The small
-   entrance softens that body swap without making navigation feel delayed. */
+/* `/app` keeps its chrome mounted while route content changes. The entrance
+   rises a few pixels out of a slight blur, which reads as the page settling
+   into place rather than swapping. */
 .app-page-enter {
-  animation: app-page-enter 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: app-page-enter 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @keyframes app-page-enter {
   from {
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(6px);
   }
+}
+
+/* Staggered arrival for lists and grids: set `--i` on each child and add the
+   class to the parent. A step is 28ms, capped so a long list never lags. */
+.cx-stagger > * {
+  animation: app-page-enter 320ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -724,83 +750,85 @@ body {
 }
 
 .dark {
-  /* OpenAI Platform — UI Kit, measured. Three neutral surfaces and nothing
-     else: shell recedes furthest, canvas carries the app, raised carries
-     anything that floats. The purple is the only chroma in the chrome, and it
-     is reserved for "new". */
-  --cx-canvas: #121212;
-  --cx-dot: #303030;
-  --cx-ink: #ededed;
-  --cx-accent: #924ff7;
+  /* Dark inverts which layer does the work. A shadow cannot darken a near-black
+     page, so the lift comes from light instead: each surface is a step lighter
+     than the one under it, its top edge catches a faint highlight, and the
+     ambient shadow only seats it. */
+  --cx-canvas: #0c0c0d;
+  --cx-dot: #2a2a2f;
+  --cx-ink: #ededf0;
+  --cx-accent: #6c79ff;
 
-  --background: #212121;
+  --background: #0f0f10;
   --foreground: var(--cx-ink);
-  --card: #212121;
+  --card: #151517;
   --card-foreground: var(--cx-ink);
-  --popover: #303030;
+  --popover: #1b1b1e;
   --popover-foreground: var(--cx-ink);
-  --primary: #f4f4f4;
-  --primary-foreground: #0d0d0d;
-  --secondary: #414141;
+  --primary: #f4f4f6;
+  --primary-foreground: #0b0b0c;
+  --secondary: #222226;
   --secondary-foreground: var(--cx-ink);
-  --muted: --alpha(var(--color-white) / 6%);
-  --muted-foreground: #afafaf;
-  /* 10% white lands on #444 over the raised surface — the kit's hovered menu
-     row — and still reads on the canvas. */
-  --accent: --alpha(var(--color-white) / 10%);
+  --muted: --alpha(var(--color-white) / 5%);
+  --muted-foreground: #8e8e98;
+  --accent: --alpha(var(--color-white) / 8%);
   --accent-foreground: var(--cx-ink);
-  --destructive: #e02e2a;
+  --destructive: #e5484d;
   --destructive-foreground: #f2827f;
-  --border: #424242;
-  --input: #595959;
-  --ring: --alpha(var(--color-white) / 35%);
-  --chart-1: #924ff7;
+  --border: #2a2a2f;
+  --input: #3a3a41;
+  --ring: --alpha(#6c79ff / 55%);
+  --chart-1: #6c79ff;
   --chart-2: #bd4d83;
   --chart-3: #d8874a;
   --chart-4: #80bd90;
   --chart-5: #4285d4;
-  --sidebar: #181818;
+  --sidebar: #0f0f10;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #2c2c2c;
+  --sidebar-border: #232327;
   --sidebar-ring: var(--ring);
   --info: #4285d4;
   --info-foreground: #8fbdea;
   --success: #80bd90;
   --success-foreground: #80bd90;
   --diff-added: #80bd90;
-  --diff-removed: #e02e2a;
-  --skill: #924ff7;
+  --diff-removed: #e5484d;
+  --skill: var(--cx-accent);
   --warning: #e3b45c;
   --warning-foreground: #e3b45c;
-  --tooltip: #afafaf;
-  --tooltip-foreground: #0d0d0d;
-  --well: #141414;
+  --tooltip: #ededf0;
+  --tooltip-foreground: #0b0b0c;
+  --well: #0b0b0c;
 
-  --surface: #202020;
-  --surface-2: #282828;
-  --line: #2c2c2c;
-  /* Dark inverts which of the two shadows does the work. On a light surface the
-     contact shadow darkens what is under the panel; on a dark one the panel is
-     already darker than its ground, so the edge has to come from a catch of
-     light on top instead, and the ambient shadow only has to seat it. */
-  --panel-shadow: 0 1px 2px 0 --alpha(var(--color-black) / 40%), inset 0 1px 0 0 --alpha(var(--color-white) / 4%);
-  /* Measured off the kit's project menu. */
+  --surface: #151517;
+  --surface-2: #1b1b1e;
+  --frame: #141415;
+  --line: #232327;
+  --edge: rgba(255, 255, 255, 0.08);
+  --highlight: rgba(255, 255, 255, 0.06);
+  --panel-shadow:
+    0 0 0 1px var(--edge),
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 var(--highlight);
   --panel-shadow-lg:
-    0 0 0 0.5px --alpha(var(--color-white) / 8%),
-    0 2px 6px -2px --alpha(var(--color-black) / 50%),
-    0 16px 32px -8px --alpha(var(--color-black) / 60%),
-    0 32px 64px -32px --alpha(var(--color-black) / 50%),
-    inset 0 1px 0 0 --alpha(var(--color-white) / 6%);
-  --shadow-xs: 0 1px 2px 0 --alpha(var(--color-black) / 30%);
-  --shadow-sm: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%);
-  --shadow-md: 0 2px 4px -1px --alpha(var(--color-black) / 45%), 0 8px 16px -6px --alpha(var(--color-black) / 50%);
-  --shadow-lg: 0 4px 8px -2px --alpha(var(--color-black) / 50%), 0 20px 40px -12px --alpha(var(--color-black) / 60%);
-  --shadow-elevated: 0 1px 3px 0 --alpha(var(--color-black) / 40%), 0 1px 2px -1px --alpha(var(--color-black) / 30%), inset 0 1px 0 0 --alpha(var(--color-white) / 6%);
-  --shadow-elevated-hover: 0 2px 4px -1px --alpha(var(--color-black) / 45%), 0 12px 24px -8px --alpha(var(--color-black) / 55%), inset 0 1px 0 0 --alpha(var(--color-white) / 10%);
+    0 0 0 1px var(--edge),
+    0 2px 6px -2px rgba(0, 0, 0, 0.5),
+    0 16px 32px -8px rgba(0, 0, 0, 0.6),
+    0 32px 64px -32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 var(--highlight);
+  --shadow-xs: 0 0 0 1px var(--edge), 0 1px 1px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 0 0 1px var(--edge), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 0 0 1px var(--edge), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 8px 16px -6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: var(--panel-shadow-lg);
+  --shadow-elevated: var(--panel-shadow);
+  --shadow-elevated-hover: var(--panel-shadow-lg);
+  --lift: var(--panel-shadow);
+  --lift-hover: 0 0 0 1px var(--edge), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 12px 24px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --lift-selected: 0 0 0 1.5px var(--cx-accent), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 6px 16px -4px rgba(108, 121, 255, 0.28), inset 0 1px 0 var(--highlight);
   color-scheme: dark;
 }
 
@@ -965,3 +993,4 @@ html[data-theme] {
     scroll-behavior: auto !important;
   }
 }
+

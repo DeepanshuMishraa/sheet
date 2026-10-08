@@ -10,6 +10,7 @@ import { ChevronRightIcon, XIcon } from "../icons/index.tsx";
 import type React from "react";
 import { createContext, useContext } from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 import { Button } from "./button.tsx";
 import { ScrollArea } from "./scroll-area.tsx";
 
@@ -98,7 +99,7 @@ export function DrawerBackdrop({
   return (
     <DrawerPrimitive.Backdrop
       className={cn(
-        "fixed inset-0 z-50 bg-black/24 opacity-[calc(1-var(--drawer-swipe-progress))] backdrop-blur-[2px] transition-opacity duration-450 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
+        "fixed inset-0 z-50 bg-black/24 opacity-[calc(1-var(--drawer-swipe-progress))] transition-opacity duration-450 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
         className,
       )}
       data-slot="drawer-backdrop"
@@ -157,6 +158,7 @@ export function DrawerPopup({
 
   return (
     <DrawerPortal {...portalProps}>
+      <OpenCue emphasis="normal" />
       <DrawerBackdrop />
       <DrawerViewport position={position} variant={variant}>
         <DrawerPrimitive.Popup

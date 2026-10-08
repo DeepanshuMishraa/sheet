@@ -288,6 +288,7 @@ that trips during ordinary work is worse than none.
 ### Persistence & legacy compatibility
 
 - Designs, drafts, draft bases, and versions keep legacy payload columns for rollback and expiring-link compatibility alongside nullable Canvas documents and `canvasVersion`.
+- Element comments live in `design_comment`, beside the document and outside every `WebTransaction`: no undo, no export. The editor reads and writes them over oRPC (`comment.*`); agents use the MCP tools `listComments` and `resolveComment`.
 - `canvasTransaction` provides idempotency, stale-revision recovery, and audit. Server writes use compare-and-swap revisions; apply + log a batch atomically.
 - Browser: optimistic apply, queue unacked batches in IndexedDB, flush after ~250ms or before target change. Rebase independent fields; surface only same-field, move-vs-move, or edit-vs-delete conflicts.
 - Legacy designs without a Canvas document are unsupported in the editor; there is no automatic first-open conversion flow.

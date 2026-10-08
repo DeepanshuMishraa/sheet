@@ -31,6 +31,13 @@ import {
   restoreWebVersion,
 } from './versions'
 import { deleteAsset, listAssets, uploadAsset } from './assets'
+import {
+  createComment,
+  editComment,
+  listComments,
+  removeComment,
+  resolveComment,
+} from './comments'
 import { getPreferences, savePreferences } from './preferences'
 
 export type { ORPCContext } from './procedures'
@@ -70,4 +77,11 @@ export const appRouter = {
     restoreWeb: restoreWebVersion,
   },
   asset: { list: listAssets, upload: uploadAsset, delete: deleteAsset },
+  comment: {
+    list: listComments,
+    create: createComment,
+    resolve: resolveComment,
+    edit: editComment,
+    delete: removeComment,
+  },
 }

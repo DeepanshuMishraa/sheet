@@ -16,8 +16,8 @@ export function InspectorSection({
 }) {
   const [open, setOpen] = useState(true)
   return (
-    <section className="space-y-3 border-b border-line px-4 py-3.5">
-      <div className="flex h-5 items-center justify-between gap-2 text-[13px] font-medium text-foreground">
+    <section className="space-y-3 border-b border-line/60 px-4 py-3.5">
+      <div className="flex h-5 items-center justify-between gap-2 text-2xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {collapsible ? (
           <button
             type="button"
@@ -56,8 +56,8 @@ export function OptionalSection({
   children: ReactNode
 }) {
   return (
-    <section className={cn('border-b border-line px-4', active ? 'space-y-3 py-3.5' : 'py-0')}>
-      <div className={cn('flex items-center justify-between gap-2 text-[13px] font-medium', active ? 'h-5 text-foreground' : 'h-[41px] text-muted-foreground')}>
+    <section className={cn('border-b border-line/60 px-4', active ? 'space-y-3 py-3.5' : 'py-0')}>
+      <div className={cn('flex items-center justify-between gap-2 text-2xs font-medium uppercase tracking-[0.12em]', active ? 'h-5 text-foreground' : 'h-[41px] text-muted-foreground')}>
         <span>{title}</span>
         <button
           type="button"
@@ -95,7 +95,7 @@ export function AlignmentGrid({
   const activeRow = AXIS.indexOf((column ? justify : align) as (typeof AXIS)[number])
   const activeColumn = AXIS.indexOf((column ? align : justify) as (typeof AXIS)[number])
   return (
-    <div role="group" aria-label="Alignment" className="grid aspect-square w-full grid-cols-3 grid-rows-3 rounded-lg bg-surface-2 p-1">
+    <div role="group" aria-label="Alignment" className="grid aspect-square w-full grid-cols-3 grid-rows-3 rounded-xl bg-well p-1">
       {AXIS.flatMap((_, row) =>
         AXIS.map((__, col) => {
           const active = row === activeRow && col === activeColumn
@@ -137,7 +137,7 @@ export function IconToggle<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div role="group" aria-label={label} className="grid h-8 grid-flow-col auto-cols-fr rounded-lg bg-surface-2 p-0.5">
+    <div role="group" aria-label={label} className="grid h-8 grid-flow-col auto-cols-fr rounded-xl bg-well p-0.5">
       {options.map((option) => (
         <button
           key={option.value}

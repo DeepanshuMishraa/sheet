@@ -3,6 +3,8 @@
 import { Toast } from "@base-ui/react/toast";
 import { CircleCheckIcon } from "../icons/index.tsx";
 import { CircleAlertIcon, InfoIcon, TriangleAlertIcon } from "../icons/index.tsx";
+import { play } from "cuelume";
+import { useEffect, useRef } from "react";
 import type React from "react";
 import { cn } from "../lib/utils.ts";
 import { buttonVariants } from "./button.tsx";
@@ -64,6 +66,31 @@ function Toasts({
 }): React.ReactElement {
   const { toasts } = Toast.useToastManager();
   const swipeDirection = getSwipeDirection(position);
+  const heard = useRef(new Set<string>());
+
+  // One cue per toast, chosen by what it reports.
+  useEffect(() => {
+    for (const toast of toasts) {
+      if (heard.current.has(toast.id)) continue;
+      heard.current.add(toast.id);
+      switch (toast.type) {
+        case "success":
+          play("success", { emphasis: "subtle" });
+          break;
+        case "error":
+          play("error", { emphasis: "subtle" });
+          break;
+        case "warning":
+          play("warning", { emphasis: "subtle" });
+          break;
+        case "loading":
+          play("loading", { emphasis: "subtle" });
+          break;
+        default:
+          play("ready", { emphasis: "subtle" });
+      }
+    }
+  }, [toasts]);
 
   return (
     <Toast.Portal data-slot="toast-portal" {...portalProps}>
@@ -91,7 +118,7 @@ function Toasts({
             <Toast.Root
               key={toast.id}
               className={cn(
-                "absolute z-[calc(9999-var(--toast-index))] h-(--toast-calc-height) w-full select-none rounded-lg border bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(1%*max(0,var(--toast-index,0))))] not-dark:bg-clip-padding text-popover-foreground shadow-lg/5 [transition:transform_.5s_cubic-bezier(.22,1,.36,1),opacity_.5s,height_.15s,background-color_.5s] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] data-expanded:bg-popover dark:bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(6%*max(0,var(--toast-index,0))))] dark:data-expanded:bg-popover",
+                "absolute z-[calc(9999-var(--toast-index))] h-(--toast-calc-height) w-full select-none rounded-xl bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(1%*max(0,var(--toast-index,0))))] not-dark:bg-clip-padding text-popover-foreground shadow-panel-lg [transition:transform_.5s_cubic-bezier(.22,1,.36,1),opacity_.5s,height_.15s,background-color_.5s] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] data-expanded:bg-popover dark:bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(6%*max(0,var(--toast-index,0))))] dark:data-expanded:bg-popover",
                 // Base positioning using data-position
                 "data-[position*=right]:right-0 data-[position*=right]:left-auto",
                 "data-[position*=left]:right-auto data-[position*=left]:left-0",
@@ -211,10 +238,10 @@ function AnchoredToasts({
             >
               <Toast.Root
                 className={cn(
-                  "relative text-balance border bg-popover not-dark:bg-clip-padding text-popover-foreground text-xs transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 data-ending-style:scale-98 data-starting-style:scale-98 data-ending-style:opacity-0 data-starting-style:opacity-0",
+                  "relative text-balance bg-popover not-dark:bg-clip-padding text-popover-foreground text-xs transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 data-ending-style:scale-98 data-starting-style:scale-98 data-ending-style:opacity-0 data-starting-style:opacity-0",
                   tooltipStyle
-                    ? "rounded-md shadow-md/5 before:rounded-[calc(var(--radius-md)-1px)]"
-                    : "rounded-lg shadow-lg/5 before:rounded-[calc(var(--radius-lg)-1px)]",
+                    ? "rounded-md shadow-panel before:rounded-[calc(var(--radius-md)-1px)]"
+                    : "rounded-lg shadow-panel-lg before:rounded-[calc(var(--radius-lg)-1px)]",
                   upsertReplayClassName(toast),
                 )}
                 {...toastData?.rootProps}

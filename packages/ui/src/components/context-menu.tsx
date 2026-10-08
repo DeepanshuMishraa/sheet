@@ -4,6 +4,7 @@ import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu
 import { ChevronRightIcon } from "../icons/index.tsx";
 import type * as React from "react";
 import { cn } from "../lib/utils.ts";
+import { OpenCue } from "./open-cue.tsx";
 
 export const ContextMenu: typeof ContextMenuPrimitive.Root =
   ContextMenuPrimitive.Root;
@@ -47,6 +48,7 @@ export function ContextMenuPopup({
 }): React.ReactElement {
   return (
     <ContextMenuPortal {...portalProps}>
+      <OpenCue emphasis="subtle" />
       <ContextMenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
@@ -58,7 +60,7 @@ export function ContextMenuPopup({
       >
         <ContextMenuPrimitive.Popup
           className={cn(
-            "relative flex not-[class*='w-']:min-w-28 origin-(--transform-origin) rounded-lg border bg-popover shadow-panel-lg outline-none focus:outline-none",
+            "relative flex not-[class*='w-']:min-w-28 origin-(--transform-origin) rounded-lg bg-popover shadow-panel-lg outline-none transition-[opacity,scale] duration-150 ease-smooth focus:outline-none data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-ending-style:scale-[0.98] data-ending-style:opacity-0",
             className,
           )}
           data-slot="context-menu-popup"
@@ -97,12 +99,14 @@ export function ContextMenuItem({
   return (
     <ContextMenuPrimitive.Item
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
+        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
         contextMenuItemIconClass,
         className,
       )}
       data-inset={inset}
       data-slot="context-menu-item"
+      data-cuelume-select=""
+      data-cuelume-emphasis="subtle"
       data-variant={variant}
       {...props}
     />
@@ -122,7 +126,7 @@ export function ContextMenuLinkItem({
   return (
     <ContextMenuPrimitive.LinkItem
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
+        "flex min-h-7 cursor-default select-none items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-inset:ps-7 data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
         contextMenuItemIconClass,
         className,
       )}
@@ -306,7 +310,7 @@ export function ContextMenuSubTrigger({
   return (
     <ContextMenuPrimitive.SubmenuTrigger
       className={cn(
-        "flex min-h-7 items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-popup-open:bg-accent data-inset:ps-7 data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
+        "flex min-h-7 items-center gap-1.5 rounded-md px-2 py-1 text-sm text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-popup-open:bg-accent data-inset:ps-7 data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground data-disabled:opacity-56 sm:min-h-5.5 sm:text-xs",
         contextMenuItemIconClass,
         className,
       )}

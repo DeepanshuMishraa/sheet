@@ -1,9 +1,10 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { Outlet, createRootRoute, useLocation } from '@tanstack/react-router'
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
 import { useEffect } from 'react'
 import { syncThemePreference } from '@sheet/shell/lib/theme'
 import { syncUiScale } from '@sheet/shell/lib/ui-scale'
-import { syncUiFonts } from '@sheet/shell/lib/ui-font'
+import { initSound } from '@sheet/ui/sound'
+import { AppShell } from '@sheet/shell/app-page-shell'
 import { useCaptureResponder } from '@sheet/editor/lib/capture-client'
 
 export const Route = createRootRoute({ component: RootLayout })
@@ -17,9 +18,13 @@ export const Route = createRootRoute({ component: RootLayout })
  * the route content paints in the same commit, so there is no blank frame.
  */
 function RootLayout() {
+  const { pathname } = useLocation()
+  // One shell for the whole app, so moving between files and the dashboard keeps
+  // the sidebar, tabs, and event streams alive instead of rebuilding them.
+  const framed = pathname.startsWith('/app') || pathname.startsWith('/design')
   useEffect(() => syncThemePreference(), [])
   useEffect(() => syncUiScale(), [])
-  useEffect(() => syncUiFonts(), [])
+  useEffect(() => initSound(), [])
   useCaptureResponder()
   useEffect(() => {
     document.getElementById('boot-splash')?.remove()
@@ -29,7 +34,13 @@ function RootLayout() {
     <NuqsAdapter>
       <div className="flex h-dvh flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <Outlet />
+          {framed ? (
+            <AppShell>
+              <Outlet />
+            </AppShell>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </div>
     </NuqsAdapter>

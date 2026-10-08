@@ -125,7 +125,7 @@ export function NewFileLauncher() {
   }, [designs, query])
 
   return (
-    <div className="min-h-full w-full bg-cx-canvas px-4 pb-20 pt-16 sm:px-6">
+    <div className="min-h-full w-full px-4 pb-20 pt-16 sm:px-6">
       <div className="mx-auto flex w-full max-w-xl flex-col items-center">
         {/* Top Segmented Action Buttons */}
         <div className="flex w-full items-center gap-3">
@@ -148,7 +148,7 @@ export function NewFileLauncher() {
           <button
             type="button"
             onClick={handleBrowseAll}
-            className="flex h-11 flex-1 items-center justify-center rounded-xl border border-line bg-surface-2 px-5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+            className="flex h-11 flex-1 items-center justify-center rounded-xl bg-surface px-5 text-sm font-medium text-muted-foreground shadow-lift transition-[box-shadow,color] hover:shadow-lift-hover hover:text-foreground"
           >
             Browse all files
           </button>
@@ -164,7 +164,7 @@ export function NewFileLauncher() {
             placeholder="Search files"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-11 w-full rounded-xl border border-line bg-surface-2 pe-10 ps-10 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-12 w-full rounded-2xl bg-surface shadow-lift pe-10 ps-10 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <kbd className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
             ⌘F

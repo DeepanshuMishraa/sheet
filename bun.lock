@@ -192,6 +192,7 @@
         "@hugeicons/react": "^1.1.9",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "cuelume": "^0.2.4",
         "radix-ui": "^1.6.2",
         "react-day-picker": "^10.0.1",
         "tailwind-merge": "^3.6.0",
@@ -787,6 +788,8 @@
     "cssstyle": ["cssstyle@6.2.0", "", { "dependencies": { "@asamuzakjp/css-color": "^5.0.1", "@csstools/css-syntax-patches-for-csstree": "^1.0.28", "css-tree": "^3.1.0", "lru-cache": "^11.2.6" } }, "sha512-Fm5NvhYathRnXNVndkUsCCuR63DCLVVwGOOwQw782coXFi5HhkXdu289l59HlXZBawsyNccXfWRYvLzcDCdDig=="],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
+
+    "cuelume": ["cuelume@0.2.4", "", {}, "sha512-w5Kj1h/MC8chBlwgfIdo/stB73m0RDa2KcIO93yI0mSq5qP6ERKOKTzv2JTj1KD9YUct4vZLAatohdeAe/mZJw=="],
 
     "data-urls": ["data-urls@7.0.0", "", { "dependencies": { "whatwg-mimetype": "^5.0.0", "whatwg-url": "^16.0.0" } }, "sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA=="],
 

@@ -83,7 +83,8 @@ export function useOpenTabs(activeDocument?: { id: string; name: string }) {
   // was archived or deleted.
   useEffect(() => {
     let active = true
-    const refresh = () => {
+    let timer: number | undefined
+    const run = () => {
       void orpc.design.list().then((designs) => {
         if (!active) return
         const names = new Map(designs.map((item) => [item.id, item.name]))
@@ -95,9 +96,16 @@ export function useOpenTabs(activeDocument?: { id: string; name: string }) {
         if (next.some((tab, index) => tab !== current[index])) saveStoredTabs(next)
       }).catch(() => undefined)
     }
-    const stop = subscribeCanvasChanges(null, refresh, { onReady: refresh })
+    // Every edit announces itself; names only change on rename, so batch the
+    // announcements instead of listing every design once per transaction.
+    const refresh = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(run, 1_500)
+    }
+    const stop = subscribeCanvasChanges(null, refresh, { onReady: run })
     return () => {
       active = false
+      window.clearTimeout(timer)
       stop()
     }
   }, [])
@@ -146,4 +154,24 @@ export function useOpenTabs(activeDocument?: { id: string; name: string }) {
     tabs,
     closeTab,
   }
+}
+
+/**
+ * Puts an open document in the tab list and keeps its name current, without
+ * the event stream and design listing `useOpenTabs` carries. The editor uses
+ * this; only the tab bar needs the full hook.
+ */
+export function useRegisterOpenTab(activeDocument?: { id: string; name: string }) {
+  const id = activeDocument?.id
+  const name = activeDocument?.name
+  useEffect(() => {
+    if (!id) return
+    const current = getStoredTabs()
+    const index = current.findIndex((item) => item.id === id)
+    if (index < 0) {
+      saveStoredTabs([...current, { id, name: name || 'Untitled' }])
+    } else if (name && current[index]?.name !== name) {
+      saveStoredTabs(current.map((tab) => (tab.id === id ? { ...tab, name } : tab)))
+    }
+  }, [id, name])
 }

@@ -11,7 +11,6 @@ import { LegacyDocumentViewer } from './legacy-viewer'
 import type { WebDocument } from '@sheet/canvas/web-model'
 import { WebCanvasEditor } from './web-editor'
 import { type DesignSummary } from '../lib/designs'
-import { DocumentTabBar } from './tab-bar'
 import { orpc } from '@sheet/rpc/client'
 import { Button } from '@sheet/ui/button'
 import { DotMatrixLoader } from '@sheet/ui/dot-matrix-loader'
@@ -132,18 +131,10 @@ export function CanvasApp({
   }, [branchId, designId, navigate, openTarget])
 
   if (error) {
-    const active = documents.find((document) => document.id === activeId)
     return (
-      <div className="flex h-full min-h-0 flex-col bg-cx-canvas text-foreground">
-        <header
-          data-tauri-drag-region
-          className="z-30 flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
-        >
-          <DocumentTabBar activeDocument={activeId ? { id: activeId, name: active?.name ?? '' } : undefined} />
-          <div data-tauri-drag-region className="h-full flex-1" />
-        </header>
+      <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
         <main className="grid min-h-0 flex-1 place-items-center p-4">
-          <div className="max-w-sm rounded-lg border bg-card p-4 text-center">
+          <div className="max-w-sm rounded-xl bg-card p-5 text-center shadow-lift">
             <h1 className="text-base font-semibold">Canvas could not open</h1>
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
             <div className="mt-4 flex items-center justify-center gap-2">
@@ -167,16 +158,8 @@ export function CanvasApp({
   }
 
   if (loading || !activeId || (!legacyCanvas && !webCanvas)) {
-    const active = documents.find((document) => document.id === activeId)
     return (
-      <div className="flex h-full min-h-0 flex-col bg-cx-canvas text-foreground">
-        <header
-          data-tauri-drag-region
-          className="z-30 flex h-10 w-full shrink-0 select-none items-center justify-between border-b border-line bg-surface pe-3 ps-20 shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
-        >
-          <DocumentTabBar activeDocument={activeId ? { id: activeId, name: active?.name ?? '' } : undefined} />
-          <div data-tauri-drag-region className="h-full flex-1" />
-        </header>
+      <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
         <main className="grid min-h-0 flex-1 place-items-center">
           <div className="flex flex-col items-center gap-5">
             <img

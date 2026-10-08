@@ -11,15 +11,6 @@ import {
   DialogTitle,
 } from '@sheet/ui/dialog'
 import { Input } from '@sheet/ui/input'
-import {
-  Select,
-  SelectGroup,
-  SelectGroupLabel,
-  SelectItem,
-  SelectPopup,
-  SelectTrigger,
-  SelectValue,
-} from '@sheet/ui/select'
 import { cn } from '@sheet/ui/utils'
 import {
   DARK_PRESET,
@@ -46,19 +37,11 @@ import {
   type UiScale,
 } from '../lib/ui-scale'
 import {
-  DEFAULT_UI_MONO,
-  DEFAULT_UI_SANS,
-  getUiMonoFont,
-  getUiSansFont,
-  setUiMonoFont,
-  setUiSansFont,
-  uiInterfaceFontMeta,
-  uiMonoStack,
-  UI_MONO_FONTS,
-  UI_SANS_FONTS,
-  type UiInterfaceFontId,
-  type UiMonoFontId,
-} from '../lib/ui-font'
+  DEFAULT_SOUND,
+  getSoundPreference,
+  setSoundPreference,
+  type SoundPreference,
+} from '@sheet/ui/sound'
 
 type ThemeOption = {
   value: ThemePreference
@@ -287,10 +270,10 @@ function ThemeEditor({
 
 const optionClassName = (selected: boolean) =>
   cn(
-    'flex min-w-0 flex-col items-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium outline-none transition-all duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]',
+    'flex min-w-0 flex-col items-center gap-1.5 rounded-lg px-2 py-2 text-xs outline-none transition-[box-shadow,color,background-color,transform] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]',
     selected
-      ? 'border-ring bg-secondary text-foreground shadow-xs font-medium'
-      : 'border-line/70 bg-surface text-muted-foreground shadow-xs hover:border-line hover:bg-surface-2 hover:text-foreground hover:-translate-y-0.5 hover:shadow-sm',
+      ? 'bg-surface text-foreground shadow-lift-selected'
+      : 'bg-transparent text-muted-foreground shadow-hairline hover:bg-surface hover:text-foreground hover:shadow-lift',
   )
 
 /**
@@ -303,8 +286,7 @@ const optionClassName = (selected: boolean) =>
 export function AppearanceSettings({ className }: { className?: string }) {
   const [theme, setTheme] = useState<ThemePreference>(DEFAULT_THEME)
   const [scale, setScale] = useState<UiScale>(DEFAULT_UI_SCALE)
-  const [sans, setSans] = useState<UiInterfaceFontId>(DEFAULT_UI_SANS)
-  const [mono, setMono] = useState<UiMonoFontId>(DEFAULT_UI_MONO)
+  const [sound, setSound] = useState<SoundPreference>(DEFAULT_SOUND)
 
   const [custom, setCustom] = useState<CustomTheme[]>([])
   const [editorOpen, setEditorOpen] = useState(false)
@@ -313,8 +295,7 @@ export function AppearanceSettings({ className }: { className?: string }) {
   useEffect(() => {
     setTheme(getThemePreference())
     setScale(getUiScale())
-    setSans(getUiSansFont())
-    setMono(getUiMonoFont())
+    setSound(getSoundPreference())
     setCustom(getCustomThemes())
   }, [])
 
@@ -407,86 +388,6 @@ export function AppearanceSettings({ className }: { className?: string }) {
 
       <section className="flex flex-col gap-2">
         <div>
-          <h2 className="text-sm font-semibold">Interface font</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            The typeface for menus, panels, and text across the app. Your designs keep their
-            own fonts.
-          </p>
-        </div>
-        <Select
-          value={sans}
-          onValueChange={(next: UiInterfaceFontId | null) => {
-            if (next === null) return
-            setSans(next)
-            setUiSansFont(next)
-          }}
-        >
-          <SelectTrigger
-            aria-label="Interface font"
-            style={{ fontFamily: uiInterfaceFontMeta(sans).stack }}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectPopup>
-            <SelectGroup>
-              <SelectGroupLabel>Sans</SelectGroupLabel>
-              {UI_SANS_FONTS.map((font) => (
-                <SelectItem key={font.id} value={font.id}>
-                  <span title={font.hint} style={{ fontFamily: font.stack }}>
-                    {font.label}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            <SelectGroup>
-              <SelectGroupLabel>Monospace</SelectGroupLabel>
-              {UI_MONO_FONTS.map((font) => (
-                <SelectItem key={font.id} value={font.id}>
-                  <span title={font.hint} style={{ fontFamily: font.stack }}>
-                    {font.label}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectPopup>
-        </Select>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">Monospace font</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            The typeface for code, shortcuts, and numeric readouts in the chrome.
-          </p>
-        </div>
-        <Select
-          value={mono}
-          onValueChange={(next: UiMonoFontId | null) => {
-            if (next === null) return
-            setMono(next)
-            setUiMonoFont(next)
-          }}
-        >
-          <SelectTrigger
-            aria-label="Monospace font"
-            style={{ fontFamily: uiMonoStack(mono) }}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectPopup>
-            {UI_MONO_FONTS.map((font) => (
-              <SelectItem key={font.id} value={font.id}>
-                <span title={font.hint} style={{ fontFamily: font.stack }}>
-                  {font.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <div>
           <h2 className="text-sm font-semibold">Interface size</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Scales menus, panels, and text across the app. Your designs keep their own size —
@@ -525,6 +426,31 @@ export function AppearanceSettings({ className }: { className?: string }) {
         <p className="text-xs text-muted-foreground">
           Currently {Math.round(scale * 100)}% · {SCALE_LABELS[scale]}
         </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <div>
+          <h2 className="text-sm font-semibold">Sound</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Soft cues for taps, menus, and finished work. Synthesized live, never loud.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-1" role="group" aria-label="Sound">
+          {(['on', 'off'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={sound === option}
+              className={optionClassName(sound === option)}
+              onClick={() => {
+                setSound(option)
+                setSoundPreference(option)
+              }}
+            >
+              {option === 'on' ? 'On' : 'Off'}
+            </button>
+          ))}
+        </div>
       </section>
     </div>
   )

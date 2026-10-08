@@ -1,7 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import { applyWebTransaction, parseWebTransaction, serializeWebDocument } from '@sheet/canvas/web-model'
+import {
+  applyWebTransaction,
+  parseWebTransaction,
+  serializeWebDocument,
+  type WebDocument,
+} from '@sheet/canvas/web-model'
 import { serializeWebStylesheets } from '@sheet/canvas/web-css'
 import {
   ICON_LIBRARIES,
@@ -88,6 +93,37 @@ function fail(error: unknown, usage?: McpIncludedUsage) {
     content: [{ type: 'text' as const, text: message }],
     isError: true,
     ...usageMeta(usage),
+  }
+}
+
+import {
+  commentStatusSchema,
+  listDesignComments,
+  setDesignCommentResolved,
+  type CommentStatus,
+} from './comments'
+
+/** What a comment points at right now, or that the element is gone. */
+function describeCommentedNode(document: WebDocument | null, nodeId: string) {
+  const node = document?.nodes[nodeId]
+  if (!node) return { exists: false as const }
+  if (node.kind === 'text') {
+    return { exists: true as const, kind: 'text' as const, text: node.text.slice(0, 200), parentId: node.parentId }
+  }
+  const text = Object.values(document?.nodes ?? {})
+    .filter((child) => child.parentId === nodeId && child.kind === 'text')
+    .map((child) => (child.kind === 'text' ? child.text : ''))
+    .join(' ')
+    .trim()
+    .slice(0, 200)
+  return {
+    exists: true as const,
+    kind: 'element' as const,
+    tag: node.tag,
+    id: node.attributes.id ?? null,
+    className: node.attributes.class ?? null,
+    text: text || null,
+    parentId: node.parentId,
   }
 }
 
@@ -979,6 +1015,54 @@ function createSheetRuntime(
       )
       return withoutDocument(requireApplied(result))
     }),
+  )
+
+  server.registerTool(
+    'listComments',
+    {
+      description:
+        'Read the comments a person pinned to elements of a design. Each comment names the element it is about (nodeId, plus its current tag, text and id/class so you can find it without a second call), who wrote it, and whether it is resolved. Pass nodeId to read only the comments on one element; by default only open comments come back. Treat each comment as an instruction from the designer about that element: read the node with getWebDocument, make the change with applyWebTransaction, then call resolveComment. Comments sit beside the document and are never part of the HTML, CSS or JSON exports.',
+      inputSchema: {
+        designId,
+        nodeId: z.string().min(1).max(128).optional().describe('Only comments on this element'),
+        status: commentStatusSchema.optional().describe('open (default), resolved or all'),
+        draftId: draftId.optional().describe('Read element details from this branch instead of Main'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    tool('listComments', async (args: {
+      designId: string
+      nodeId?: string
+      status?: CommentStatus
+      draftId?: string
+    }) => {
+      const comments = await listDesignComments(userId, args.designId, args)
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      const document = found.status === 'ready' ? found.document : null
+      return {
+        count: comments.length,
+        comments: comments.map((comment) => ({
+          ...comment,
+          element: describeCommentedNode(document, comment.nodeId),
+        })),
+      }
+    }),
+  )
+
+  server.registerTool(
+    'resolveComment',
+    {
+      description:
+        'Mark a comment as resolved once you have acted on it, or pass resolved: false to reopen it. The designer sees the change in the editor straight away. Does not edit the design.',
+      inputSchema: {
+        designId,
+        commentId: z.string().min(1).max(128).describe('Comment id from listComments'),
+        resolved: z.boolean().optional().describe('Defaults to true'),
+      },
+    },
+    tool('resolveComment', async (args: { designId: string; commentId: string; resolved?: boolean }) =>
+      setDesignCommentResolved(userId, args.designId, args.commentId, args.resolved ?? true),
+    ),
   )
 
   server.registerTool(
