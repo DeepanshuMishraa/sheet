@@ -208,7 +208,7 @@ Make it a backdrop, using the returned `nodeId` and the new revision:
 }
 ```
 
-The parent keeps a solid `background-color` because screenshots and exports show
+The parent keeps a solid `background-color` because HTML and JSON exports show
 the shader box empty.
 
 ## Refine with a rule patch

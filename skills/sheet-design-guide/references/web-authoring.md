@@ -137,6 +137,15 @@ Do not hand-write svg paths.
 The result is an `svg` node with child shape nodes; treat it as one unit and
 move or delete the `svg` node id returned as `nodeId`.
 
+Icons, images and shaders are objects of their own. In the editor the person can
+drag any of them out of the layout they sit in and place or resize it freely; the
+first drag pins it with `position: absolute`. So decide on purpose. An icon that
+is part of a row or a button belongs in flow (inside that element, no position).
+One that is a free-standing element of the design belongs on its frame with
+`position: absolute`, `left`, `top`, `width` and `height`, since a frame is
+positioned and its children measure from it. Without a `parentId`, `insertIcon`
+and `insertShader` already place the object free-positioned at the top level.
+
 ## Shaders
 
 Paper shaders give animated WebGL gradients and textures for backdrops and
@@ -163,10 +172,11 @@ Guidance:
   and a low `speed` for backdrops behind copy.
 - `speed: 0` (or the `static-mesh-gradient` shader) gives a still image with no
   animation cost.
-- Shaders render in the editor and preview only. `getWebScreenshot` and
-  `exportDesign` show an empty box, so do not rely on the shader for legibility
-  (give the parent a matching fallback `background`) and do not judge shader
-  quality from screenshots.
+- Shaders render live in the editor and preview. `getWebScreenshot` and PNG/JPG
+  `exportDesign` show one still frame, so a screenshot is a fair check of the
+  colors and shape but not of the motion. HTML and JSON export show an empty
+  box, so do not rely on the shader for legibility (give the parent a matching
+  fallback `background`).
 - Only the shaders `listShaders` returns are available; do not invent names.
 
 ## Images and assets
@@ -176,6 +186,12 @@ Guidance:
 - External images must be `https://` urls. `data:` urls only for base64
   avif/gif/jpeg/png/webp.
 - No `script`, `iframe`, `object`, `embed`, or `link`.
+- Give an image a pixel `width` and `height` (not `auto`) when it is a freely
+  placed piece of the design. The editor can resize one with `auto` sizing, but
+  it then writes pixels, so state them yourself. A free-standing image sits on
+  its frame with `position: absolute`, `left` and `top`; one that is part of a
+  card or a row stays in flow. A frame that clips (`overflow: hidden`) hides any
+  part of the image that sticks out of it.
 
 ## Semantics and accessibility
 

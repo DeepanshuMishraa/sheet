@@ -56,7 +56,7 @@ import {
 import { ShaderGallery } from './shader-panel'
 import { documentFonts, firstFamily, SYSTEM_FONT_STACKS, type DocumentFont } from '../lib/fonts'
 import { iconInfo, iconStyleOperation, isIconNode, type IconLibrary } from '@sheet/canvas/web-icon-style'
-import { prewarmShaderThumbnails, shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
+import { isShaderNode, prewarmShaderThumbnails, shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
 import { Button } from '@sheet/ui/button'
 import { cn } from '@sheet/ui/utils'
 import {
@@ -107,6 +107,10 @@ import { createPortal } from 'react-dom'
 import { useDesignComments } from '../lib/use-comments'
 import { CommentPin, CommentThread, CommentsList } from './comments'
 import { ExportMenu } from './export-menu'
+import { CopyImageButton } from './copy-image-button'
+import { captureImage } from '../lib/capture-client'
+import { copyImage } from '../lib/copy-image'
+import { compileWebStandaloneHtml } from '@sheet/canvas/web-export'
 import { orpc } from '@sheet/rpc/client'
 import {
   Dialog,
@@ -258,6 +262,8 @@ interface DragState {
   pageCorner?: 'nw' | 'ne' | 'sw' | 'se'
   /** Which sides of the box a `resize` drag is pulling. */
   resizeEdges?: ResizeEdges
+  /** The layer sits in the page's flow and becomes free-positioned when this drag moves it. */
+  pinAbsolute?: boolean
 }
 
 /** Where each of the eight handles sits on the selection box, and which sides it pulls. */
@@ -435,6 +441,17 @@ export function computeReorderOrder(
 }
 
 /** Shapes inside an icon are not editable on their own: canvas picks resolve to the icon's svg. */
+/**
+ * Things that are objects in their own right: an image, an icon, a shader. They
+ * can be taken out of their parent's flow and placed anywhere, wherever they are
+ * nested, instead of being fixed in a layout the way text and boxes are.
+ */
+function isFreeObject(node: WebNode | null | undefined) {
+  if (node?.kind !== 'element') return false
+  const kind = layerKind(node)
+  return kind === 'image' || kind === 'svg' || isShaderNode(node)
+}
+
 function pickTarget(document: WebDocument, id: string | null) {
   for (let current = id ? document.nodes[id] : undefined; current; current = current.parentId ? document.nodes[current.parentId] : undefined) {
     if (isIconNode(current)) return current.id
@@ -2410,6 +2427,12 @@ export function WebCanvasEditor({
   const pageCanvas = pageId === null ? null : pageRootSize(document, pageId)
   const canvasWidth = pageCanvas?.width ?? document.metadata.page?.width ?? Math.max(authoredCanvasWidth ?? 1_440, contentSize.width)
   const canvasHeight = pageCanvas?.height ?? document.metadata.page?.height ?? Math.max(authoredCanvasHeight ?? 900, contentSize.height)
+  // The box the page is drawn in. It does not follow its content: a frame that fills the
+  // box would otherwise grow every time something was dragged past its edge, and the
+  // thing being dragged could never leave. `canvasWidth` and `canvasHeight` above still
+  // include the content, for fitting the view to everything.
+  const boxWidth = pageCanvas?.width ?? document.metadata.page?.width ?? authoredCanvasWidth ?? 1_440
+  const boxHeight = pageCanvas?.height ?? document.metadata.page?.height ?? authoredCanvasHeight ?? 900
   const fonts = useMemo(() => documentFonts(document), [document])
   const shortcutLabel = (id: BuiltInShortcutId) => formatBuiltInChord(id, shortcutConfig)
 
@@ -2441,7 +2464,33 @@ export function WebCanvasEditor({
     }])
   }, [transact])
 
-  const insertElement = useCallback((tag: (typeof ELEMENT_TAGS)[number], point?: { x: number; y: number }, frame = false, size?: { width: number; height: number }, attributes?: Record<string, string>) => {
+  /**
+   * Where something new that is not a frame goes: inside the selected frame,
+   * centred, when one is selected; otherwise top level, beside what is there.
+   * Either way it is free-positioned, so it can be moved and resized at once.
+   */
+  const placeInsert = useCallback((width: number, height: number) => {
+    const current = documentRef.current
+    const pageParent = canvasParentId(pageIdRef.current)
+    const selected = selectedRef.current ? current.nodes[selectedRef.current] : null
+    const holdsChildren =
+      selected?.kind === 'element' &&
+      !boundNodeIndex(current.instances).has(selected.id) &&
+      ['frame', 'frame-row', 'frame-column', 'element'].includes(layerKind(selected))
+    if (selected?.kind === 'element' && holdsChildren) {
+      const frameWidth = parsePxAuthored(selected.styles.width)
+      const frameHeight = parsePxAuthored(selected.styles.height)
+      return {
+        parentId: selected.id,
+        x: frameWidth === null ? 24 : Math.max(0, Math.round((frameWidth - width) / 2)),
+        y: frameHeight === null ? 24 : Math.max(0, Math.round((frameHeight - height) / 2)),
+      }
+    }
+    const spot = freeFrameSpot(current, pageParent)
+    return { parentId: pageParent, x: spot.x, y: spot.y }
+  }, [])
+
+  const insertElement = useCallback((tag: (typeof ELEMENT_TAGS)[number], point?: { x: number; y: number }, frame = false, size?: { width: number; height: number }, attributes?: Record<string, string>, parentOverride?: string | null) => {
     const selected = selectedRef.current
       ? documentRef.current.nodes[selectedRef.current]
       : null
@@ -2453,7 +2502,7 @@ export function WebCanvasEditor({
     const origin = point ?? (asFrame ? freeFrameSpot(documentRef.current, rootParentId) : undefined)
     const extent = size ?? (asFrame && !point ? NEW_FRAME_SIZE : undefined)
     const parentId = origin
-      ? rootParentId
+      ? (parentOverride !== undefined ? parentOverride : rootParentId)
       : selected?.kind === 'element'
         ? selected.id
         : (selected?.parentId ?? rootParentId)
@@ -2486,10 +2535,12 @@ export function WebCanvasEditor({
 
   const insertLibraryIcon = useCallback(async (icon: { library: IconLibrary; name: string }) => {
     const { iconNodes } = await import('@sheet/canvas/web-icons')
-    const parentId = canvasParentId(pageIdRef.current)
+    const place = placeInsert(24, 24)
     const nodes = iconNodes(icon.library, icon.name, {
-      parentId,
-      order: nextOrder(documentRef.current, parentId),
+      parentId: place.parentId,
+      order: nextOrder(documentRef.current, place.parentId),
+      left: place.x,
+      top: place.y,
     })
     const svg = nodes?.[0]
     if (!nodes || !svg) {
@@ -2502,7 +2553,7 @@ export function WebCanvasEditor({
     transact(`Insert ${icon.name} icon`, nodes.map((node) => ({ type: 'node.insert' as const, node })))
     setTool('select')
     setLeftTab('design')
-  }, [setTool, transact])
+  }, [placeInsert, setTool, transact])
 
   const selectionColors = useMemo(() => {
     if (!selectedId || !document.nodes[selectedId]) return []
@@ -2745,42 +2796,61 @@ export function WebCanvasEditor({
     const node = selectedRef.current ? documentRef.current.nodes[selectedRef.current] : null
     const authored = node?.kind === 'element' ? node.styles : {}
     event.currentTarget.setPointerCapture(event.pointerId)
-    const moveKind = mode === 'move'
-      ? dragMoveKind(getComputedStyle(element).position)
-      : undefined
+    const computedPosition = dragMoveKind(getComputedStyle(element).position)
+    // A top-level layer is its own object on the page. One that still sits in the
+    // page's flow (an image dropped or pasted in, say) is pinned to a free position
+    // the first time it is moved or pulled from its top or left, so it can go anywhere.
+    const isPageLayer =
+      selectedRef.current !== null &&
+      pageLayerIds(documentRef.current, pageIdRef.current).includes(selectedRef.current)
+    // An image, icon or shader is pinned wherever it sits, even inside a frame whose
+    // layout would otherwise hold it: it is its own object, not a part of the frame.
+    const canPin = isPageLayer || isFreeObject(node)
+    let moveKind = mode === 'move' ? computedPosition : undefined
+    let pinAbsolute = false
+    if (mode === 'move' && moveKind === 'reorder' && canPin) {
+      moveKind = 'absolute'
+      pinAbsolute = true
+    }
     let authoredLeft = parsePxAuthored(authored.left)
     let authoredTop = parsePxAuthored(authored.top)
     let authoredWidth = parsePxAuthored(authored.width)
     let authoredHeight = parsePxAuthored(authored.height)
-    if (mode === 'move' && moveKind === 'absolute' && (authoredLeft === null || authoredTop === null)) {
-      const rect = element.getBoundingClientRect()
-      const parentRect = element.parentElement?.getBoundingClientRect() ?? rect
-      const zoom = cameraRef.current.zoom
-      if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
-      if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
+    const rect = element.getBoundingClientRect()
+    // Left and top are measured from the box an absolutely positioned layer is placed
+    // in: its nearest positioned ancestor, which is not always its direct parent.
+    const container = (element instanceof HTMLElement ? element.offsetParent : null) ?? element.parentElement
+    const parentRect = container?.getBoundingClientRect() ?? rect
+    const zoom = cameraRef.current.zoom
+    // From where the layer sits now, not from an authored left and top a static box ignores.
+    const fromRect = () => {
+      authoredLeft = (rect.left - parentRect.left) / zoom
+      authoredTop = (rect.top - parentRect.top) / zoom
     }
-    if (
-      mode === 'resize' &&
-      selectedRef.current !== null &&
-      pageLayerIds(documentRef.current, pageIdRef.current).includes(selectedRef.current) &&
-      (authoredWidth === null || authoredHeight === null)
-    ) {
-      const rect = element.getBoundingClientRect()
-      const zoom = cameraRef.current.zoom
+    if (mode === 'move' && moveKind === 'absolute') {
+      if (pinAbsolute) fromRect()
+      else {
+        if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
+        if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
+      }
+    }
+    // A size that is not in pixels (auto, a percentage) starts from what is drawn, so a
+    // handle can always be dragged. The handle writes pixels; nothing else is converted.
+    if (mode === 'resize' && (edges !== undefined || canPin) && (authoredWidth === null || authoredHeight === null)) {
       if (authoredWidth === null) authoredWidth = rect.width / zoom
       if (authoredHeight === null) authoredHeight = rect.height / zoom
     }
     // Pulling a west or north side moves the box's origin, which only a
-    // free-positioned element has. In a layout those sides cannot move, so the
-    // handle keeps to the sides that can.
+    // free-positioned element has. A top-level layer in the page's flow is pinned
+    // first; one inside a layout keeps to the sides that can move.
     let resizeEdges = edges
     if (mode === 'resize' && edges && (edges.w || edges.n)) {
-      if (dragMoveKind(getComputedStyle(element).position) === 'absolute') {
-        const rect = element.getBoundingClientRect()
-        const parentRect = element.parentElement?.getBoundingClientRect() ?? rect
-        const zoom = cameraRef.current.zoom
+      if (computedPosition === 'absolute') {
         if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
         if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
+      } else if (canPin) {
+        fromRect()
+        pinAbsolute = true
       } else {
         resizeEdges = { e: edges.e, s: edges.s }
       }
@@ -2792,6 +2862,7 @@ export function WebCanvasEditor({
       startY: event.clientY,
       element,
       moveKind,
+      pinAbsolute,
       resizeEdges,
       authoredLeft,
       authoredTop,
@@ -2815,7 +2886,17 @@ export function WebCanvasEditor({
     const id = pickTarget(documentRef.current, webNodeIdFromElement(target))
     if (!id || boundNodeIndex(documentRef.current.instances).has(id)) return
     const element = findElement(id)
-    if (!element || dragMoveKind(getComputedStyle(element).position) !== 'absolute') return
+    if (!element) return
+    // Free-positioned layers move by their body. So does a top-level layer that still sits
+    // in the page's flow, which is pinned to a free position as it goes. A layer inside a
+    // layout is left to its label handle, since a stray drag there would reorder it.
+    const topLevel = pageLayerIds(documentRef.current, pageIdRef.current).includes(id)
+    // Images, icons and shaders are objects of their own and move freely wherever they are nested.
+    if (
+      dragMoveKind(getComputedStyle(element).position) !== 'absolute' &&
+      !topLevel &&
+      !isFreeObject(documentRef.current.nodes[id])
+    ) return
     select(id)
     startElementDrag(event, 'move')
   }, [tool, isSpacePanning, findElement, select, startElementDrag])
@@ -2828,6 +2909,7 @@ export function WebCanvasEditor({
     if (drag.mode === 'move' && drag.moveKind === 'reorder') {
       drag.element.style.transform = `translate(${dx}px, ${dy}px)`
     } else if (drag.mode === 'move') {
+      if (drag.pinAbsolute) drag.element.style.position = 'absolute'
       if (drag.authoredLeft !== null) drag.element.style.left = `${drag.authoredLeft + dx}px`
       if (drag.authoredTop !== null) drag.element.style.top = `${drag.authoredTop + dy}px`
     } else if (drag.resizeEdges && drag.authoredWidth !== null && drag.authoredHeight !== null) {
@@ -2842,6 +2924,7 @@ export function WebCanvasEditor({
         dx,
         dy,
       )
+      if (drag.pinAbsolute) drag.element.style.position = 'absolute'
       drag.element.style.width = `${box.width}px`
       drag.element.style.height = `${box.height}px`
       if (drag.resizeEdges.w) drag.element.style.left = `${box.left}px`
@@ -2927,7 +3010,14 @@ export function WebCanvasEditor({
       transact('Move element', [{
         type: 'node.patch',
         id,
-        patch: { kind: 'element', styles: { left: committed.left, top: committed.top } },
+        patch: {
+          kind: 'element',
+          styles: {
+            left: committed.left,
+            top: committed.top,
+            ...(drag.pinAbsolute ? { position: 'absolute' } : {}),
+          },
+        },
       }])
       return
     }
@@ -2953,6 +3043,7 @@ export function WebCanvasEditor({
       }
       if (drag.resizeEdges.w) styles.left = `${box.left}px`
       if (drag.resizeEdges.n) styles.top = `${box.top}px`
+      if (drag.pinAbsolute) styles.position = 'absolute'
       transact('Resize element', [{ type: 'node.patch', id, patch: { kind: 'element', styles } }])
       return
     }
@@ -3380,6 +3471,18 @@ export function WebCanvasEditor({
     }
   }, [deleteSelected, fitToView, insertElement, insertPenPath, nudgeSelected, redoLast, select, setNextCamera, shortcutConfig, undo, wrapInFlex])
 
+  /**
+   * Copy the selected layer as a PNG. It renders the live document, not the saved
+   * one, so an edit made a moment ago is in the picture, and it uses the renderer
+   * Export uses, so the image matches what Export would give for that layer.
+   */
+  const copySelectionImage = useCallback(async () => {
+    const id = selectedRef.current
+    if (!id || !documentRef.current.nodes[id]) throw new Error('Select something on the canvas first')
+    const html = compileWebStandaloneHtml(documentRef.current, { title: documentRef.current.name })
+    await copyImage(captureImage({ html, rootId: id }))
+  }, [])
+
   const slots = useChromeSlots()
   const barButtonClassName =
     'flex size-[24px] shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-90 aria-pressed:text-foreground'
@@ -3433,6 +3536,11 @@ export function WebCanvasEditor({
           ) : null}
         </div>
       ) : null}
+      <CopyImageButton
+        enabled={selectedId !== null && !pageSelected && document.nodes[selectedId] !== undefined}
+        onCopy={copySelectionImage}
+        onError={setNotice}
+      />
       <ExportMenu designId={designId} draftId={draftId} onError={setNotice} />
       <button
         type="button"
@@ -3683,7 +3791,8 @@ export function WebCanvasEditor({
               </div>
             ) : leftTab === 'assets' ? (
               <AssetsPanel onInsert={(asset) => {
-                insertElement('img', undefined, false, undefined, { src: assetSrc(asset), alt: asset.name })
+                const place = placeInsert(240, 160)
+                insertElement('img', { x: place.x, y: place.y }, false, undefined, { src: assetSrc(asset), alt: asset.name }, place.parentId)
                 setLeftTab('design')
                 setTool('select')
               }} />
@@ -3933,8 +4042,8 @@ export function WebCanvasEditor({
               isBoundedPage(document, pageId) && pageSelected && 'ring-2 ring-cx-accent',
             )}
             style={{
-              width: pageResizePreview?.width ?? canvasWidth,
-              height: pageResizePreview?.height ?? canvasHeight,
+              width: pageResizePreview?.width ?? boxWidth,
+              height: pageResizePreview?.height ?? boxHeight,
               transform: cameraTransform(camera),
             }}
           >

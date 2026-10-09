@@ -224,5 +224,7 @@ comment is an instruction about one element, not about the page.
   do not attempt to reconstruct or overwrite it.
 - On screenshot failure, keep the successful edit and be explicit that visual
   verification is incomplete.
-- Shaders draw in the editor and preview only. A screenshot or exported file
-  shows an empty box where a shader sits; do not treat that as a bug in the edit.
+- Shaders draw live in the editor and preview. `getWebScreenshot` and PNG/JPG
+  export show one still frame of each shader at its real size, drawn by the open
+  editor window. HTML and JSON export keep the box and its params and do not
+  draw it, so give the parent a fallback `background`.

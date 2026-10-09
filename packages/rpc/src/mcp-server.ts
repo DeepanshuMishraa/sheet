@@ -766,7 +766,7 @@ function createSheetRuntime(
     'insertIcon',
     {
       description:
-        'Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Pass parentId to put it in a frame. With no parentId on a named page it goes in the page root; on Page 1 it goes in the only top-level frame, sits top level when there is none, and is refused when there are several, so name the frame.',
+        'Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Pass parentId to put it in a frame. With no parentId on a named page it goes in the page root; on Page 1 it goes in the only top-level frame, sits top level, free-positioned beside the page\'s other objects, when there is none, and is refused when there are several, so name the frame. In the editor an icon is its own object: the person can drag it out of its frame\'s layout and place it anywhere.',
       inputSchema: {
         ...targetShape,
         library: iconLibrary,
@@ -795,12 +795,16 @@ function createSheetRuntime(
         throw new Error(`Parent "${parentId}" is not an element in this design.`)
       }
       const siblings = Object.values(document.nodes).filter((node) => node.parentId === parentId)
+      // An icon with nowhere to sit is its own object on the page, placed like a
+      // frame, so the person can move and resize it. Inside a frame it stays in flow.
+      const spot = parentId === null ? freeFrameSpot(document, null) : null
       const nodes = iconNodes(args.library, args.name, {
         parentId,
         order: siblings.reduce((max, node) => Math.max(max, node.order), 0) + 1_024,
         color: args.color,
         size: args.size,
         strokeWidth: args.strokeWidth,
+        ...(spot ? { left: spot.x, top: spot.y } : {}),
       })
       if (!nodes) {
         const suggestions = searchIcons(args.name, args.library, 8).map((icon) => icon.name)
@@ -1036,7 +1040,7 @@ function createSheetRuntime(
     'insertShader',
     {
       description:
-        'Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. With no parentId the shader is its own free-positioned object on the page, placed beside the other top-level objects, so the person can move and resize it like a frame; give left and top to place it yourself. With a parentId it goes inside that element.',
+        'Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders live in the editor and preview, and as one still frame in screenshots and PNG or JPG export; exported HTML and JSON keep the box and its params but do not draw the shader. With no parentId the shader is its own free-positioned object on the page, placed beside the other top-level objects, so the person can move and resize it like a frame; give left and top to place it yourself. With a parentId it goes inside that element.',
       inputSchema: {
         ...targetShape,
         shader: shaderName,

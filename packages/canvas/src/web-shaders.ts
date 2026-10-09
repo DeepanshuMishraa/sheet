@@ -893,17 +893,23 @@ const nextFrames = async (count: number) => {
   }
 }
 
-async function renderThumbnail(name: ShaderName): Promise<string | null> {
+async function renderShaderImage(
+  name: ShaderName,
+  raw: unknown,
+  width: number,
+  height: number,
+  format: 'image/jpeg' | 'image/png',
+): Promise<string | null> {
   if (typeof document === 'undefined') return null
   const definition: ShaderDefinition = SHADERS[name]
-  const params = parseShaderParams(name, undefined)
+  const params = parseShaderParams(name, raw)
   let uniforms = definition.uniforms(params)
   if ('u_noiseTexture' in uniforms) {
     if (!(await loadNoise())) return null
     uniforms = definition.uniforms(params)
   }
   const host = document.createElement('div')
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${THUMB_WIDTH}px;height:${THUMB_HEIGHT}px;pointer-events:none`
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;height:${height}px;pointer-events:none`
   document.body.append(host)
   let mount: ShaderMount | null = null
   try {
@@ -920,14 +926,37 @@ async function renderThumbnail(name: ShaderName): Promise<string | null> {
       1,
     )
     await nextFrames(3)
-    return mount.canvasElement.width > 1 ? mount.canvasElement.toDataURL('image/jpeg', 0.85) : null
+    return mount.canvasElement.width > 1 ? mount.canvasElement.toDataURL(format, 0.85) : null
   } catch (error) {
-    console.warn(`Shader "${name}" could not draw a thumbnail.`, error)
+    console.warn(`Shader "${name}" could not draw a picture.`, error)
     return null
   } finally {
     mount?.dispose()
     host.remove()
   }
+}
+
+const renderThumbnail = (name: ShaderName) =>
+  renderShaderImage(name, undefined, THUMB_WIDTH, THUMB_HEIGHT, 'image/jpeg')
+
+/**
+ * One frame of a shader as a PNG data URL, at the size and with the params of a
+ * node on the canvas. A capture of a design uses it to put a picture where the
+ * live shader sits, since a shader is a canvas the editor mounts and a page of
+ * plain HTML has only an empty box there. Drawn here, in the editor's window,
+ * never inside the page being captured.
+ */
+export function shaderSnapshot(
+  name: ShaderName,
+  raw: unknown,
+  width: number,
+  height: number,
+): Promise<string | null> {
+  const w = Math.max(2, Math.min(2_048, Math.round(width)))
+  const h = Math.max(2, Math.min(2_048, Math.round(height)))
+  const job = thumbnailQueue.then(() => renderShaderImage(name, raw, w, h, 'image/png'))
+  thumbnailQueue = job.catch(() => undefined)
+  return job
 }
 
 /**
@@ -959,3 +988,4 @@ export function shaderThumbnail(name: ShaderName): Promise<string | null> {
 export function prewarmShaderThumbnails() {
   for (const name of SHADER_NAMES) void shaderThumbnail(name)
 }
+

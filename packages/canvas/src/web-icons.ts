@@ -35,6 +35,12 @@ export interface IconOptions {
   /** Any CSS color; icons draw with `currentColor`, so this sets the svg's `color`. */
   color?: string
   strokeWidth?: number
+  /**
+   * Place the icon at this point of its parent, free-positioned, so it can be
+   * moved and resized. Without both, it sits in the parent's flow.
+   */
+  left?: number
+  top?: number
 }
 
 const DEFAULT_STROKE: Record<IconLibrary, number> = { hugeicons: 1.5, lucide: 2 }
@@ -121,6 +127,9 @@ export function iconNodes(
       'data-icon-name': entry.name,
     },
     styles: {
+      ...(options.left !== undefined && options.top !== undefined
+        ? { position: 'absolute', left: `${options.left}px`, top: `${options.top}px` }
+        : {}),
       width: `${size}px`,
       height: `${size}px`,
       ...(options.color ? { color: options.color } : {}),

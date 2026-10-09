@@ -171,8 +171,9 @@ Limits to keep in mind:
 - It renders the default state. Hover, focus, and active states, and media or
   container rules that do not match the chosen `width`, are not visible; check
   them structurally in `getWebCSS`.
-- Paper shaders do not draw in screenshots or exports. Their box is present but
-  empty.
+- Paper shaders appear in screenshots and PNG/JPG exports as one still frame,
+  drawn by the open editor window. They do not draw in HTML or JSON export,
+  where the box is present but empty.
 - Use `width` to test the desktop and a narrow layout.
 
 ### With image vision
@@ -206,7 +207,7 @@ Do not pretend to inspect pixels.
 
 The result carries `filename`, `mimeType`, `encoding` (`utf8` or `base64`), and
 `data`. Exports are one-way: they never round-trip into the editor. Shader nodes
-export as empty boxes.
+export as empty boxes in HTML and JSON, and as one still frame in PNG and JPG.
 
 ## Failure guide
 

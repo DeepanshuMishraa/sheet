@@ -268,6 +268,19 @@ person sees as a page is described in `@sheet/canvas/web-pages`.
   onto itself or into its own subtree); `moveLayer` in `web-editor.tsx` applies
   it as one `node.move` and keeps a free-positioned layer's place on the page.
   Layers inside a component instance cannot be moved by hand.
+- **Images, icons and shaders are free objects.** `isFreeObject` in
+  `web-editor.tsx` marks them: wherever they are nested, a drag of the body or a
+  handle pins them to `position: absolute` and measures left and top from the box
+  they are placed in (`offsetParent`), so a frame's layout never holds them. A
+  top-level layer in the page's flow is pinned the same way. Layers inside a
+  layout that are not free objects (text, boxes) still reorder when dragged.
+  Resizing starts from the drawn size when a size is `auto`, and writes pixels.
+  Things inserted from the Assets and Icons panels go inside the selected frame
+  (centred) or, with none selected, at the top level beside the other objects
+  (`placeInsert`); `iconNodes` and `shaderNode` take `left`/`top` for this.
+- The page box the editor draws in does **not** follow its content
+  (`boxWidth`/`boxHeight`), or a frame that fills it would grow each time
+  something was dragged past its edge. Fitting the view still counts content.
 - **Pages the person adds are open** like Page 1 (`pageNode(..., { open: true })`:
   `overflow: visible`, transparent). Pages made by the `createPage` tool are
   **bounded** painted artboards. `isBoundedPage` tells them apart; only a

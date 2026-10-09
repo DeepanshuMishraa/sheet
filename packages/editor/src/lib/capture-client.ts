@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
 import { apiUrl } from '@sheet/platform'
 import { domToBlob } from 'modern-screenshot'
+import {
+  isShaderName,
+  SHADER_NAME_ATTRIBUTE,
+  SHADER_PARAMS_ATTRIBUTE,
+  shaderSnapshot,
+} from '@sheet/canvas/web-shaders'
 
 /** Mirrors `CaptureRequest` in `@sheet/rpc/capture-broker`; the wire shape is plain JSON. */
 interface CaptureRequest {
@@ -28,6 +34,27 @@ function isCaptureRequest(value: unknown): value is CaptureRequest {
     typeof candidate.pixelRatio === 'number' &&
     (candidate.format === 'png' || candidate.format === 'jpeg')
   )
+}
+
+/** Draws every shader in the page as a picture and sets it as that box's background. */
+async function paintShaders(frameDocument: Document) {
+  const boxes = [...frameDocument.querySelectorAll<HTMLElement>(`[${SHADER_NAME_ATTRIBUTE}]`)]
+  for (const box of boxes) {
+    const name = box.getAttribute(SHADER_NAME_ATTRIBUTE)
+    const { width, height } = box.getBoundingClientRect()
+    if (!isShaderName(name) || width < 1 || height < 1) continue
+    let raw: unknown = null
+    try {
+      raw = JSON.parse(box.getAttribute(SHADER_PARAMS_ATTRIBUTE) ?? '{}')
+    } catch {
+      // Unreadable params draw with the shader's defaults, as the editor does.
+    }
+    const url = await shaderSnapshot(name, raw, width, height)
+    if (!url) continue
+    box.style.backgroundImage = `url("${url}")`
+    box.style.backgroundSize = '100% 100%'
+    box.style.backgroundRepeat = 'no-repeat'
+  }
 }
 
 function loaded(frame: HTMLIFrameElement, html: string) {
@@ -106,6 +133,12 @@ async function render(request: CaptureRequest) {
     await settle(frameDocument)
     lap('settledMs')
 
+    // Shaders are canvases the editor mounts, so a page of plain HTML has an empty box
+    // where each one sits. Each is drawn here, in this window, at its own size and with
+    // its own params, and the picture becomes the box's background.
+    await paintShaders(frameDocument)
+    lap('shadersMs')
+
     const root = frameDocument.querySelector<HTMLElement>('[data-sheet-export-root="true"]')
     const target =
       request.rootId === null
@@ -119,6 +152,26 @@ async function render(request: CaptureRequest) {
     const bounds = target.getBoundingClientRect()
     if (bounds.width < 1 || bounds.height < 1) throw new Error('Web screenshot target has no visible bounds')
 
+    // Rendering a node on its own copies only its subtree, which loses anything inside it
+    // that is positioned from the page instead of from the node (an image or icon placed
+    // by `left` and `top` in a frame that is not itself positioned). Instead the whole
+    // export is kept and shifted so the node sits at the origin of a box the node's size,
+    // and that box is what is rasterized: everything keeps its place, and the rest is cropped.
+    let captured: HTMLElement = target
+    if (request.rootId !== null && root) {
+      const crop = frameDocument.createElement('div')
+      Object.assign(crop.style, {
+        position: 'relative',
+        width: `${bounds.width}px`,
+        height: `${bounds.height}px`,
+        overflow: 'hidden',
+      })
+      root.style.transform = `translate(${-bounds.left}px, ${-bounds.top}px)`
+      frameDocument.body.append(crop)
+      crop.append(root)
+      captured = crop
+    }
+
     // Same clamps as before: neither side over 4096px, area under 12MP.
     const ratio = request.pixelRatio
     const fit = Math.min(
@@ -129,7 +182,7 @@ async function render(request: CaptureRequest) {
     )
     const scale = ratio * fit
     const mime = request.format === 'jpeg' ? 'image/jpeg' : 'image/png'
-    const blob = await domToBlob(target, {
+    const blob = await domToBlob(captured, {
       scale,
       type: mime,
       quality: request.quality / 100,
@@ -193,4 +246,27 @@ export function useCaptureResponder() {
     })
     return () => source.close()
   }, [])
+}
+
+/**
+ * A PNG of one node, or of the whole document, rendered by this window from the
+ * HTML it is given. The editor uses it to copy a selection as an image from the
+ * live document, so edits that have not been saved yet are in the picture.
+ */
+export async function captureImage(options: {
+  html: string
+  rootId: string | null
+  width?: number
+  pixelRatio?: number
+}): Promise<Blob> {
+  const { blob } = await render({
+    id: 'local',
+    html: options.html,
+    width: options.width ?? 1_440,
+    pixelRatio: options.pixelRatio ?? 2,
+    rootId: options.rootId,
+    format: 'png',
+    quality: 100,
+  })
+  return blob
 }
