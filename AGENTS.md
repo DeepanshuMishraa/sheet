@@ -256,9 +256,18 @@ person sees as a page is described in `@sheet/canvas/web-pages`.
   (`position:absolute`, `left`, `top`, `width`, `height`) boxes that can be
   moved, resized from eight handles, and renamed by double-clicking the label
   above them. They come from the Frame tool's size list (right panel, groups
-  start folded, the tool stays on so several can be placed) and are built by
+  start folded, and the editor returns to the select tool once a frame is placed
+  or drawn) and are built by
   `frameNode` / `freeFrameSpot` in `@sheet/canvas/web-frames`, the same code the
   `createFrame` agent tool uses. The size list is `FRAME_PRESET_GROUPS` there.
+- **Layers can be rearranged by hand.** Drag a row in the layers panel onto
+  another: the middle of a row nests it inside (as the last child), the top or
+  bottom edge sets it before or after. Dropping on the empty space under the
+  list pulls a nested layer back to the top level. `planLayerMove` in
+  `@sheet/canvas/web-pages` decides the parent and order (and refuses a drop
+  onto itself or into its own subtree); `moveLayer` in `web-editor.tsx` applies
+  it as one `node.move` and keeps a free-positioned layer's place on the page.
+  Layers inside a component instance cannot be moved by hand.
 - **Pages the person adds are open** like Page 1 (`pageNode(..., { open: true })`:
   `overflow: visible`, transparent). Pages made by the `createPage` tool are
   **bounded** painted artboards. `isBoundedPage` tells them apart; only a

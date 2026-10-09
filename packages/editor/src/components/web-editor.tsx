@@ -89,6 +89,8 @@ import {
   pageLayerIds,
   pageNode,
   pageParentId,
+  planLayerMove,
+  type LayerDropZone,
   canvasParentId,
   pageRootSize,
   resolvePageId,
@@ -694,6 +696,17 @@ function InlineName({
   )
 }
 
+/** The layer being dragged in the layers panel; a drag cannot be read back during dragover, so it lives here. */
+let draggedLayerId: string | null = null
+
+/** Which part of a row a pointer is over: the top edge, the bottom edge, or the middle. */
+function dropZoneAt(event: { clientY: number; currentTarget: HTMLElement }, canHold: boolean): LayerDropZone {
+  const rect = event.currentTarget.getBoundingClientRect()
+  const ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5
+  if (!canHold) return ratio < 0.5 ? 'before' : 'after'
+  return ratio < 0.28 ? 'before' : ratio > 0.72 ? 'after' : 'inside'
+}
+
 function WebTreeNode({
   document,
   node,
@@ -702,6 +715,7 @@ function WebTreeNode({
   onSelect,
   onToggleHidden,
   onRename,
+  onMove,
 }: {
   document: WebDocument
   node: WebNode
@@ -710,8 +724,10 @@ function WebTreeNode({
   onSelect: (id: string) => void
   onToggleHidden: (id: string) => void
   onRename: (id: string, name: string) => void
+  onMove: (id: string, targetId: string, zone: LayerDropZone) => void
 }) {
   const children = layerChildren(document, node)
+  const [dropZone, setDropZone] = useState<LayerDropZone | null>(null)
   // Collapsed until asked for, so a page of frames reads as a short list. A
   // selection made on the canvas opens just the path down to it.
   const [open, setOpen] = useState(false)
@@ -728,18 +744,61 @@ function WebTreeNode({
     <div>
       <div
         className={cn(
-          'group flex h-8 cursor-pointer select-none items-center pe-3 text-[13px] transition-colors',
+          'group relative flex h-8 cursor-pointer select-none items-center pe-3 text-[13px] transition-colors',
           isSelected
             ? 'bg-secondary text-foreground'
             : 'text-foreground/80 hover:bg-secondary/60 hover:text-foreground',
           hidden && 'opacity-50',
+          dropZone === 'inside' && 'bg-accent shadow-[inset_0_0_0_1px_var(--cx-accent)]',
         )}
         style={{ paddingInlineStart: 8 + depth * 16 }}
+        draggable={!editing}
         onClick={() => onSelect(node.id)}
         onDoubleClick={() => {
           if (renamable) setEditing(true)
         }}
+        onDragStart={(event) => {
+          draggedLayerId = node.id
+          event.dataTransfer.effectAllowed = 'move'
+          // Some engines refuse to start a drag that carries no data.
+          event.dataTransfer.setData('text/plain', node.id)
+        }}
+        onDragEnd={() => {
+          draggedLayerId = null
+          setDropZone(null)
+        }}
+        onDragOver={(event) => {
+          const dragged = draggedLayerId
+          if (!dragged) return
+          const zone = dropZoneAt(event, node.kind === 'element')
+          // A drop that makes no sense (onto itself, into its own subtree) is not offered.
+          if (!planLayerMove(document, dragged, node.id, zone)) {
+            setDropZone(null)
+            return
+          }
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+          setDropZone(zone)
+        }}
+        onDragLeave={() => setDropZone(null)}
+        onDrop={(event) => {
+          const dragged = draggedLayerId
+          if (!dragged) return
+          event.preventDefault()
+          event.stopPropagation()
+          const zone = dropZoneAt(event, node.kind === 'element')
+          draggedLayerId = null
+          setDropZone(null)
+          onMove(dragged, node.id, zone)
+          if (zone === 'inside') setOpen(true)
+        }}
       >
+        {dropZone === 'before' ? (
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-cx-accent" />
+        ) : null}
+        {dropZone === 'after' ? (
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-px bg-cx-accent" />
+        ) : null}
         <button
           type="button"
           className="grid size-5 shrink-0 place-items-center text-muted-foreground hover:text-foreground disabled:pointer-events-none"
@@ -798,6 +857,7 @@ function WebTreeNode({
               onSelect={onSelect}
               onToggleHidden={onToggleHidden}
               onRename={onRename}
+              onMove={onMove}
             />
           ))
         : null}
@@ -2468,6 +2528,52 @@ export function WebCanvasEditor({
     if (operations.length) transact('Replace selection color', operations)
   }, [transact])
 
+  /**
+   * Move a layer by hand: inside another (nesting it), or before or after one.
+   * An instance's layers belong to its component, so they stay put. A
+   * free-positioned layer keeps its place on the page when it changes parent:
+   * its left and top are rewritten against the new parent so it does not jump.
+   */
+  const moveLayer = useCallback((id: string, targetId: string, zone: LayerDropZone) => {
+    const current = documentRef.current
+    const bound = boundNodeIndex(current.instances)
+    if (bound.has(id) || bound.has(targetId)) {
+      setNotice('Layers inside a component instance cannot be moved by hand. Edit the component instead.')
+      return
+    }
+    const plan = planLayerMove(current, id, targetId, zone)
+    if (!plan) return
+    const node = current.nodes[id]
+    if (!node || (plan.parentId === node.parentId && plan.order === node.order)) return
+    const operations: WebTransaction['operations'] = [
+      { type: 'node.move', id, parentId: plan.parentId, order: plan.order },
+    ]
+    if (node.kind === 'element' && node.styles.position === 'absolute' && plan.parentId !== node.parentId) {
+      const element = findElement(id)
+      const parentElement = plan.parentId === null ? hostRef.current : findElement(plan.parentId)
+      if (element && parentElement) {
+        const zoom = cameraRef.current.zoom
+        const rect = element.getBoundingClientRect()
+        const parentRect = parentElement.getBoundingClientRect()
+        operations.push({
+          type: 'node.patch',
+          id,
+          patch: {
+            kind: 'element',
+            styles: {
+              left: `${roundAuthoredCss((rect.left - parentRect.left) / zoom)}px`,
+              top: `${roundAuthoredCss((rect.top - parentRect.top) / zoom)}px`,
+            },
+          },
+        })
+      }
+    }
+    transact('Move layer', operations)
+    selectedRef.current = id
+    setSelectedId(id)
+    setPageSelected(false)
+  }, [findElement, transact])
+
   const renameNode = useCallback((id: string, name: string) => {
     if (documentRef.current.nodes[id]?.kind !== 'element') return
     transact('Rename layer', [{
@@ -2929,10 +3035,11 @@ export function WebCanvasEditor({
     setSelectedId(element.id)
     setPageSelected(false)
     transact(`Insert ${preset.name} frame`, [{ type: 'node.insert', node: element }])
-    // The Frame tool stays on, so several frames can be set down one after another.
+    // Back to the select tool, so the frame can be moved and resized at once.
+    setTool('select')
     Sound.success()
     revealBox({ ...origin, width: preset.width, height: preset.height })
-  }, [revealBox, transact])
+  }, [revealBox, setTool, transact])
 
   /**
    * Place a shader the way a frame is placed: top level, free-positioned beside
@@ -3076,6 +3183,8 @@ export function WebCanvasEditor({
       draft.tool === 'frame',
       width > 3 || height > 3 ? { width: Math.max(1, width), height: Math.max(1, height) } : undefined,
     )
+    // A frame is one thing you set down; the next thing you do is work with it.
+    if (draft.tool === 'frame') setTool('select')
   }
 
   const startPageResize = useCallback((event: ReactPointerEvent<HTMLButtonElement>, pageCorner: 'nw' | 'ne' | 'sw' | 'se') => {
@@ -3469,7 +3578,25 @@ export function WebCanvasEditor({
                   <div className="flex h-8 items-center justify-between px-4 text-xs font-medium text-muted-foreground">
                     <span className="cx-label cx-bracket">Layers</span>
                   </div>
-                  <div>
+                  {/* Dropping on the empty space under the rows sets a layer last at the top
+                      level, which is how a nested layer is pulled back out. */}
+                  <div
+                    className="min-h-10"
+                    onDragOver={(event) => {
+                      if (draggedLayerId && event.target === event.currentTarget) {
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = 'move'
+                      }
+                    }}
+                    onDrop={(event) => {
+                      const dragged = draggedLayerId
+                      const last = layerIds.at(-1)
+                      if (!dragged || !last || event.target !== event.currentTarget) return
+                      event.preventDefault()
+                      draggedLayerId = null
+                      moveLayer(dragged, last, 'after')
+                    }}
+                  >
                     {layerIds.length === 0 ? (
                       <div className="mx-3 rounded-lg border border-dashed border-line p-4 text-center">
                         <p className="text-xs text-muted-foreground">This page is empty.</p>
@@ -3499,6 +3626,7 @@ export function WebCanvasEditor({
                             onSelect={select}
                             onToggleHidden={toggleHidden}
                             onRename={renameNode}
+                            onMove={moveLayer}
                           />
                         ) : null
                       })
@@ -3629,7 +3757,10 @@ export function WebCanvasEditor({
               return
             }
             if (tool === 'pen') insertPenPath(point)
-            else insertElement(tool === 'text' ? 'p' : 'div', point, tool === 'frame')
+            else {
+              insertElement(tool === 'text' ? 'p' : 'div', point, tool === 'frame')
+              if (tool === 'frame') setTool('select')
+            }
           }}
           onDoubleClick={(event) => {
             const target = event.target

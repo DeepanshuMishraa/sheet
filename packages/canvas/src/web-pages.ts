@@ -242,3 +242,52 @@ export function layerName(node: WebNode, document?: WebDocument) {
   }
   return KIND_NAMES[layerKind(node)]
 }
+
+/** Where a dragged layer lands relative to the layer it is dropped on. */
+export type LayerDropZone = 'before' | 'after' | 'inside'
+
+function isSelfOrDescendant(document: WebDocument, id: string, ancestorId: string) {
+  let current: string | null = id
+  while (current !== null) {
+    if (current === ancestorId) return true
+    current = document.nodes[current]?.parentId ?? null
+  }
+  return false
+}
+
+/**
+ * The parent and order a layer takes when it is dropped on another: inside it
+ * (last child), or just before or after it among its siblings. `null` when the
+ * drop makes no sense: onto itself, into its own subtree, or inside a layer
+ * that cannot hold children. Orders are placed between neighbours, so no other
+ * layer is renumbered.
+ */
+export function planLayerMove(
+  document: WebDocument,
+  id: string,
+  targetId: string,
+  zone: LayerDropZone,
+): { parentId: string | null; order: number } | null {
+  const node = document.nodes[id]
+  const target = document.nodes[targetId]
+  if (!node || !target || id === targetId) return null
+  if (isSelfOrDescendant(document, targetId, id)) return null
+  if (zone === 'inside') {
+    if (target.kind !== 'element') return null
+    const last = orderedWebChildren(document, targetId).filter((child) => child.id !== id).at(-1)
+    return { parentId: targetId, order: (last?.order ?? 0) + 1_024 }
+  }
+  const parentId = target.parentId
+  const siblings = orderedWebChildren(document, parentId).filter((child) => child.id !== id)
+  const index = siblings.findIndex((child) => child.id === targetId)
+  if (index === -1) return null
+  const before = zone === 'before' ? siblings[index - 1] : siblings[index]
+  const after = zone === 'before' ? siblings[index] : siblings[index + 1]
+  const order =
+    before && after
+      ? (before.order + after.order) / 2
+      : after
+        ? after.order - 1_024
+        : (before?.order ?? 0) + 1_024
+  return { parentId, order }
+}

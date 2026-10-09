@@ -12,6 +12,7 @@ import {
   pageLayerIds,
   pageNode,
   pageParentId,
+  planLayerMove,
   pageRootSize,
   resolvePageId,
   visibleRootIds,
@@ -114,5 +115,45 @@ describe('web pages', () => {
     const named = createWebElement('div', { id: 'n', parentId: null, order: 1, attributes: { 'data-name': 'Hero' } })
     expect(layerName(named, base)).toBe('Hero')
     expect(layerName(createWebElement('img', { id: 'i', parentId: null, order: 1 }), base)).toBe('Image')
+  })
+})
+
+describe('planLayerMove', () => {
+  function tree() {
+    const base = createWebDocument('t')
+    const make = (id: string, parentId: string | null, order: number) =>
+      createWebElement('div', { id, parentId, order })
+    const nodes = [
+      make('a', null, 1_024),
+      make('b', null, 2_048),
+      make('c', null, 3_072),
+      make('a1', 'a', 1_024),
+      make('a2', 'a', 2_048),
+    ]
+    const document = applyWebTransaction(base, {
+      id: 'tx-tree',
+      label: 'Tree',
+      operations: nodes.map((node) => ({ type: 'node.insert' as const, node })),
+    }).document
+    return document
+  }
+
+  test('dropping inside puts the layer last in the target', () => {
+    expect(planLayerMove(tree(), 'c', 'a', 'inside')).toEqual({ parentId: 'a', order: 3_072 })
+    expect(planLayerMove(tree(), 'c', 'b', 'inside')).toEqual({ parentId: 'b', order: 1_024 })
+  })
+
+  test('dropping before or after lands between neighbours under the target\'s parent', () => {
+    expect(planLayerMove(tree(), 'c', 'b', 'before')).toEqual({ parentId: null, order: 1_536 })
+    expect(planLayerMove(tree(), 'a', 'c', 'after')).toEqual({ parentId: null, order: 4_096 })
+    expect(planLayerMove(tree(), 'c', 'a', 'before')).toEqual({ parentId: null, order: 0 })
+    expect(planLayerMove(tree(), 'c', 'a1', 'after')).toEqual({ parentId: 'a', order: 1_536 })
+  })
+
+  test('refuses a layer onto itself and into its own subtree', () => {
+    expect(planLayerMove(tree(), 'a', 'a', 'inside')).toBeNull()
+    expect(planLayerMove(tree(), 'a', 'a1', 'inside')).toBeNull()
+    expect(planLayerMove(tree(), 'a', 'a2', 'before')).toBeNull()
+    expect(planLayerMove(tree(), 'a', 'missing', 'inside')).toBeNull()
   })
 })
