@@ -129,7 +129,14 @@ function Section({
  * made, in this window and in the app's other windows: the whole app is the
  * preview, which beats a swatch for a choice about colour or size.
  */
-export function AppearanceSettings({ className }: { className?: string }) {
+export function AppearanceSettings({
+  className,
+  showScale = true,
+}: {
+  className?: string
+  /** Interface size is left out of first-run onboarding; Settings keeps it. */
+  showScale?: boolean
+}) {
   const [theme, setTheme] = useState<ThemePreference>(DEFAULT_THEME)
   const [accent, setAccentState] = useState<AccentId>(DEFAULT_ACCENT)
   const [scale, setScale] = useState<UiScale>(DEFAULT_UI_SCALE)
@@ -215,7 +222,7 @@ export function AppearanceSettings({ className }: { className?: string }) {
         </p>
       </Section>
 
-      <Section
+      {showScale ? <Section
         label="Interface size"
         hint="Scales menus, panels, and text. Designs keep their own size; use canvas zoom for those."
       >
@@ -256,7 +263,7 @@ export function AppearanceSettings({ className }: { className?: string }) {
             )
           })}
         </div>
-      </Section>
+      </Section> : null}
     </div>
   )
 }
@@ -297,8 +304,8 @@ export function SoundSettings({ className }: { className?: string }) {
           >
             <span
               className={cn(
-                'absolute top-1/2 size-2.5 -translate-y-1/2 transition-[transform,background-color] duration-200 ease-smooth',
-                sound === 'on' ? 'translate-x-[1.1rem] bg-cx-accent' : 'translate-x-[0.2rem] bg-muted-foreground',
+                'absolute top-1/2 size-2.5 -translate-y-1/2 transition-[inset-inline-start,background-color] duration-200 ease-smooth',
+                sound === 'on' ? 'start-[1.1rem] bg-cx-accent' : 'start-[0.2rem] bg-muted-foreground',
               )}
             />
           </span>

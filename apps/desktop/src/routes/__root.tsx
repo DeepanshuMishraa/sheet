@@ -6,6 +6,7 @@ import { syncAccent } from '@sheet/shell/lib/accent'
 import { syncUiScale } from '@sheet/shell/lib/ui-scale'
 import { initSound } from '@sheet/ui/sound'
 import { AppShell } from '@sheet/shell/app-page-shell'
+import { Onboarding } from '@sheet/shell/onboarding'
 import { useCaptureResponder } from '@sheet/editor/lib/capture-client'
 
 export const Route = createRootRoute({ component: RootLayout })
@@ -70,6 +71,7 @@ function AppRoot({ pathname }: { pathname: string }) {
           )}
         </div>
       </div>
+      <Onboarding />
     </NuqsAdapter>
   )
 }
