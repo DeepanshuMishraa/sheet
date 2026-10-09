@@ -32,6 +32,8 @@ import { Loader } from '@sheet/ui/loader'
 import { Skeleton } from '@sheet/ui/skeleton'
 import { Spinner } from '@sheet/ui/spinner'
 import { FreshnessMeter } from './freshness-meter'
+import { GridPaper } from '@sheet/ui/grid-paper'
+import { ThemeToggle } from './theme-toggle'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
 import { WebDocumentPreview } from '@sheet/editor/web-preview'
@@ -443,12 +445,15 @@ export function DesignsDashboard({
 
   return (
     <>
-      <main className="app-page-enter flex min-h-full min-w-0 flex-col">
+      <GridPaper as="main" className="app-page-enter flex min-h-full min-w-0 flex-col">
         <header className="flex h-11 shrink-0 items-center justify-between border-b border-line px-8">
           <h1 className="cx-label cx-bracket">{title}</h1>
-          <p className="cx-label tabular-nums">
-            {designs ? `${visible.length} ${visible.length === 1 ? 'file' : 'files'}` : '···'}
-          </p>
+          <div className="flex items-center gap-8">
+            <p className="cx-label tabular-nums">
+              {designs ? `${visible.length} ${visible.length === 1 ? 'file' : 'files'}` : '···'}
+            </p>
+            <ThemeToggle />
+          </div>
         </header>
 
         <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-8 pb-6 pt-8">
@@ -461,7 +466,6 @@ export function DesignsDashboard({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               data-cuelume-type=""
-              data-cuelume-emphasis="subtle"
               className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60 [&::-webkit-search-cancel-button]:appearance-none"
             />
           </label>
@@ -478,7 +482,6 @@ export function DesignsDashboard({
                 aria-label={label}
                 title={label}
                 data-cuelume-select=""
-                data-cuelume-emphasis="subtle"
                 aria-pressed={view === id}
                 onClick={() => setView(id)}
                 className={cn(
@@ -574,7 +577,7 @@ export function DesignsDashboard({
             </div>
           )}
         </div>
-      </main>
+      </GridPaper>
 
       <Dialog
         open={renameTarget !== null}

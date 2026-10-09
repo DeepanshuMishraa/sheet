@@ -18,7 +18,8 @@ Inspect the callable Sheet tools before creating or mutating anything. Require:
 
 - `getWebDocument` and `applyWebTransaction` for every read and edit
 - `getWebScreenshot` for visual verification
-- `createDesign` for a new design, `createPage` / `listPages` for pages
+- `createDesign` for a new design, `listFramePresets` / `createFrame` for
+  frames, `createPage` / `listPages` for pages
 - `insertIcon` / `styleIcon` for icons, `listShaders` / `insertShader` /
   `styleShader` for shaders
 - `createBranch`, `compareBranch`, `proposeBranch`, `applyBranch` for branch work
@@ -46,10 +47,34 @@ schema-display limitation, not permission to guess. Use `references/web-schema.m
 For a one-field text or spacing tweak, read `web-schema.md` and the target node;
 do not load every reference.
 
-## Put every variant or screen on its own page
+## Page 1 starts empty
+
+A new design has one page, Page 1, and it is empty. It is the unnamed first
+page, with no edge and no page-sized box. What goes on it is one or more
+top-level frames, and the person can pick up, move and resize each of them.
+Pages the person adds in the editor work the same way.
+
+- Make each frame with `createFrame`: pass a preset name from
+  `listFramePresets` (Phone, Tablet, Desktop, Presentation, Smartwatch, Paper,
+  Social media; for example `"iPhone 16"`) or a `width` and `height`. It makes
+  the same white, free-positioned, named frame the editor's Frame tool makes,
+  and sets it about 48px right of the last one. Use the returned `nodeId` as
+  `parentId` for what goes inside. Only reach for a raw top-level `node.insert`
+  (`parentId` null, `position:absolute`, `left`, `top`, `width`, `height`) when
+  `createFrame` cannot say what you need.
+- Do not wrap everything in one root sized like a page. Variants, screens and
+  light/dark versions are sibling frames on the same page.
+- `insertIcon` with no `parentId` goes in Page 1's only frame, and is refused
+  when there are several, so name the frame. `insertShader` with no `parentId`
+  is its own free-positioned object the person can move and resize.
+- Screenshot a frame with `getWebScreenshot` and `rootId` set to that frame's id.
+- Reach for `createPage` only when the user asks for separate pages. The rules
+  below apply to those.
+
+## Named pages (only when asked)
 
 When the user asks for variants, options, alternates, themes (light and dark),
-breakpoints, or more than one screen, each one is its own page.
+breakpoints, or more than one screen as separate pages, each one is its own page.
 
 - Call `createPage` once per variant, with its own name ("Hero A", "Hero B",
   "Dark") and the size that variant needs. Insert that variant's nodes with
@@ -110,11 +135,12 @@ comment is an instruction about one element, not about the page.
    (`--color-*`, `--space-*`), classes, and components. For a new design, create
    a `theme` stylesheet with custom properties on `:root` and reusable class
    rules before repeating values.
-6. **Build in meaningful batches.** Call `createPage` first; every page is an
-   isolated canvas, and every variant or extra screen gets its own page (see
-   above). Then one `applyWebTransaction` per coherent section under
-   that page's `pageId`: insert nodes, then stylesheet rules. Prefer flex/grid;
-   reserve absolute positioning for deliberate overlays. Name layers with
+6. **Build in meaningful batches.** Start with `createFrame` on Page 1 (see
+   "Page 1 starts empty"); each variant or extra screen is another `createFrame`.
+   Then one `applyWebTransaction` per coherent section inside that
+   frame: insert nodes, then stylesheet rules. Use `createPage` only when the
+   user asks for separate pages. Prefer flex/grid inside a frame; the frame
+   itself is the one absolutely positioned thing. Name layers with
    `data-name` so the layers panel reads "Hero", not "Frame".
 
 7. **Inspect after meaningful edits.** Call `getWebScreenshot`. With image

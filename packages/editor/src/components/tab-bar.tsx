@@ -6,16 +6,17 @@ import { useOpenTabs } from '../lib/open-tabs'
 import { type ReactNode } from 'react'
 
 /**
- * A tab is text on the bar. The open one is the only one at full ink, and an
- * accent hairline grows out of its centre onto the bar's own rule, so the
- * tab reads as part of the line rather than a button sitting on it.
+ * A tab is a square cell on the bar, divided from its neighbours by a
+ * hairline. The open one takes the page's own background and covers the bar's
+ * bottom rule, so it reads as the top of the page it opens; an accent bar
+ * sweeps across its head from the left when it is chosen.
  */
 const tabClassName = (active: boolean) =>
   cn(
-    "relative flex h-full shrink-0 items-center gap-1.5 px-3 text-xs outline-none transition-colors duration-150 ease-smooth after:absolute after:inset-x-3 after:-bottom-px after:h-px after:origin-center after:bg-cx-accent after:transition-transform after:duration-200 after:ease-smooth after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:after:transition-none",
+    "relative flex h-full shrink-0 items-center gap-2 border-e border-line px-3.5 text-xs outline-none transition-colors duration-150 ease-smooth before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:origin-left before:bg-cx-accent before:transition-transform before:duration-200 before:ease-smooth before:content-[''] after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-background after:transition-opacity after:duration-150 after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:before:transition-none",
     active
-      ? 'text-foreground after:scale-x-100'
-      : 'text-muted-foreground after:scale-x-0 hover:text-foreground',
+      ? 'bg-background text-foreground before:scale-x-100 after:opacity-100'
+      : 'text-muted-foreground before:scale-x-0 after:opacity-0 hover:bg-accent/60 hover:text-foreground',
   )
 
 function TabLink({
@@ -39,7 +40,6 @@ function TabLink({
     return (
       <Link
         data-cuelume-navigate=""
-        data-cuelume-emphasis="subtle"
         to={to as any}
         params={params as any}
         className={className}
@@ -57,7 +57,7 @@ function TabLink({
     }
   }
   return (
-    <a href={href} data-cuelume-navigate="" data-cuelume-emphasis="subtle" className={className} aria-label={ariaLabel} title={title}>
+    <a href={href} data-cuelume-navigate="" className={className} aria-label={ariaLabel} title={title}>
       {children}
     </a>
   )
@@ -87,7 +87,7 @@ export function DocumentTabBar({
   const isLauncher = pathname.startsWith('/app/new')
 
   return (
-    <div data-tauri-drag-region className="flex h-full min-w-0 items-stretch">
+    <div data-tauri-drag-region className="flex h-full min-w-0 items-stretch border-s border-line">
       <TabLink
         to="/app"
         hasRouter={hasRouter}
@@ -113,7 +113,7 @@ export function DocumentTabBar({
                 to="/design/$id"
                 params={{ id: tab.id }}
                 hasRouter={hasRouter}
-                className={cn(tabClassName(isActive), 'min-w-0 pe-7')}
+                className={cn(tabClassName(isActive), 'min-w-0 pe-8')}
               >
                 <File01Icon className="size-3.5 shrink-0" />
                 <span className="max-w-44 truncate max-md:max-w-24">{tab.name}</span>
@@ -142,10 +142,7 @@ export function DocumentTabBar({
       <TabLink
         to="/app/new"
         hasRouter={hasRouter}
-        className={cn(
-          tabClassName(isLauncher),
-          'px-2.5 after:inset-x-2',
-        )}
+        className={cn(tabClassName(isLauncher), 'px-3')}
         aria-label="New tab"
         title="New tab"
       >

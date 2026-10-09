@@ -86,7 +86,7 @@ export function SheetPopup({
 }): React.ReactElement {
   return (
     <SheetPortal {...portalProps}>
-      <OpenCue emphasis="normal" />
+      <OpenCue emphasis="strong" />
       <SheetBackdrop />
       <SheetViewport side={side} variant={variant}>
         <SheetPrimitive.Popup

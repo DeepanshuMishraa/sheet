@@ -185,8 +185,11 @@ A design holds any number of pages. A page is a root element with a
 `data-sheet-page` attribute (its value is the page name) whose own `width`,
 `height` and `background` styles are the canvas. Its descendants are that page's
 layers; no page can see or select another's content. Page 1 is the original
-unnamed page: roots without the attribute. It is listed only while it has
-content or no other page exists.
+unnamed page: roots without the attribute. It is always listed first, starts
+empty, and has no size or edge of its own; its roots are top-level frames
+placed with `position: absolute`, `left` and `top`. Pages made in the editor are
+open the same way (`overflow: visible`, transparent); pages made by `createPage`
+are bounded, painted artboards.
 
 - `createPage { designId, draftId?, name?, width?, height?, background? }`
   returns `pageId`, the page root node id.
@@ -195,8 +198,18 @@ content or no other page exists.
 - Use `pageId` as `parentId` for `node.insert`, or pass it as `pageId` to
   `insertIcon` / `insertShader`, and as `rootId` to `getWebScreenshot` and
   `exportDesign` to capture one page.
+- Page 1 has no root node, so two document fields hold what a node would. The
+  name of Page 1 is `metadata.pageOneName`, set by the operation
+  `{ "type": "page.setName", "name": "Landing" }` (`null` clears it). The colour
+  behind a page's frames is `metadata.stageColors`, set by
+  `{ "type": "page.setStage", "pageId": null, "color": "#272727" }`, where
+  `pageId: null` is Page 1 and `color` is `#rrggbb` (`null` clears it).
+  `listPages` returns both: the name, and `stageColor`. Exports carry the
+  colour: Page 1's becomes the body background of the HTML export and the ground
+  of a whole-document screenshot, and a named open page's paints that page when
+  you capture it by `rootId`. A screenshot of one frame shows the frame alone.
 - Rename: `node.patch` the root's `data-sheet-page`. Resize: `node.patch` its
-  `width`/`height` styles (`page.resize` is only for the original page). Resize to correct one design's size, never to fit several variants side by side; variants each get their own `createPage`.
+  `width`/`height` styles (`page.resize` is only for the original page). Resize to correct one design's size, never to fit several variants side by side; variants are separate top-level frames on Page 1.
   Delete: `node.delete` the `pageId`.
 
 Layer names come from `data-name`. Without it the editor shows: the icon or
@@ -214,8 +227,8 @@ Prefer dedicated tools over hand-built nodes.
   Restyle with `styleIcon { designId, nodeId, color?, size?, strokeWidth? }`.
 - `listShaders` returns every Paper shader with each param's type, range or
   options, and default. `insertShader { designId, draftId?, shader, parentId?,
-  width?, height?, params? }` inserts a `div` tagged `data-shader` /
-  `data-shader-params`. `styleShader { designId, nodeId, width?, height?, params? }`
+  left?, top?, width?, height?, params? }` inserts a `div` tagged `data-shader` /
+  `data-shader-params`; with no `parentId` it is a free-positioned top-level object. `styleShader { designId, nodeId, width?, height?, params? }`
   merges params over the current ones. Out-of-range numbers are clamped and
   unknown keys dropped. Params: numbers (`speed`, `distortion`, …), a `colors`
   list of up to 10 CSS colors, single `colorBack`, and enums such as

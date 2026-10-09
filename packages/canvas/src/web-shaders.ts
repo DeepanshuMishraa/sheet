@@ -253,6 +253,12 @@ export interface ShaderOptions {
   width?: number
   height?: number
   params?: unknown
+  /**
+   * Place the shader at this point of its parent, free-positioned, so it can be
+   * moved and resized like a frame. Without both, it sits in the parent's flow.
+   */
+  left?: number
+  top?: number
 }
 
 /** A `div` the renderer mounts a shader canvas into. Params live in one validated attribute. */
@@ -266,6 +272,9 @@ export function shaderNode(name: ShaderName, options: ShaderOptions) {
       'aria-label': SHADERS[name].label,
     },
     styles: {
+      ...(options.left !== undefined && options.top !== undefined
+        ? { position: 'absolute', left: `${options.left}px`, top: `${options.top}px` }
+        : {}),
       width: `${options.width ?? 400}px`,
       height: `${options.height ?? 300}px`,
     },

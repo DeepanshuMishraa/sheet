@@ -36,7 +36,7 @@ packages/realtime Realtime wire protocol plus the in-process local event bus (`@
 
 One Bun process is the whole backend, and the only backend there is. With
 `SHEET_SQLITE_PATH` set (default `./data/sheet.db`) it serves MCP
-(`POST /mcp`, all 35 tools, no auth), the oRPC API the editor talks to
+(`POST /mcp`, all 32 tools, no auth), the oRPC API the editor talks to
 (`/api/rpc/*`), assets (`/api/asset/:id`), handoffs (`/api/handoff/*`), and
 the live event stream (`/api/canvas-events`, SSE over the in-process bus).
 `GET /ready` is the health check. `bun run build:server` compiles it to a
@@ -171,6 +171,24 @@ shared interface, built by Vite from the same packages.
 - Anything that leaves the app — a hand-off URL opened elsewhere — opens
   in a browser.
 
+- **Settings** is a window of its own, opened from the application menu
+  (Sheet › Settings…, ⌘,) and from nowhere inside the interface. The host builds
+  the menu in `build_menu` and opens the window at `/settings` in
+  `open_settings` (`src-tauri/src/main.rs`); the route is
+  `apps/desktop/src/routes/settings.tsx` and the screen is
+  `@sheet/shell/settings-window` (Appearance, Sound, Shortcuts, Agents). The
+  window is its own webview on the same loopback origin, so its choices reach
+  the main window through `localStorage` and the `storage` event: theme
+  (`sheet:theme`), accent (`sheet:accent`), interface size (`sheet:ui-scale`),
+  sound (`sheet:sound`, `sheet:sound-volume`). Both windows are listed in
+  `capabilities/*.json`; a new window needs its label added there.
+- **Theme and accent.** Two palettes only, light and dark, plus a System pick
+  (`@sheet/shell/lib/theme`). One accent hue is spent on selection, focus and
+  whatever is live; the person picks orange (default), blue, violet, green, pink
+  or teal (`@sheet/shell/lib/accent`, applied as `data-accent` on `<html>`, with
+  matching blocks at the end of `packages/ui/src/tokens.css`). Palette tokens
+  live in `tokens.css`; every focus ring and `--chart-1` follows `--cx-accent`.
+
 See `apps/desktop/README.md`.
 
 ### `packages/db`
@@ -224,6 +242,41 @@ resolve — the build fails at install, before any app code compiles. Local
 installs succeed either way, so this only ever shows up on Railway.
 
 ---
+
+## Pages, frames and the canvas
+
+The editor's document is the web model (`@sheet/canvas/web-model`), and what a
+person sees as a page is described in `@sheet/canvas/web-pages`.
+
+- Every design has **Page 1**, always listed first, **empty** until something is
+  made on it, with no edge and no page-sized box. Nothing is drawn on it by
+  default; the editor overrides the document view's white default so an empty
+  page is empty.
+- Content on a page is one or more **top-level frames**: white, free-positioned
+  (`position:absolute`, `left`, `top`, `width`, `height`) boxes that can be
+  moved, resized from eight handles, and renamed by double-clicking the label
+  above them. They come from the Frame tool's size list (right panel, groups
+  start folded, the tool stays on so several can be placed) and are built by
+  `frameNode` / `freeFrameSpot` in `@sheet/canvas/web-frames`, the same code the
+  `createFrame` agent tool uses. The size list is `FRAME_PRESET_GROUPS` there.
+- **Pages the person adds are open** like Page 1 (`pageNode(..., { open: true })`:
+  `overflow: visible`, transparent). Pages made by the `createPage` tool are
+  **bounded** painted artboards. `isBoundedPage` tells them apart; only a
+  bounded page shows an edge, a size and a background on its root.
+- Two document fields stand in for what Page 1 has no node to carry:
+  `metadata.pageOneName` (operation `page.setName`) and `metadata.stageColors`
+  (operation `page.setStage`), the colour behind a page's frames. Both go
+  through transactions, so undo, history and agents see them. A bounded page's
+  colour is still the root's own `background`. `web-export.ts` (`stageCss`)
+  writes the colour into exports and captures: Page 1's as the body (HTML) or
+  export-root (capture) background, an open named page's on its root in a
+  capture. A capture of a single frame shows the frame alone.
+- The **Shaders** tool opens a gallery of every shader running live
+  (`ShaderGallery`); choosing one places it like a frame, top level and
+  free-positioned. `insertShader` with no `parentId` does the same for agents.
+- Agent defaults follow from this: `insertIcon` with no `parentId` goes in
+  Page 1's only frame and is refused when there are several; `createFrame` and
+  `listFramePresets` give agents the same size list the editor has.
 
 ## Canvas Invariants
 
@@ -406,6 +459,12 @@ History uses Conventional Commits with scopes when useful:
 | Direct MCP execution backend | `apps/mcp/src/executor.ts` (local server in `local.ts`) |
 | Realtime transport, rooms, presence | Local event bus (`packages/realtime/src/local-bus.ts`, served as SSE by the local server) |
 | Schema / migrations | `packages/db/src/schema.ts` → `db:generate` |
+| Pages, Page 1, open versus bounded pages, page name and colour | `packages/canvas/src/web-pages.ts` (+ `page.setName` / `page.setStage` in `web-model.ts`) |
+| Frames, frame size list, where the next frame goes | `packages/canvas/src/web-frames.ts`; panel in `packages/editor/src/components/frame-presets-panel.tsx` |
+| Shaders and the Shaders gallery | `packages/canvas/src/web-shaders.ts`; gallery in `packages/editor/src/components/shader-panel.tsx` |
+| Settings window, menu bar, accent colours | `packages/shell/src/components/settings-window.tsx`, `packages/shell/src/lib/accent.ts`, `apps/desktop/src-tauri/src/main.rs` |
+| MCP tool manifest | `bun run mcp:tools` regenerates `apps/mcp/src/tools.json` from `mcp-server.ts`; run it after changing any tool |
+| Agent skill (`sheet-design-guide`) | `skills/sheet-design-guide/`; copy changes to `~/.agents/skills` and `~/.claude/skills` |
 
 ---
 

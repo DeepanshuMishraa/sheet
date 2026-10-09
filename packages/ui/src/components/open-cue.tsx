@@ -10,9 +10,9 @@ import { useEffect } from "react";
  * `subtle`, since they open hundreds of times a day.
  */
 export function OpenCue({
-  emphasis = "subtle",
+  emphasis = "normal",
 }: {
-  emphasis?: "subtle" | "normal";
+  emphasis?: "subtle" | "normal" | "strong";
 }): null {
   useEffect(() => {
     play("open", { emphasis });

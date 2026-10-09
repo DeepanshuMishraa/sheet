@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>Sheet</title>
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#121212" />
+    <meta name="theme-color" content="#212121" />
     <!-- Self-hosted, and byte-identical to what the web app loads. -->
     <link rel="stylesheet" href="/vendor/fonts.css" />
     <style>
@@ -21,7 +21,7 @@
         z-index: 50;
       }
       html.dark #boot-splash {
-        background: #121212;
+        background: #212121;
         color: #ececea;
       }
       .boot-loader {
@@ -83,6 +83,13 @@
         else if (stored === 'system') dark = matchMedia('(prefers-color-scheme: dark)').matches
       } catch (error) {}
       document.documentElement.classList.toggle('dark', dark)
+      // The accent hue, for the same reason: no flash of orange before the pick.
+      try {
+        var accent = localStorage.getItem('sheet:accent')
+        if (['blue', 'violet', 'green', 'pink', 'teal'].indexOf(accent) > -1) {
+          document.documentElement.setAttribute('data-accent', accent)
+        }
+      } catch (error) {}
     </script>
   </head>
   <body>

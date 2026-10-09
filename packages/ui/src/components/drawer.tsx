@@ -158,7 +158,7 @@ export function DrawerPopup({
 
   return (
     <DrawerPortal {...portalProps}>
-      <OpenCue emphasis="normal" />
+      <OpenCue emphasis="strong" />
       <DrawerBackdrop />
       <DrawerViewport position={position} variant={variant}>
         <DrawerPrimitive.Popup

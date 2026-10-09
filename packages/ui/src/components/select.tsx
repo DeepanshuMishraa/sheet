@@ -123,7 +123,7 @@ export function SelectPopup({
 }): React.ReactElement {
   return (
     <SelectPrimitive.Portal {...portalProps}>
-      <OpenCue emphasis="subtle" />
+      <OpenCue emphasis="normal" />
       <SelectPrimitive.Positioner
         align={align}
         alignItemWithTrigger={alignItemWithTrigger}
@@ -181,7 +181,6 @@ export function SelectItem({
       )}
       data-slot="select-item"
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       {...props}
     >
       <SelectPrimitive.ItemIndicator className="col-start-1">

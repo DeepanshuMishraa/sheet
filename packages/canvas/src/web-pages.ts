@@ -1,6 +1,7 @@
 import {
   createWebElement,
   orderedWebChildren,
+  STAGE_MAIN_KEY,
   type WebDocument,
   type WebElementNode,
   type WebNode,
@@ -13,9 +14,8 @@ import {
  * at a time.
  *
  * Roots that carry no tag are the design's original, unnamed page ("Page 1").
- * Older documents and `createDesign` before any page exists keep working
- * unchanged, and the implicit page is listed only while it has content or
- * there is no other page.
+ * Every design has it, empty until something is made on it, and it is always
+ * listed first, so adding a page never makes Page 1 disappear.
  */
 export const PAGE_ATTRIBUTE = 'data-sheet-page'
 export const NAME_ATTRIBUTE = 'data-name'
@@ -48,10 +48,23 @@ export function listPages(document: WebDocument): WebPage[] {
     const node = document.nodes[id]
     return { id, name: node?.kind === 'element' ? node.attributes[PAGE_ATTRIBUTE]?.trim() || 'Untitled' : 'Untitled' }
   })
-  if (implicitPageRootIds(document).length > 0 || pages.length === 0) {
-    pages.unshift({ id: null, name: IMPLICIT_PAGE_NAME })
-  }
+  pages.unshift({ id: null, name: document.metadata.pageOneName?.trim() || IMPLICIT_PAGE_NAME })
   return pages
+}
+
+/** The colour behind a page's frames, if one was chosen; the editor's own surface colour otherwise. */
+export function stageColor(document: WebDocument, pageId: string | null) {
+  return document.metadata.stageColors?.[pageId ?? STAGE_MAIN_KEY] ?? null
+}
+
+/**
+ * The page a design opens on: Page 1 when it has anything on it, otherwise the
+ * first named page, so a design an agent built on its own pages opens on them
+ * rather than on an empty Page 1.
+ */
+export function openingPageId(document: WebDocument) {
+  if (implicitPageRootIds(document).length > 0) return null
+  return pageRootIds(document)[0] ?? null
 }
 
 /** A page id that still exists, falling back to the first listed page. */
@@ -68,6 +81,16 @@ export function visibleRootIds(document: WebDocument, pageId: string | null) {
 /** Where new content goes by default on a page. */
 export function pageParentId(document: WebDocument, pageId: string | null) {
   return pageId === null ? (implicitPageRootIds(document)[0] ?? null) : pageId
+}
+
+/**
+ * Where an interactive insert goes. The unnamed page is the open canvas: new
+ * frames are top-level objects on it, never children of whichever root happens
+ * to come first. A named page is a bounded artboard, so it takes its own root.
+ * Agent tools keep using `pageParentId`, which targets the first root.
+ */
+export function canvasParentId(pageId: string | null) {
+  return pageId
 }
 
 /** Top-level layers of a page, as shown in the layers panel. */
@@ -105,10 +128,17 @@ export interface PageOptions {
   width?: number
   height?: number
   background?: string
+  /**
+   * An open page has no edge and no paint: it is empty until frames are set on
+   * it, and they may sit anywhere. This is what the editor's Add page makes,
+   * and what Page 1 already is. Without it the page is a bounded, painted
+   * artboard, which is what agents get from `createPage`.
+   */
+  open?: boolean
   order: number
 }
 
-/** The root element for a new page. Insert it with `node.insert`; it becomes an isolated canvas. */
+/** The root element for a new page. Insert it with `node.insert`; it becomes an isolated page. */
 export function pageNode(name: string, options: PageOptions) {
   return createWebElement('div', {
     parentId: null,
@@ -118,10 +148,17 @@ export function pageNode(name: string, options: PageOptions) {
       position: 'relative',
       width: `${options.width ?? DEFAULT_PAGE_WIDTH}px`,
       height: `${options.height ?? DEFAULT_PAGE_HEIGHT}px`,
-      overflow: 'hidden',
-      background: options.background ?? '#ffffff',
+      overflow: options.open ? 'visible' : 'hidden',
+      background: options.open ? 'transparent' : (options.background ?? '#ffffff'),
     },
   })
+}
+
+/** True when a page has an edge: its root clips and paints, like an artboard. */
+export function isBoundedPage(document: WebDocument, pageId: string | null) {
+  if (pageId === null) return false
+  const node = document.nodes[pageId]
+  return node?.kind === 'element' && node.styles.overflow === 'hidden'
 }
 
 /** Order after every current root, spaced like sibling inserts elsewhere. */

@@ -10,6 +10,7 @@ import type { WebDocument } from '@sheet/canvas/web-model'
 import { cn } from '@sheet/ui/utils'
 import { subscribeCanvasChanges } from '@sheet/editor/lib/canvas-events'
 import { FreshnessMeter } from './freshness-meter'
+import { GridPaper } from '@sheet/ui/grid-paper'
 
 const previewCache = new Map<string, WebDocument | null>()
 
@@ -126,7 +127,7 @@ export function NewFileLauncher() {
   }, [designs, query])
 
   return (
-    <div className="min-h-full w-full px-4 pb-20 pt-16 sm:px-6">
+    <GridPaper className="min-h-full w-full px-4 pb-20 pt-16 sm:px-6">
       <div className="mx-auto flex w-full max-w-xl flex-col items-center">
         {/* Top Segmented Action Buttons */}
         <div className="flex w-full items-center gap-3">
@@ -171,7 +172,7 @@ export function NewFileLauncher() {
         </label>
 
         {/* File List */}
-        <div className="flex w-full flex-col gap-0.5">
+        <div className="flex w-full flex-col bg-surface shadow-hairline">
           {designs === null ? (
             <div className="flex flex-col gap-2 py-4">
               {Array.from({ length: 5 }, (_, i) => (
@@ -218,6 +219,6 @@ export function NewFileLauncher() {
           )}
         </div>
       </div>
-    </div>
+    </GridPaper>
   )
 }

@@ -12,6 +12,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CodeXmlIcon,
+  ColorsIcon,
   ComponentIcon,
   CropIcon,
   EyeIcon,
@@ -37,6 +38,8 @@ import {
   TypeIcon,
 } from '@sheet/ui/icons'
 import { ConnectAgent } from './connect-agent'
+import { FramePresetsPanel } from './frame-presets-panel'
+import { frameNode, freeFrameSpot, NEW_FRAME_SIZE, type FramePreset } from '@sheet/canvas/web-frames'
 import { IconsPanel } from './icon-panel'
 import {
   AlignmentGrid,
@@ -50,7 +53,7 @@ import {
   writeShadows,
   type SelectionColor,
 } from './inspector-controls'
-import { ShadersList } from './shader-panel'
+import { ShaderGallery } from './shader-panel'
 import { documentFonts, firstFamily, SYSTEM_FONT_STACKS, type DocumentFont } from '../lib/fonts'
 import { iconInfo, iconStyleOperation, isIconNode, type IconLibrary } from '@sheet/canvas/web-icon-style'
 import { shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
@@ -78,14 +81,18 @@ import {
   layerChildren,
   layerKind,
   layerName,
+  isBoundedPage,
   listPages,
+  openingPageId,
   nextPageName,
   nextRootOrder,
   pageLayerIds,
   pageNode,
   pageParentId,
+  canvasParentId,
   pageRootSize,
   resolvePageId,
+  stageColor,
   visibleRootIds,
   type LayerKind,
 } from '@sheet/canvas/web-pages'
@@ -247,6 +254,67 @@ interface DragState {
   authoredHeight: number | null
   camera?: Camera
   pageCorner?: 'nw' | 'ne' | 'sw' | 'se'
+  /** Which sides of the box a `resize` drag is pulling. */
+  resizeEdges?: ResizeEdges
+}
+
+/** Where each of the eight handles sits on the selection box, and which sides it pulls. */
+const RESIZE_HANDLES: ReadonlyArray<{
+  id: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
+  label: string
+  edges: ResizeEdges
+  position: string
+  cursor: string
+}> = [
+  { id: 'nw', label: 'top left', edges: { n: true, w: true }, position: '-left-[5px] -top-[5px]', cursor: 'cursor-nwse-resize' },
+  { id: 'n', label: 'top', edges: { n: true }, position: 'left-1/2 -top-[5px] -translate-x-1/2', cursor: 'cursor-ns-resize' },
+  { id: 'ne', label: 'top right', edges: { n: true, e: true }, position: '-right-[5px] -top-[5px]', cursor: 'cursor-nesw-resize' },
+  { id: 'e', label: 'right', edges: { e: true }, position: '-right-[5px] top-1/2 -translate-y-1/2', cursor: 'cursor-ew-resize' },
+  { id: 'se', label: 'bottom right', edges: { s: true, e: true }, position: '-bottom-[5px] -right-[5px]', cursor: 'cursor-nwse-resize' },
+  { id: 's', label: 'bottom', edges: { s: true }, position: 'left-1/2 -bottom-[5px] -translate-x-1/2', cursor: 'cursor-ns-resize' },
+  { id: 'sw', label: 'bottom left', edges: { s: true, w: true }, position: '-bottom-[5px] -left-[5px]', cursor: 'cursor-nesw-resize' },
+  { id: 'w', label: 'left', edges: { w: true }, position: '-left-[5px] top-1/2 -translate-y-1/2', cursor: 'cursor-ew-resize' },
+]
+
+/** The sides of a box a resize handle moves: a corner is two of them, an edge is one. */
+export interface ResizeEdges {
+  n?: boolean
+  s?: boolean
+  e?: boolean
+  w?: boolean
+}
+
+export interface ResizeBox {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/**
+ * The box after dragging some of its sides by (dx, dy) canvas px. A side on the
+ * far edge (east, south) grows the box; a side on the near edge (west, north)
+ * moves the origin and shrinks the box by the same amount, so the opposite edge
+ * stays where it was. Width and height never go below 1px.
+ */
+export function resizeFromEdges(start: ResizeBox, edges: ResizeEdges, dx: number, dy: number): ResizeBox {
+  let { left, top, width, height } = start
+  if (edges.e) width = Math.max(1, start.width + dx)
+  if (edges.w) {
+    width = Math.max(1, start.width - dx)
+    left = start.left + (start.width - width)
+  }
+  if (edges.s) height = Math.max(1, start.height + dy)
+  if (edges.n) {
+    height = Math.max(1, start.height - dy)
+    top = start.top + (start.height - height)
+  }
+  return {
+    left: roundAuthoredCss(left),
+    top: roundAuthoredCss(top),
+    width: roundAuthoredCss(width),
+    height: roundAuthoredCss(height),
+  }
 }
 
 export type DragMoveKind = 'reorder' | 'absolute'
@@ -376,12 +444,12 @@ function nodeLabel(node: WebNode, document?: WebDocument) {
   return layerName(node, document)
 }
 
-const layerIconClass = 'size-4 shrink-0 text-muted-foreground'
+const layerIconClass = 'size-4 shrink-0'
 
-function LayerGlyph({ kind }: { kind: LayerKind }) {
+function LayerGlyphShape({ kind }: { kind: LayerKind }) {
   switch (kind) {
     case 'text':
-      return <span aria-hidden className="grid size-4 shrink-0 place-items-center text-[11px] font-semibold leading-none text-muted-foreground">Aa</span>
+      return <span aria-hidden className="grid size-4 shrink-0 place-items-center text-[11px] font-semibold leading-none">Aa</span>
     case 'frame-row':
       return (
         <svg aria-hidden viewBox="0 0 16 16" className={layerIconClass} fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -424,12 +492,45 @@ function LayerGlyph({ kind }: { kind: LayerKind }) {
   }
 }
 
+/** One hue per kind of layer, so a long tree can be scanned by colour as well as by shape. */
+const LAYER_TONE: Record<LayerKind, string> = {
+  frame: 'text-chart-5',
+  'frame-row': 'text-chart-5',
+  'frame-column': 'text-chart-5',
+  text: 'text-chart-3',
+  image: 'text-chart-4',
+  svg: 'text-chart-2',
+  shape: 'text-chart-2',
+  link: 'text-cx-accent',
+  button: 'text-cx-accent',
+  input: 'text-cx-accent',
+  element: 'text-muted-foreground',
+}
+
+function LayerGlyph({ kind }: { kind: LayerKind }) {
+  return (
+    <span className={cn('inline-flex shrink-0', LAYER_TONE[kind] ?? 'text-muted-foreground')}>
+      <LayerGlyphShape kind={kind} />
+    </span>
+  )
+}
+
 function nodeIcon(node: WebNode) {
   return <LayerGlyph kind={layerKind(node)} />
 }
 
 function nextOrder(document: WebDocument, parentId: string | null) {
   return (orderedWebChildren(document, parentId).at(-1)?.order ?? 0) + 1_024
+}
+
+/** True when `ancestorId` is somewhere above `id` in the node tree. */
+function hasAncestor(document: WebDocument, id: string, ancestorId: string) {
+  let parentId = document.nodes[id]?.parentId ?? null
+  while (parentId !== null) {
+    if (parentId === ancestorId) return true
+    parentId = document.nodes[parentId]?.parentId ?? null
+  }
+  return false
 }
 
 function collectSubtreeIds(document: WebDocument, rootId: string): string[] {
@@ -611,9 +712,15 @@ function WebTreeNode({
   onRename: (id: string, name: string) => void
 }) {
   const children = layerChildren(document, node)
-  const [open, setOpen] = useState(true)
+  // Collapsed until asked for, so a page of frames reads as a short list. A
+  // selection made on the canvas opens just the path down to it.
+  const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const isSelected = selectedId === node.id
+  const holdsSelection = selectedId !== null && hasAncestor(document, selectedId, node.id)
+  useEffect(() => {
+    if (holdsSelection) setOpen(true)
+  }, [holdsSelection])
   const hidden = node.kind === 'element' && node.styles.visibility === 'hidden'
   const label = nodeLabel(node, document)
   const renamable = node.kind === 'element'
@@ -852,7 +959,6 @@ function WebToolButton({
       aria-pressed={active}
       disabled={disabled}
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       className={cn(
         'relative size-8 grid place-items-center rounded-md outline-none transition-[background-color,color,transform] duration-150 ease-smooth active:scale-90 focus-visible:ring-2 focus-visible:ring-ring',
         active
@@ -935,6 +1041,7 @@ function WebInspector({
   bound,
   override,
   pageBackground,
+  boundedPage,
   pageSize,
   fonts,
   selectionColors,
@@ -955,6 +1062,8 @@ function WebInspector({
   bound: BoundInspectorInfo | null
   override: WebOverride | undefined
   pageBackground: string
+  /** A named page has a size of its own; the open canvas does not. */
+  boundedPage: boolean
   pageSize: { width: number; height: number }
   fonts: readonly DocumentFont[]
   selectionColors: readonly SelectionColor[]
@@ -980,19 +1089,21 @@ function WebInspector({
       <div>
         {/* Page Section */}
         <section className="space-y-3 border-b border-line px-4 py-3.5">
-          <div className="text-[13px] font-medium text-foreground">
+          <div className="cx-label cx-bracket">
             Page
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <InspectorInput label="Page width" layout="stack" value={String(pageSize.width)} onCommit={(value) => {
-              const size = Number(value)
-              if (Number.isFinite(size) && size > 0) onResizePage({ width: size })
-            }} />
-            <InspectorInput label="Page height" layout="stack" value={String(pageSize.height)} onCommit={(value) => {
-              const size = Number(value)
-              if (Number.isFinite(size) && size > 0) onResizePage({ height: size })
-            }} />
-          </div>
+          {boundedPage ? (
+            <div className="grid grid-cols-2 gap-2">
+              <InspectorInput label="Page width" layout="stack" value={String(pageSize.width)} onCommit={(value) => {
+                const size = Number(value)
+                if (Number.isFinite(size) && size > 0) onResizePage({ width: size })
+              }} />
+              <InspectorInput label="Page height" layout="stack" value={String(pageSize.height)} onCommit={(value) => {
+                const size = Number(value)
+                if (Number.isFinite(size) && size > 0) onResizePage({ height: size })
+              }} />
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 shadow-hairline p-1.5">
             <div className="flex min-w-0 items-center gap-2">
               <input
@@ -1791,6 +1902,8 @@ function WebInspector({
   )
 }
 
+const CANVAS_BG_PATTERN = /^#[\da-f]{6}$/i
+
 export function WebCanvasEditor({
   designId,
   draftId = null,
@@ -1806,12 +1919,12 @@ export function WebCanvasEditor({
 }) {
   // Opening a file puts it in the sidebar's open list; the name stays live.
   const [document, setDocument] = useState(initialDocument)
-  const [activePageId, setActivePageId] = useState<string | null>(() => resolvePageId(initialDocument, null))
+  const [activePageId, setActivePageId] = useState<string | null>(() => openingPageId(initialDocument))
   const pageId = resolvePageId(document, activePageId)
   const pageIdRef = useRef(pageId)
   pageIdRef.current = pageId
   const [selectedId, setSelectedId] = useState<string | null>(
-    () => pageLayerIds(initialDocument, resolvePageId(initialDocument, null))[0] ?? null,
+    () => pageLayerIds(initialDocument, openingPageId(initialDocument))[0] ?? null,
   )
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [agentActivity, setAgentActivity] = useState<AgentActivity | null>(null)
@@ -1823,6 +1936,9 @@ export function WebCanvasEditor({
   const [camera, setCamera] = useState<Camera>({ x: 320, y: 120, zoom: 0.75 })
   const [tool, setToolState] = useState<'select' | 'pan' | 'frame' | 'box' | 'pen' | 'text' | 'image' | 'comment'>('select')
   const [pageSelected, setPageSelected] = useState(false)
+  // The colour behind a page's frames lives in the document, so exports, undo and
+  // agents all see it.
+  const canvasBg = stageColor(document, pageId)
   const penDraftRef = useRef<{ pathId: string; points: { x: number; y: number }[] } | null>(null)
   const setTool = useCallback((next: typeof tool) => {
     penDraftRef.current = null
@@ -1831,6 +1947,7 @@ export function WebCanvasEditor({
   const [isSpacePanning, setIsSpacePanning] = useState(false)
   const [quickInsertOpen, setQuickInsertOpen] = useState(false)
   const [connectAgentOpen, setConnectAgentOpen] = useState(false)
+  const [shadersOpen, setShadersOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(true)
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
@@ -1839,6 +1956,10 @@ export function WebCanvasEditor({
   const [threadNodeId, setThreadNodeId] = useState<string | null>(null)
   const [pinRects, setPinRects] = useState<Record<string, OverlayRect>>({})
   const pinIdsRef = useRef<string[]>([])
+  // Top-level frames wear a name label on the canvas; double-click it to rename.
+  const [frameRects, setFrameRects] = useState<Record<string, OverlayRect>>({})
+  const frameIdsRef = useRef<string[]>([])
+  const [renamingFrameId, setRenamingFrameId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [notice, setNotice] = useState<string | null>(null)
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadCachedShortcuts)
@@ -1898,6 +2019,12 @@ export function WebCanvasEditor({
       if (rect) nextPins[id] = rect
     }
     setPinRects(keepRects(nextPins))
+    const nextFrames: Record<string, OverlayRect> = {}
+    for (const id of frameIdsRef.current) {
+      const rect = rectFor(id)
+      if (rect) nextFrames[id] = rect
+    }
+    setFrameRects(keepRects(nextFrames))
     const selected = findElement(selectedRef.current)
     if (!selected) {
       setComputed(keepRecord({}))
@@ -2162,7 +2289,7 @@ export function WebCanvasEditor({
       : null
     const parentId = selected?.kind === 'element'
       ? selected.id
-      : (selected?.parentId ?? pageParentId(documentRef.current, pageIdRef.current))
+      : (selected?.parentId ?? canvasParentId(pageIdRef.current))
     transact('Create instance', [{
       type: 'instance.create',
       componentId,
@@ -2179,7 +2306,21 @@ export function WebCanvasEditor({
   const pageBackground = /^#[\da-f]{6}$/i.test(pageBackgroundValue) ? pageBackgroundValue : '#ffffff'
   const visibleIds = useMemo(() => visibleRootIds(document, pageId), [document, pageId])
   const pages = useMemo(() => listPages(document), [document])
+  // Page 1 has no node to carry a name, so its name is a field on the document.
+  const renamePageOne = useCallback((name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    transact('Rename page', [{ type: 'page.setName', name: trimmed }])
+  }, [transact])
   const layerIds = useMemo(() => pageLayerIds(document, pageId), [document, pageId])
+  const frameIds = useMemo(
+    () => layerIds.filter((id) => document.nodes[id]?.kind === 'element'),
+    [document, layerIds],
+  )
+  useEffect(() => {
+    frameIdsRef.current = frameIds
+    scheduleMeasure()
+  }, [frameIds, scheduleMeasure])
 
   const selectedNode = pageSelected ? null : selectedId ? document.nodes[selectedId] ?? null : null
   const matchingRules = matchingAuthoredRules(findElement(selectedId), document)
@@ -2238,20 +2379,27 @@ export function WebCanvasEditor({
     const selected = selectedRef.current
       ? documentRef.current.nodes[selectedRef.current]
       : null
-    const parentId = point
-      ? pageParentId(documentRef.current, pageIdRef.current)
+    const rootParentId = canvasParentId(pageIdRef.current)
+    // A new frame from the Insert menu is its own top-level object: outside any
+    // frame that is selected, absolutely positioned so it can be moved and
+    // resized, and set beside what is already there rather than on top of it.
+    const asFrame = frame || (!point && tag === 'div')
+    const origin = point ?? (asFrame ? freeFrameSpot(documentRef.current, rootParentId) : undefined)
+    const extent = size ?? (asFrame && !point ? NEW_FRAME_SIZE : undefined)
+    const parentId = origin
+      ? rootParentId
       : selected?.kind === 'element'
         ? selected.id
-        : (selected?.parentId ?? pageParentId(documentRef.current, pageIdRef.current))
+        : (selected?.parentId ?? rootParentId)
     const element = createWebElement(tag, {
       parentId,
       order: nextOrder(documentRef.current, parentId),
       attributes: attributes ?? (tag === 'input' ? { type: 'text' } : tag === 'img' ? { alt: '' } : {}),
       styles: {
         ...initialStyles(tag),
-        ...(frame ? { background: 'transparent', border: '1px solid #888888' } : {}),
-        ...(point ? { position: 'absolute', left: `${point.x}px`, top: `${point.y}px` } : {}),
-        ...(size ? { width: `${size.width}px`, height: `${size.height}px` } : {}),
+        ...(asFrame ? { background: '#ffffff' } : {}),
+        ...(origin ? { position: 'absolute', left: `${origin.x}px`, top: `${origin.y}px` } : {}),
+        ...(extent ? { width: `${extent.width}px`, height: `${extent.height}px` } : {}),
       },
     })
     const text = initialText(tag)
@@ -2270,11 +2418,9 @@ export function WebCanvasEditor({
     transact(`Insert <${tag}>`, operations)
   }, [transact])
 
-  const addElement = useCallback(() => insertElement('div'), [insertElement])
-
   const insertLibraryIcon = useCallback(async (icon: { library: IconLibrary; name: string }) => {
     const { iconNodes } = await import('@sheet/canvas/web-icons')
-    const parentId = pageParentId(documentRef.current, pageIdRef.current)
+    const parentId = canvasParentId(pageIdRef.current)
     const nodes = iconNodes(icon.library, icon.name, {
       parentId,
       order: nextOrder(documentRef.current, parentId),
@@ -2338,7 +2484,7 @@ export function WebCanvasEditor({
 
   const addPage = useCallback(() => {
     const current = documentRef.current
-    const node = pageNode(nextPageName(current), { order: nextRootOrder(current) })
+    const node = pageNode(nextPageName(current), { order: nextRootOrder(current), open: true })
     transact('Add page', [{ type: 'node.insert', node }])
     selectPage(node.id)
   }, [selectPage, transact])
@@ -2370,17 +2516,6 @@ export function WebCanvasEditor({
     }])
   }, [transact])
 
-  const insertShader = useCallback((name: ShaderName) => {
-    const parentId = pageParentId(documentRef.current, pageIdRef.current)
-    const node = shaderNode(name, { parentId, order: nextOrder(documentRef.current, parentId) })
-    selectedRef.current = node.id
-    setSelectedId(node.id)
-    setPageSelected(false)
-    transact(`Insert ${name} shader`, [{ type: 'node.insert', node }])
-    setTool('select')
-    setLeftTab('design')
-  }, [setTool, transact])
-
   const insertPenPath = useCallback((point: { x: number; y: number }, stroke?: { x: number; y: number }[]) => {
     const draft = penDraftRef.current
     if (draft && !stroke) {
@@ -2392,7 +2527,7 @@ export function WebCanvasEditor({
       }])
       return
     }
-    const parentId = pageParentId(documentRef.current, pageIdRef.current)
+    const parentId = canvasParentId(pageIdRef.current)
     const element = createWebElement('svg', {
       namespace: 'svg', parentId, order: nextOrder(documentRef.current, parentId),
       attributes: { viewBox: `0 0 ${canvasWidth} ${canvasHeight}` },
@@ -2489,8 +2624,9 @@ export function WebCanvasEditor({
   }, [transact])
 
   const startElementDrag = useCallback((
-    event: ReactPointerEvent<HTMLDivElement>,
+    event: ReactPointerEvent<HTMLElement>,
     mode: 'move' | 'resize',
+    edges?: ResizeEdges,
   ) => {
     const element = findElement(selectedRef.current)
     if (!element) return
@@ -2522,6 +2658,21 @@ export function WebCanvasEditor({
       if (authoredWidth === null) authoredWidth = rect.width / zoom
       if (authoredHeight === null) authoredHeight = rect.height / zoom
     }
+    // Pulling a west or north side moves the box's origin, which only a
+    // free-positioned element has. In a layout those sides cannot move, so the
+    // handle keeps to the sides that can.
+    let resizeEdges = edges
+    if (mode === 'resize' && edges && (edges.w || edges.n)) {
+      if (dragMoveKind(getComputedStyle(element).position) === 'absolute') {
+        const rect = element.getBoundingClientRect()
+        const parentRect = element.parentElement?.getBoundingClientRect() ?? rect
+        const zoom = cameraRef.current.zoom
+        if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
+        if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
+      } else {
+        resizeEdges = { e: edges.e, s: edges.s }
+      }
+    }
     dragRef.current = {
       mode,
       pointerId: event.pointerId,
@@ -2529,6 +2680,7 @@ export function WebCanvasEditor({
       startY: event.clientY,
       element,
       moveKind,
+      resizeEdges,
       authoredLeft,
       authoredTop,
       authoredWidth,
@@ -2538,7 +2690,25 @@ export function WebCanvasEditor({
     event.stopPropagation()
   }, [findElement])
 
-  const onDragMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+  /**
+   * Grab a frame by its body and it moves, as in any design tool. Only for a
+   * free-positioned element: dragging something that sits in a layout would
+   * reorder it on every stray click-drag, so those keep the label handle.
+   */
+  const startBodyDrag = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || tool !== 'select' || isSpacePanning) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    if (target.closest('button, [role="toolbar"], input, select, textarea, [contenteditable="true"]')) return
+    const id = pickTarget(documentRef.current, webNodeIdFromElement(target))
+    if (!id || boundNodeIndex(documentRef.current.instances).has(id)) return
+    const element = findElement(id)
+    if (!element || dragMoveKind(getComputedStyle(element).position) !== 'absolute') return
+    select(id)
+    startElementDrag(event, 'move')
+  }, [tool, isSpacePanning, findElement, select, startElementDrag])
+
+  const onDragMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId || !drag.element) return
     const dx = (event.clientX - drag.startX) / cameraRef.current.zoom
@@ -2548,6 +2718,22 @@ export function WebCanvasEditor({
     } else if (drag.mode === 'move') {
       if (drag.authoredLeft !== null) drag.element.style.left = `${drag.authoredLeft + dx}px`
       if (drag.authoredTop !== null) drag.element.style.top = `${drag.authoredTop + dy}px`
+    } else if (drag.resizeEdges && drag.authoredWidth !== null && drag.authoredHeight !== null) {
+      const box = resizeFromEdges(
+        {
+          left: drag.authoredLeft ?? 0,
+          top: drag.authoredTop ?? 0,
+          width: drag.authoredWidth,
+          height: drag.authoredHeight,
+        },
+        drag.resizeEdges,
+        dx,
+        dy,
+      )
+      drag.element.style.width = `${box.width}px`
+      drag.element.style.height = `${box.height}px`
+      if (drag.resizeEdges.w) drag.element.style.left = `${box.left}px`
+      if (drag.resizeEdges.n) drag.element.style.top = `${box.top}px`
     } else {
       if (drag.authoredWidth !== null) {
         drag.element.style.width = `${Math.max(1, drag.authoredWidth + dx)}px`
@@ -2559,7 +2745,7 @@ export function WebCanvasEditor({
     measure()
   }, [measure])
 
-  const finishElementDrag = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+  const finishElementDrag = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId || !drag.element) return
     event.currentTarget.releasePointerCapture(event.pointerId)
@@ -2633,6 +2819,31 @@ export function WebCanvasEditor({
       }])
       return
     }
+    if (drag.mode === 'resize' && drag.resizeEdges && drag.authoredWidth !== null && drag.authoredHeight !== null) {
+      if (event.clientX === drag.startX && event.clientY === drag.startY) {
+        scheduleMeasure()
+        return
+      }
+      const box = resizeFromEdges(
+        {
+          left: drag.authoredLeft ?? 0,
+          top: drag.authoredTop ?? 0,
+          width: drag.authoredWidth,
+          height: drag.authoredHeight,
+        },
+        drag.resizeEdges,
+        (event.clientX - drag.startX) / zoom,
+        (event.clientY - drag.startY) / zoom,
+      )
+      const styles: Record<string, string | null> = {
+        width: `${box.width}px`,
+        height: `${box.height}px`,
+      }
+      if (drag.resizeEdges.w) styles.left = `${box.left}px`
+      if (drag.resizeEdges.n) styles.top = `${box.top}px`
+      transact('Resize element', [{ type: 'node.patch', id, patch: { kind: 'element', styles } }])
+      return
+    }
     if (drag.mode === 'resize') {
       const committed = commitResize(
         { width: drag.authoredWidth, height: drag.authoredHeight },
@@ -2675,6 +2886,69 @@ export function WebCanvasEditor({
     if (pageBoundsRef.current) pageBoundsRef.current.style.transform = cameraTransform(next)
     scheduleMeasure()
   }, [scheduleMeasure])
+
+  /**
+   * Place a frame of a chosen size on the canvas: top level, white, set beside
+   * what is there, then selected and brought into view. This is what picking a
+   * size in the Frame panel does.
+   */
+  /** Bring a box of canvas px into view: keep the zoom unless it would not fit, then centre on it. */
+  const revealBox = useCallback((box: { x: number; y: number; width: number; height: number }) => {
+    const stage = stageRef.current
+    if (!stage) return
+    const zoom = Math.max(
+      0.05,
+      Math.min(cameraRef.current.zoom, (stage.clientWidth * 0.8) / box.width, (stage.clientHeight * 0.8) / box.height),
+    )
+    setNextCamera({
+      zoom,
+      x: stage.clientWidth / 2 - (box.x + box.width / 2) * zoom,
+      y: stage.clientHeight / 2 - (box.y + box.height / 2) * zoom,
+    })
+  }, [setNextCamera])
+
+  const insertFrame = useCallback((preset: FramePreset) => {
+    const parentId = canvasParentId(pageIdRef.current)
+    const origin = freeFrameSpot(documentRef.current, parentId)
+    const element = frameNode({
+      parentId,
+      order: nextOrder(documentRef.current, parentId),
+      name: preset.name,
+      width: preset.width,
+      height: preset.height,
+      left: origin.x,
+      top: origin.y,
+    })
+    selectedRef.current = element.id
+    setSelectedId(element.id)
+    setPageSelected(false)
+    transact(`Insert ${preset.name} frame`, [{ type: 'node.insert', node: element }])
+    // The Frame tool stays on, so several frames can be set down one after another.
+    Sound.success()
+    revealBox({ ...origin, width: preset.width, height: preset.height })
+  }, [revealBox, transact])
+
+  /**
+   * Place a shader the way a frame is placed: top level, free-positioned beside
+   * what is there, selected and in view, so it can be moved and resized at once.
+   */
+  const insertShader = useCallback((name: ShaderName) => {
+    const parentId = canvasParentId(pageIdRef.current)
+    const origin = freeFrameSpot(documentRef.current, parentId)
+    const node = shaderNode(name, {
+      parentId,
+      order: nextOrder(documentRef.current, parentId),
+      left: origin.x,
+      top: origin.y,
+    })
+    selectedRef.current = node.id
+    setSelectedId(node.id)
+    setPageSelected(false)
+    transact(`Insert ${name} shader`, [{ type: 'node.insert', node }])
+    setTool('select')
+    Sound.success()
+    revealBox({ ...origin, width: 400, height: 300 })
+  }, [revealBox, setTool, transact])
 
   const fitCamera = useCallback((width: number, height: number): Camera | null => {
     const stage = stageRef.current
@@ -3001,7 +3275,6 @@ export function WebCanvasEditor({
       aria-pressed={leftPanelOpen}
       title={leftPanelOpen ? 'Hide layers panel' : 'Open layers panel'}
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       className={barButtonClassName}
       onClick={() => setLeftPanelOpen((open) => !open)}
     >
@@ -3052,7 +3325,6 @@ export function WebCanvasEditor({
         aria-pressed={rightPanelOpen}
         title={rightPanelOpen ? 'Collapse design panel' : 'Open design panel'}
         data-cuelume-select=""
-        data-cuelume-emphasis="subtle"
         className={barButtonClassName}
         onClick={() => setRightPanelOpen((open) => !open)}
       >
@@ -3101,7 +3373,6 @@ export function WebCanvasEditor({
                 type="button"
                 aria-label="Toggle layers panel"
                 data-cuelume-close=""
-                data-cuelume-emphasis="subtle"
                 className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90"
                 onClick={() => setLeftPanelOpen(false)}
               >
@@ -3126,7 +3397,6 @@ export function WebCanvasEditor({
                   aria-label={tab}
                   title={label}
                   data-cuelume-select=""
-                  data-cuelume-emphasis="subtle"
                   className={cn(
                     "relative flex h-8 flex-1 items-center justify-center outline-none transition-colors duration-150 ease-smooth after:absolute after:inset-x-2 after:-bottom-px after:h-px after:origin-center after:bg-cx-accent after:transition-transform after:duration-200 after:ease-smooth after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:after:transition-none",
                     leftTab === tab
@@ -3179,7 +3449,7 @@ export function WebCanvasEditor({
                             setPageSelected(true)
                             scheduleMeasure()
                           }}
-                          onRename={page.id === null ? null : (name) => renamePage(page.id as string, name)}
+                          onRename={(name) => (page.id === null ? renamePageOne(name) : renamePage(page.id as string, name))}
                           onDelete={page.id === null ? null : () => deletePage(page.id as string)}
                           pageSelected={pageSelected}
                         />
@@ -3191,15 +3461,7 @@ export function WebCanvasEditor({
                 {/* Layers Section */}
                 <div className="py-1">
                   <div className="flex h-8 items-center justify-between px-4 text-xs font-medium text-muted-foreground">
-                    <span>Layers</span>
-                    <button
-                      type="button"
-                      aria-label="Add element"
-                      className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      onClick={addElement}
-                    >
-                      <PlusIcon className="size-3.5" />
-                    </button>
+                    <span className="cx-label cx-bracket">Layers</span>
                   </div>
                   <div>
                     {layerIds.length === 0 ? (
@@ -3210,9 +3472,12 @@ export function WebCanvasEditor({
                           variant="outline"
                           className="mt-3 border-line bg-surface-2 text-xs text-foreground hover:bg-secondary"
                           aria-label="Create root element"
-                          onClick={() => insertElement('main')}
+                          onClick={() => {
+                            // Frames come from the Frame tool's size list on the right.
+                            setTool('frame')
+                            setRightPanelOpen(true)
+                          }}
                         >
-                          <PlusIcon className="size-3.5" />
                           Add a frame
                         </Button>
                       </div>
@@ -3299,10 +3564,7 @@ export function WebCanvasEditor({
                 onDelete={removeComment}
               />
             ) : leftTab === 'icons' ? (
-              <>
-                <ShadersList onInsert={insertShader} />
-                <IconsPanel onInsert={insertLibraryIcon} />
-              </>
+              <IconsPanel onInsert={insertLibraryIcon} />
             ) : (
               <ThemePanel document={document} transact={transact} />
             )}
@@ -3313,15 +3575,30 @@ export function WebCanvasEditor({
         {/* Canvas Stage & Floating Toolbar */}
         <main
           ref={stageRef}
-          style={stageDots(camera)}
+          style={canvasBg ? { ...stageDots(camera), backgroundColor: canvasBg } : stageDots(camera)}
           className={cn(
             'relative min-h-0 flex-1 overflow-hidden bg-cx-canvas',
             isPanningActive ? 'cursor-grab active:cursor-grabbing' : tool === 'comment' ? 'cursor-crosshair' : 'cursor-default',
           )}
-          onPointerDown={(event) => { startDrawing(event); if (!drawingRef.current) startPan(event) }}
-          onPointerMove={(event) => { moveDrawing(event); movePan(event) }}
-          onPointerUp={(event) => { finishDrawing(event); finishPan(event) }}
-          onPointerCancel={(event) => { finishDrawing(event, true); finishPan(event) }}
+          onPointerDown={(event) => {
+            startDrawing(event)
+            if (!drawingRef.current) startPan(event)
+            if (!drawingRef.current && !dragRef.current) startBodyDrag(event)
+          }}
+          onPointerMove={(event) => { moveDrawing(event); movePan(event); onDragMove(event) }}
+          onPointerUp={(event) => {
+            finishDrawing(event)
+            finishPan(event)
+            // A body drag holds pointer capture on the stage, so the click that
+            // follows lands on the stage itself and would clear the selection.
+            if (
+              event.target === event.currentTarget &&
+              dragRef.current?.element &&
+              dragRef.current.pointerId === event.pointerId
+            ) suppressClickRef.current = true
+            finishElementDrag(event)
+          }}
+          onPointerCancel={(event) => { finishDrawing(event, true); finishPan(event); finishElementDrag(event) }}
           onClick={(event) => {
             if (suppressClickRef.current) {
               suppressClickRef.current = false
@@ -3366,6 +3643,7 @@ export function WebCanvasEditor({
           <div
             role="toolbar"
             aria-label="Tools"
+            data-cuelume-theme="mech"
             className="absolute left-3 top-3 z-30 flex flex-col items-center gap-0.5 rounded-lg bg-surface p-1 text-foreground shadow-panel"
           >
             <WebToolButton
@@ -3399,7 +3677,11 @@ export function WebCanvasEditor({
               label={`Frame (${shortcutLabel('tool.frame')})`}
               aria-label="Frame"
               active={tool === 'frame'}
-              onClick={() => setTool('frame')}
+              onClick={() => {
+                setTool('frame')
+                // The size list lives in the right panel; make sure it is there to see.
+                setRightPanelOpen(true)
+              }}
             >
               <FrameIcon className="size-4" />
             </WebToolButton>
@@ -3474,6 +3756,14 @@ export function WebCanvasEditor({
               <ComponentIcon className="size-4" />
             </WebToolButton>
             <WebToolButton
+              label="Shaders"
+              aria-label="Shaders"
+              active={shadersOpen}
+              onClick={() => setShadersOpen(true)}
+            >
+              <ColorsIcon className="size-4" />
+            </WebToolButton>
+            <WebToolButton
               label={`Image (${shortcutLabel('tool.image')})`}
               aria-label="Image"
               active={tool === 'image'}
@@ -3498,7 +3788,13 @@ export function WebCanvasEditor({
           <div
             ref={pageBoundsRef}
             data-testid="page-bounds"
-            className={cn('absolute origin-top-left shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-xs', pageSelected && 'ring-2 ring-cx-accent')}
+            className={cn(
+              'absolute origin-top-left',
+              // Only a bounded page (an artboard an agent made) has an edge to show.
+              // An open page, Page 1 included, is empty until frames are set on it.
+              isBoundedPage(document, pageId) && 'shadow-panel-lg',
+              isBoundedPage(document, pageId) && pageSelected && 'ring-2 ring-cx-accent',
+            )}
             style={{
               width: pageResizePreview?.width ?? canvasWidth,
               height: pageResizePreview?.height ?? canvasHeight,
@@ -3509,9 +3805,12 @@ export function WebCanvasEditor({
               document={document}
               visibleRootIds={visibleIds}
               onMaterialize={onMaterialize}
-              className="relative h-full w-full overflow-hidden"
+              // The view paints itself white by default so exports and previews have a
+              // ground. In the editor the page is the surface behind the frames, so it
+              // paints nothing: an empty page is empty.
+              className={cn('relative h-full w-full bg-transparent!', isBoundedPage(document, pageId) && 'overflow-hidden')}
             />
-            {pageSelected ? (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+            {pageSelected && isBoundedPage(document, pageId) ? (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
               <button
                 key={corner}
                 data-testid="page-corner"
@@ -3564,23 +3863,84 @@ export function WebCanvasEditor({
             />
           ) : null}
 
+          {/* One name label above every top-level frame. Grab it to move the
+              frame, double-click it to rename. It keeps one DOM node across
+              selection so a drag that starts with a select is not dropped. */}
+          {frameIds.map((id) => {
+            const rect = frameRects[id]
+            const node = document.nodes[id]
+            if (!rect || node?.kind !== 'element') return null
+            const label = nodeLabel(node, document)
+            const isSelected = selectedId === id
+            return (
+              <div
+                key={id}
+                className={cn(
+                  'pointer-events-auto absolute z-20 flex h-5 max-w-[min(16rem,100%)] items-center px-1.5 font-mono text-[10px]',
+                  isSelected ? 'bg-cx-accent text-white' : 'text-muted-foreground hover:text-foreground',
+                )}
+                style={{ left: rect.left, top: rect.top - 20 }}
+              >
+                {renamingFrameId === id ? (
+                  <input
+                    autoFocus
+                    aria-label="Frame name"
+                    defaultValue={node.attributes[NAME_ATTRIBUTE] ?? label}
+                    className="h-4 w-36 bg-surface px-1 text-[10px] text-foreground outline-none ring-1 ring-cx-accent"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onBlur={(event) => {
+                      setRenamingFrameId(null)
+                      const value = event.currentTarget.value.trim()
+                      if (value && value !== label) renameNode(id, value)
+                    }}
+                    onKeyDown={(event) => {
+                      event.stopPropagation()
+                      if (event.key === 'Enter') event.currentTarget.blur()
+                      if (event.key === 'Escape') {
+                        event.currentTarget.value = label
+                        setRenamingFrameId(null)
+                      }
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="min-w-0 cursor-move select-none truncate"
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      select(id)
+                      startElementDrag(event, 'move')
+                    }}
+                    onPointerMove={onDragMove}
+                    onPointerUp={finishElementDrag}
+                    onPointerCancel={finishElementDrag}
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => {
+                      event.stopPropagation()
+                      setRenamingFrameId(id)
+                    }}
+                  >
+                    {label}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
           {/* Selection Rect & Handles (Image 4) */}
           {selectionRect ? (
             <div
               className="pointer-events-none absolute border border-cx-accent"
               style={selectionRect}
             >
-              {/* Corner anchors */}
-              <div className="absolute -top-1 -left-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
-              <div className="absolute -top-1 -right-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
-              <div className="absolute -bottom-1 -left-1 size-2 rounded-xs border border-cx-accent bg-white pointer-events-none" />
-
               {/* Move handle */}
               {bound ? (
                 <div className="pointer-events-auto absolute -top-5 left-0 max-w-48 truncate rounded-sm bg-violet-600 px-1.5 py-0.5 font-mono text-[10px] text-white">
                   {selectedNode ? nodeLabel(selectedNode, document) : ''} · instance
                 </div>
-              ) : (
+              ) : selectedId !== null && frameIds.includes(selectedId) ? null : (
                 <div
                   className="pointer-events-auto absolute -top-5 left-0 max-w-48 cursor-move truncate rounded-sm bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity hover:opacity-100"
                   onPointerDown={(event) => startElementDrag(event, 'move')}
@@ -3592,19 +3952,26 @@ export function WebCanvasEditor({
                 </div>
               )}
 
-              {/* Resize handle */}
-              {bound ? null : (
+              {/* Eight resize handles: four corners and four edges, each pulling
+                  only the sides it sits on. The south-east one keeps the label
+                  the single handle always had. */}
+              {bound ? null : RESIZE_HANDLES.map((handle) => (
                 <div
+                  key={handle.id}
                   role="button"
-                  aria-label="Resize element"
+                  aria-label={handle.id === 'se' ? 'Resize element' : `Resize from ${handle.label}`}
                   tabIndex={0}
-                  className="pointer-events-auto absolute -bottom-1 -right-1 size-2.5 cursor-nwse-resize rounded-xs border border-cx-accent bg-white"
-                  onPointerDown={(event) => startElementDrag(event, 'resize')}
+                  className={cn(
+                    'pointer-events-auto absolute z-10 size-2.5 border border-cx-accent bg-white',
+                    handle.position,
+                    handle.cursor,
+                  )}
+                  onPointerDown={(event) => startElementDrag(event, 'resize', handle.edges)}
                   onPointerMove={onDragMove}
                   onPointerUp={finishElementDrag}
                   onPointerCancel={finishElementDrag}
                 />
-              )}
+              ))}
 
               {/* Dimensions badge at bottom center (Image 4: 512 × 512) */}
               <div className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] font-medium text-white shadow-md">
@@ -3674,19 +4041,22 @@ export function WebCanvasEditor({
         {rightPanelOpen ? (
         <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
           <div className="flex h-10 shrink-0 items-center justify-between border-b border-line px-4 text-foreground">
-            <span className="cx-label cx-bracket">Design</span>
-            <button
-              type="button"
-              disabled={!selectedId || saveStatus === 'saving'}
-              className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors disabled:opacity-30 disabled:pointer-events-none"
-              onClick={deleteSelected}
-              title="Delete element"
-            >
-              <Trash2Icon className="size-3.5" />
-              <span className="sr-only">Delete selected element</span>
-            </button>
+            <span className="cx-label cx-bracket">{tool === 'frame' ? 'Frame' : 'Design'}</span>
+            {tool === 'frame' ? null : (
+              <button
+                type="button"
+                disabled={!selectedId || saveStatus === 'saving'}
+                className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                onClick={deleteSelected}
+                title="Delete element"
+              >
+                <Trash2Icon className="size-3.5" />
+                <span className="sr-only">Delete selected element</span>
+              </button>
+            )}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            {tool === 'frame' ? <FramePresetsPanel onPick={insertFrame} /> : (
             <WebInspector
               node={selectedNode}
               geometry={selectionRect ? {
@@ -3699,14 +4069,23 @@ export function WebCanvasEditor({
               matchingRules={matchingRules}
               bound={bound}
               override={selectedOverride}
-              pageBackground={pageBackground}
+              pageBackground={isBoundedPage(document, pageId)
+                ? pageBackground
+                : (canvasBg ?? (globalThis.document?.documentElement.classList.contains('dark') ? '#272727' : '#f2f2f0'))}
+              boundedPage={isBoundedPage(document, pageId)}
               pageSize={pageResizePreview ?? { width: canvasWidth, height: canvasHeight }}
               fonts={fonts}
               selectionColors={selectionColors}
               onReplaceColor={replaceSelectionColor}
               onSetPageBackground={(color) => {
-                const id = pageIdRef.current ?? pageParentId(documentRef.current, null)
-                if (id && documentRef.current.nodes[id]?.kind === 'element') {
+                const id = pageIdRef.current
+                if (!isBoundedPage(documentRef.current, id)) {
+                  // An open page has no paint of its own; the colour is the surface behind its frames.
+                  if (!CANVAS_BG_PATTERN.test(color)) return
+                  transact('Set page colour', [{ type: 'page.setStage', pageId: id, color }])
+                  return
+                }
+                if (id !== null && documentRef.current.nodes[id]?.kind === 'element') {
                   transact('Set page background', [{ type: 'node.patch', id, patch: { kind: 'element', styles: { background: color } } }])
                 }
               }}
@@ -3718,10 +4097,13 @@ export function WebCanvasEditor({
               onClearOverride={clearSelectedOverride}
               onDeleteInstance={deleteSelectedInstance}
             />
+            )}
           </div>
         </aside>
         ) : null}
       </div>
+
+      <ShaderGallery open={shadersOpen} onOpenChange={setShadersOpen} onPick={insertShader} />
 
       {/* Connect Agent Dialog */}
       <Dialog open={connectAgentOpen} onOpenChange={setConnectAgentOpen}>

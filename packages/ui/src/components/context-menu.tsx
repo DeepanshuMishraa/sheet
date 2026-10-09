@@ -48,7 +48,7 @@ export function ContextMenuPopup({
 }): React.ReactElement {
   return (
     <ContextMenuPortal {...portalProps}>
-      <OpenCue emphasis="subtle" />
+      <OpenCue emphasis="normal" />
       <ContextMenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
@@ -106,7 +106,6 @@ export function ContextMenuItem({
       data-inset={inset}
       data-slot="context-menu-item"
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       data-variant={variant}
       {...props}
     />

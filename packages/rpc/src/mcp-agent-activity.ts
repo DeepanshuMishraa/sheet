@@ -27,6 +27,8 @@ const TOOL_LABELS: Record<string, string> = {
   listPages: 'Reading pages',
   listShaders: 'Browsing shaders',
   insertShader: 'Adding a shader',
+  createFrame: 'Adding a frame',
+  listFramePresets: 'Browsing frame sizes',
   styleShader: 'Styling a shader',
   patchNodes: 'Editing elements',
   moveNodes: 'Moving elements',

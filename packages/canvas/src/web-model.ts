@@ -85,8 +85,15 @@ export interface WebDocument {
     migratedFrom?: number
     migrationWarnings?: string[]
     page?: { width: number; height: number }
+    /** The name of Page 1, the unnamed first page, which has no node of its own to carry one. */
+    pageOneName?: string
+    /** The colour behind a page's frames, keyed by page root id, or `main` for Page 1. */
+    stageColors?: Record<string, string>
   }
 }
+
+/** The `stageColors` key for Page 1. */
+export const STAGE_MAIN_KEY = 'main'
 
 export type WebNodePatch =
   | {
@@ -111,6 +118,8 @@ export interface WebRulePatch {
 export type WebOperation =
   | { type: 'page.resize'; width: number; height: number }
   | { type: 'page.reset' }
+  | { type: 'page.setName'; name: string | null }
+  | { type: 'page.setStage'; pageId: WebNodeId | null; color: string | null }
   | { type: 'node.insert'; node: WebNode }
   | { type: 'node.patch'; id: WebNodeId; patch: WebNodePatch }
   | { type: 'node.move'; id: WebNodeId; parentId: WebNodeId | null; order: number }
@@ -301,6 +310,18 @@ export function assertWebDocument(value: unknown): WebDocument {
       throw new Error('Web page size is invalid')
     }
   }
+  if (value.metadata.pageOneName !== undefined && !validPageName(value.metadata.pageOneName)) {
+    throw new Error('Web page name is invalid')
+  }
+  if (value.metadata.stageColors !== undefined) {
+    const colors = value.metadata.stageColors
+    if (
+      !record(colors) ||
+      Object.entries(colors).some(([key, color]) => key.length > 200 || !validStageColor(color))
+    ) {
+      throw new Error('Web page colours are invalid')
+    }
+  }
   const entries = Object.entries(value.nodes)
   if (entries.length > MAX_WEB_DOCUMENT_NODES) throw new Error('Web document is too large')
   for (const [id, node] of entries) assertWebNode(node, id)
@@ -409,6 +430,14 @@ function parseStylesheetId(value: unknown, name: string) {
   return value
 }
 
+function validPageName(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= 200
+}
+
+function validStageColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)
+}
+
 function validPageSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 100_000
 }
@@ -418,6 +447,21 @@ function parseWebOperation(value: unknown): WebOperation {
     throw new Error('Web transaction operation is invalid')
   }
   if (value.type === 'page.reset') return { type: 'page.reset' }
+  if (value.type === 'page.setName') {
+    if (value.name !== null && !validPageName(value.name)) {
+      throw new Error('Web page name must be 1 to 200 characters')
+    }
+    return { type: 'page.setName', name: value.name === null ? null : value.name.trim() }
+  }
+  if (value.type === 'page.setStage') {
+    if (value.pageId !== null && typeof value.pageId !== 'string') {
+      throw new Error('Web page id is invalid')
+    }
+    if (value.color !== null && !validStageColor(value.color)) {
+      throw new Error('Web page colour must be a #rrggbb hex value')
+    }
+    return { type: 'page.setStage', pageId: value.pageId, color: value.color }
+  }
   if (value.type === 'page.resize') {
     if (!validPageSize(value.width) || !validPageSize(value.height)) {
       throw new Error('Web page size must be between 1 and 100,000 pixels')
@@ -1211,6 +1255,27 @@ export function applyWebTransaction(
       if (operation.type === 'page.reset') delete document.metadata.page
       else document.metadata.page = { width: operation.width, height: operation.height }
       inverse.unshift(previous ? { type: 'page.resize', ...previous } : { type: 'page.reset' })
+      continue
+    }
+    if (operation.type === 'page.setName') {
+      const previous = document.metadata.pageOneName
+      if (operation.name === null) delete document.metadata.pageOneName
+      else document.metadata.pageOneName = operation.name
+      inverse.unshift({ type: 'page.setName', name: previous ?? null })
+      continue
+    }
+    if (operation.type === 'page.setStage') {
+      if (operation.pageId !== null && !document.nodes[operation.pageId]) {
+        throw new Error(`Page ${operation.pageId} does not exist`)
+      }
+      const key = operation.pageId ?? STAGE_MAIN_KEY
+      const colors = { ...(document.metadata.stageColors ?? {}) }
+      const previous = colors[key] ?? null
+      if (operation.color === null) delete colors[key]
+      else colors[key] = operation.color
+      if (Object.keys(colors).length === 0) delete document.metadata.stageColors
+      else document.metadata.stageColors = colors
+      inverse.unshift({ type: 'page.setStage', pageId: operation.pageId, color: previous })
       continue
     }
     if (operation.type === 'node.insert') {

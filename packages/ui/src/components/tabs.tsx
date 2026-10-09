@@ -69,7 +69,6 @@ export function TabsTab({
       )}
       data-slot="tabs-tab"
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       {...props}
     />
   );

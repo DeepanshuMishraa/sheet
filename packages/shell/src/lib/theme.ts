@@ -10,7 +10,7 @@ export type ThemePreference = ThemeId | 'system'
 /** Drives the window chrome colour; matches each palette's `--background`. */
 const THEME_COLOR: Record<ThemeId, string> = {
   light: '#fafaf9',
-  dark: '#121212',
+  dark: '#212121',
 }
 
 /** The kit is dark-native, so that is what an account without a choice gets. */

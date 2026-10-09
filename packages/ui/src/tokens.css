@@ -31,13 +31,13 @@
   --destructive-foreground: #b42318;
   --border: #e4e4e0;
   --input: #d6d6d2;
-  --ring: rgba(240, 84, 26, 0.5);
-  --chart-1: #f0541a;
+  --ring: --alpha(var(--cx-accent) / 50%);
+  --chart-1: var(--cx-accent);
   --chart-2: #bd4d83;
   --chart-3: #d8874a;
   --chart-4: #10b981;
   --chart-5: #3b82f6;
-  --radius: 0.5rem;
+  --radius: 0;
   --sidebar: #efefed;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
@@ -92,42 +92,42 @@
 }
 
 .dark {
-  --cx-canvas: #0a0a0a;
-  --cx-dot: #2a2a2a;
+  --cx-canvas: #272727;
+  --cx-dot: #3d3d3d;
   --cx-ink: #ececea;
   --cx-accent: #ff6a2b;
 
-  --background: #121212;
+  --background: #212121;
   --foreground: var(--cx-ink);
-  --card: #171717;
+  --card: #272727;
   --card-foreground: var(--cx-ink);
-  --popover: #1b1b1b;
+  --popover: #2b2b2b;
   --popover-foreground: var(--cx-ink);
   --primary: #f2f2f0;
   --primary-foreground: #0d0d0d;
-  --secondary: #202020;
+  --secondary: #2e2e2e;
   --secondary-foreground: var(--cx-ink);
   --muted: --alpha(var(--color-white) / 5%);
-  --muted-foreground: #8a8a85;
+  --muted-foreground: #9d9d98;
   --accent: --alpha(var(--color-white) / 7%);
   --accent-foreground: var(--cx-ink);
   --destructive: #e5484d;
   --destructive-foreground: #f2827f;
-  --border: #262626;
-  --input: #333333;
-  --ring: --alpha(#ff6a2b / 55%);
-  --chart-1: #ff6a2b;
+  --border: #363636;
+  --input: #404040;
+  --ring: --alpha(var(--cx-accent) / 55%);
+  --chart-1: var(--cx-accent);
   --chart-2: #bd4d83;
   --chart-3: #d8874a;
   --chart-4: #80bd90;
   --chart-5: #4285d4;
-  --sidebar: #0d0d0d;
+  --sidebar: #1b1b1b;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cx-accent);
   --sidebar-primary-foreground: #0d0d0d;
   --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #202020;
+  --sidebar-border: #323232;
   --sidebar-ring: var(--ring);
   --info: #4285d4;
   --info-foreground: #8fbdea;
@@ -140,13 +140,13 @@
   --warning-foreground: #e3b45c;
   --tooltip: #ececea;
   --tooltip-foreground: #0d0d0d;
-  --well: #0a0a0a;
+  --well: #1b1b1b;
 
-  --surface: #171717;
-  --surface-2: #1d1d1d;
-  --frame: #0d0d0d;
-  --line: #242424;
-  --edge: rgba(255, 255, 255, 0.09);
+  --surface: #272727;
+  --surface-2: #2d2d2d;
+  --frame: #1b1b1b;
+  --line: #343434;
+  --edge: rgba(255, 255, 255, 0.11);
   --highlight: transparent;
   --panel-shadow: 0 0 0 1px var(--edge);
   --panel-shadow-lg:
@@ -163,3 +163,18 @@
   --lift-selected: 0 0 0 1px var(--cx-accent);
   color-scheme: dark;
 }
+
+/* Accent variants. One hue is spent on selection, focus and the live mark; the
+   person picks which in Settings. Orange is the default and needs no attribute.
+   Each hue has a deeper light-mode value and a brighter dark-mode one, and all
+   hold white text at a readable contrast, since the accent is also a fill. */
+html[data-accent='blue'] { --cx-accent: #2563eb; }
+html.dark[data-accent='blue'] { --cx-accent: #4d8dff; }
+html[data-accent='violet'] { --cx-accent: #7c3aed; }
+html.dark[data-accent='violet'] { --cx-accent: #9a77ff; }
+html[data-accent='green'] { --cx-accent: #0f9d58; }
+html.dark[data-accent='green'] { --cx-accent: #1fb86b; }
+html[data-accent='pink'] { --cx-accent: #db2777; }
+html.dark[data-accent='pink'] { --cx-accent: #f0549b; }
+html[data-accent='teal'] { --cx-accent: #0d8f86; }
+html.dark[data-accent='teal'] { --cx-accent: #14a89d; }

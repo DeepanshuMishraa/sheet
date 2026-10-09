@@ -41,9 +41,6 @@ vi.doMock('@sheet/auth/client', () => ({
     signOut: vi.fn(),
   },
 }))
-vi.doMock('./settings-panel', () => ({
-  SettingsPanel: () => <div>Settings panel</div>,
-}))
 
 const navigate = vi.fn()
 const routerModule = await import('@tanstack/react-router')

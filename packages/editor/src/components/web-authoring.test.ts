@@ -13,6 +13,7 @@ import {
   dragMoveKind,
   parsePxAuthored,
   reorderAxis,
+  resizeFromEdges,
 } from './web-editor'
 
 function siblings() {
@@ -109,6 +110,18 @@ describe('web-native authoring math', () => {
       width: '237px',
       declined: ['height'],
     })
+  })
+
+  it('resizes from any side: far sides grow the box, near sides move the origin', () => {
+    const box = { left: 100, top: 50, width: 200, height: 100 }
+    // South-east grows, the origin stays.
+    expect(resizeFromEdges(box, { s: true, e: true }, 30, 20)).toEqual({ left: 100, top: 50, width: 230, height: 120 })
+    // West pulled left by 40 widens by 40 and moves left by 40; the east edge stays at 300.
+    expect(resizeFromEdges(box, { w: true }, -40, 0)).toEqual({ left: 60, top: 50, width: 240, height: 100 })
+    // North pulled down by 30 shrinks by 30; the south edge stays at 150.
+    expect(resizeFromEdges(box, { n: true }, 0, 30)).toEqual({ left: 100, top: 80, width: 200, height: 70 })
+    // Never below 1px, and the far edge still holds when it collapses.
+    expect(resizeFromEdges(box, { w: true }, 500, 0)).toEqual({ left: 299, top: 50, width: 1, height: 100 })
   })
 
   it('clones subtrees with fresh IDs and a null-parent root', () => {

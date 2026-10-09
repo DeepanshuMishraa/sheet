@@ -1,30 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
-  ChevronDownIcon,
   ClockIcon,
   LayoutGridIcon,
-  LinkIcon,
   PlusIcon,
-  SettingsIcon,
-  SunIcon,
 } from '@sheet/ui/icons'
 import { Avatar, AvatarFallback, AvatarImage } from '@sheet/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@sheet/ui/dropdown-menu'
+import { BrandMark } from '@sheet/ui/brand-mark'
 import { cn } from '@sheet/ui/utils'
 
-export type AppSection = 'recents' | 'appearance' | 'integrations' | 'files'
+export type AppSection = 'recents' | 'files'
 
 const NAV_ITEMS = [
   { to: '/app', section: 'recents', label: 'Recents', Icon: ClockIcon },
   { to: '/app/files', section: 'files', label: 'Files', Icon: LayoutGridIcon },
-  { to: '/app/appearance', section: 'appearance', label: 'Appearance', Icon: SunIcon },
-  { to: '/app/integrations', section: 'integrations', label: 'Integrations', Icon: LinkIcon },
 ] as const satisfies ReadonlyArray<{
   to: string
   section: AppSection
@@ -71,13 +60,7 @@ function SectionLabel({ children }: { children: string }) {
   return <p className="cx-label cx-bracket px-2.5 pb-2 pt-5">{children}</p>
 }
 
-export function AppSidebar({
-  active,
-  onSettings,
-}: {
-  active: AppSection | null
-  onSettings: () => void
-}) {
+export function AppSidebar({ active }: { active: AppSection | null }) {
   const { data: profile } = useQuery({
     queryKey: ['desktop-profile'],
     queryFn: loadDesktopProfile,
@@ -91,6 +74,10 @@ export function AppSidebar({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1">
+        <div className="group/brand flex h-9 items-center gap-2.5 px-2.5 pt-2 text-foreground">
+          <BrandMark />
+          <span className="cx-label text-foreground">Sheet</span>
+        </div>
         <SectionLabel>Workspace</SectionLabel>
         <nav className="flex flex-col gap-0.5" aria-label="Main navigation">
           {NAV_ITEMS.map(({ to, section, label, Icon }) => (
@@ -99,11 +86,15 @@ export function AppSidebar({
               to={to}
               preload="intent"
               data-cuelume-navigate=""
-              data-cuelume-emphasis="subtle"
               aria-current={active === section ? 'page' : undefined}
               className={rowClassName(active === section)}
             >
-              <Icon className="size-4 shrink-0" />
+              <Icon
+                className={cn(
+                  'size-4 shrink-0 transition-colors duration-150',
+                  active === section && 'text-cx-accent',
+                )}
+              />
               <span className="truncate">{label}</span>
             </Link>
           ))}
@@ -111,7 +102,6 @@ export function AppSidebar({
             to="/app/new"
             preload="intent"
             data-cuelume-tap=""
-            data-cuelume-emphasis="subtle"
             className={rowClassName(false)}
           >
             <PlusIcon className="size-4 shrink-0" />
@@ -121,35 +111,14 @@ export function AppSidebar({
 
       </div>
 
-      <div className="shrink-0 border-t border-line p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label={`Menu for ${firstName}`}
-              className={cn(rowClassName(false), 'h-9 px-2')}
-            >
-              <Avatar className="size-5 shrink-0 rounded-full text-2xs font-semibold">
-                {profile?.imageUrl ? (
-                  <AvatarImage src={profile.imageUrl} alt="" />
-                ) : null}
-                <AvatarFallback className="bg-cx-accent text-white">
-                  {initial}
-                </AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate font-medium text-foreground">
-                {firstName}
-              </span>
-              <ChevronDownIcon className="size-3.5 shrink-0" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="top" className="w-52">
-            <DropdownMenuItem onClick={onSettings}>
-              <SettingsIcon data-slot="icon" />
-              Settings
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Who is signed in. Settings is not reached from here: it opens from the
+          application menu, as its own window. */}
+      <div className="flex h-12 shrink-0 items-center gap-2.5 border-t border-line px-5">
+        <Avatar className="size-5 shrink-0 rounded-full text-2xs font-semibold">
+          {profile?.imageUrl ? <AvatarImage src={profile.imageUrl} alt="" /> : null}
+          <AvatarFallback className="bg-cx-accent text-white">{initial}</AvatarFallback>
+        </Avatar>
+        <span className="min-w-0 flex-1 truncate text-xs text-foreground">{firstName}</span>
       </div>
     </div>
   )

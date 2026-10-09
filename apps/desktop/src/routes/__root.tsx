@@ -2,6 +2,7 @@ import { Outlet, createRootRoute, useLocation } from '@tanstack/react-router'
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
 import { useEffect } from 'react'
 import { syncThemePreference } from '@sheet/shell/lib/theme'
+import { syncAccent } from '@sheet/shell/lib/accent'
 import { syncUiScale } from '@sheet/shell/lib/ui-scale'
 import { initSound } from '@sheet/ui/sound'
 import { AppShell } from '@sheet/shell/app-page-shell'
@@ -19,10 +20,36 @@ export const Route = createRootRoute({ component: RootLayout })
  */
 function RootLayout() {
   const { pathname } = useLocation()
+  // Settings is a window of its own. It keeps the look in step with the app, but
+  // it takes no part in the app's event streams: a second capture responder
+  // would answer every screenshot request twice.
+  if (pathname.startsWith('/settings')) return <SettingsRoot />
+  return <AppRoot pathname={pathname} />
+}
+
+/** Everything the Settings window needs to look and sound like the app, and no more. */
+function SettingsRoot() {
+  useEffect(() => syncThemePreference(), [])
+  useEffect(() => syncAccent(), [])
+  useEffect(() => syncUiScale(), [])
+  useEffect(() => initSound(), [])
+  useEffect(() => {
+    document.getElementById('boot-splash')?.remove()
+  }, [])
+
+  return (
+    <NuqsAdapter>
+      <Outlet />
+    </NuqsAdapter>
+  )
+}
+
+function AppRoot({ pathname }: { pathname: string }) {
   // One shell for the whole app, so moving between files and the dashboard keeps
   // the sidebar, tabs, and event streams alive instead of rebuilding them.
   const framed = pathname.startsWith('/app') || pathname.startsWith('/design')
   useEffect(() => syncThemePreference(), [])
+  useEffect(() => syncAccent(), [])
   useEffect(() => syncUiScale(), [])
   useEffect(() => initSound(), [])
   useCaptureResponder()

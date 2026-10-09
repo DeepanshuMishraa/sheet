@@ -48,7 +48,7 @@ export function PopoverPopup({
 }): React.ReactElement {
   return (
     <PopoverPrimitive.Portal {...portalProps}>
-      <OpenCue emphasis="subtle" />
+      <OpenCue emphasis="normal" />
       <PopoverPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}

@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { applyWebTransaction, createWebDocument, createWebElement, createWebText } from './web-model'
 import {
+  canvasParentId,
+  isBoundedPage,
   layerChildren,
   layerName,
   listPages,
   nextPageName,
   nextRootOrder,
+  openingPageId,
   pageLayerIds,
   pageNode,
   pageParentId,
@@ -31,13 +34,42 @@ describe('web pages', () => {
     expect(listPages(createWebDocument('t'))).toEqual([{ id: null, name: 'Page 1' }])
   })
 
-  test('the implicit page hides once another page exists and it has no content', () => {
+  test('Page 1 stays listed first when another page is added', () => {
     const base = createWebDocument('t')
     const page = pageNode('Home', { order: nextRootOrder(base) })
     const document = applyWebTransaction(base, {
       id: 'tx-1', label: 'Add page', operations: [{ type: 'node.insert', node: page }],
     }).document
-    expect(listPages(document)).toEqual([{ id: page.id, name: 'Home' }])
+    expect(listPages(document)).toEqual([
+      { id: null, name: 'Page 1' },
+      { id: page.id, name: 'Home' },
+    ])
+  })
+
+  test('a design opens on Page 1, or on its first named page when Page 1 is empty and others are not', () => {
+    const base = createWebDocument('t')
+    expect(openingPageId(base)).toBe(null)
+    const page = pageNode('Home', { order: nextRootOrder(base) })
+    const named = applyWebTransaction(base, {
+      id: 'tx-1', label: 'Add page', operations: [{ type: 'node.insert', node: page }],
+    }).document
+    expect(openingPageId(named)).toBe(page.id)
+    expect(openingPageId(withPages().document)).toBe(null)
+  })
+
+  test('an open page has no edge or paint, a default page is a bounded artboard', () => {
+    const base = createWebDocument('t')
+    const open = pageNode('Open', { order: nextRootOrder(base), open: true })
+    const bounded = pageNode('Board', { order: nextRootOrder(base) })
+    const document = applyWebTransaction(base, {
+      id: 'tx-1', label: 'Add pages', operations: [
+        { type: 'node.insert', node: open },
+        { type: 'node.insert', node: bounded },
+      ],
+    }).document
+    expect(isBoundedPage(document, open.id)).toBe(false)
+    expect(isBoundedPage(document, bounded.id)).toBe(true)
+    expect(isBoundedPage(document, null)).toBe(false)
   })
 
   test('pages are isolated: each shows only its own roots and layers', () => {
@@ -48,6 +80,9 @@ describe('web pages', () => {
     expect(pageLayerIds(document, second.id)).toEqual([])
     expect(pageParentId(document, null)).toBe('legacy')
     expect(pageParentId(document, second.id)).toBe(second.id)
+    // Page 1 takes new frames at the top level; agents still target the first root.
+    expect(canvasParentId(null)).toBe(null)
+    expect(canvasParentId(second.id)).toBe(second.id)
     expect(pageRootSize(document, second.id)).toEqual({ width: 800, height: 600 })
   })
 

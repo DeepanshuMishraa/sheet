@@ -87,7 +87,7 @@
   },
   {
     "name": "applyWebTransaction",
-    "description": "Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. To resize a page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.",
+    "description": "Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -600,7 +600,7 @@
   },
   {
     "name": "insertIcon",
-    "description": "Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Defaults to the first root as parent.",
+    "description": "Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Pass parentId to put it in a frame. With no parentId on a named page it goes in the page root; on Page 1 it goes in the only top-level frame, sits top level when there is none, and is refused when there are several, so name the frame.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -637,7 +637,7 @@
           "maxLength": 200
         },
         "pageId": {
-          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.",
+          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given. The first page, Page 1, starts empty and has no edge: with nothing on it and no parentId the node becomes a top-level frame, so give it position:absolute with left, top, width and height.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200
@@ -721,7 +721,7 @@
   },
   {
     "name": "listPages",
-    "description": "List a design's pages. Each page is an isolated canvas with its own layers and size. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.",
+    "description": "List a design's pages. Page 1 (pageId null) is always listed first: it starts empty, has no edge, and holds top-level frames. Every other page is isolated, with its own layers. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -749,7 +749,7 @@
   },
   {
     "name": "createPage",
-    "description": "Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Use one page per screen or design variant (for example light and dark, or options A, B and C); never place variants side by side inside one page or enlarge a page to hold them. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.",
+    "description": "Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Add a page only when the user asks for separate pages. By default design on Page 1, which starts empty and has no edge, with each screen or variant as its own top-level frame set side by side (applyWebTransaction node.insert with parentId null, position absolute, left, top, width, height). A page made here is a bounded, painted artboard. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -797,6 +797,83 @@
     }
   },
   {
+    "name": "listFramePresets",
+    "description": "List the frame sizes the editor offers when you pick the Frame tool, grouped as Phone, Tablet, Desktop, Presentation, Smartwatch, Paper and Social media, each with width and height in px. Pass a preset name to createFrame to make a frame of exactly that size.",
+    "inputSchema": {
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "createFrame",
+    "description": "Add a frame to a page: a white, free-positioned box the person can move, resize and rename, built exactly as the editor's Frame tool builds one. Give a preset name from listFramePresets (for example \"iPhone 16\" or \"MacBook Air\") or a width and height. With no left and top it goes one gap to the right of the page's other top-level frames, so several calls set frames side by side. Returns nodeId; build the design inside it by passing nodeId as parentId in applyWebTransaction, insertIcon or insertShader.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Branch target; omit for Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preset": {
+          "description": "A name from listFramePresets, matched ignoring case",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "width": {
+          "description": "Width in px; used when there is no preset",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "height": {
+          "description": "Height in px; used when there is no preset",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "name": {
+          "description": "Layer name; defaults to the preset name, or \"Frame\"",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "pageId": {
+          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given. The first page, Page 1, starts empty and has no edge: with nothing on it and no parentId the node becomes a top-level frame, so give it position:absolute with left, top, width and height.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "left": {
+          "description": "Left edge in px on the page",
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "top": {
+          "description": "Top edge in px on the page",
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
     "name": "listShaders",
     "description": "List the available Paper shaders with their params: type, range or options, and default. Use the names and params with insertShader and styleShader.",
     "inputSchema": {
@@ -808,7 +885,7 @@
   },
   {
     "name": "insertShader",
-    "description": "Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. Defaults to the first root as parent.",
+    "description": "Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. With no parentId the shader is its own free-positioned object on the page, placed beside the other top-level objects, so the person can move and resize it like a frame; give left and top to place it yourself. With a parentId it goes inside that element.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -841,7 +918,7 @@
           "maxLength": 200
         },
         "pageId": {
-          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.",
+          "description": "Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given. The first page, Page 1, starts empty and has no edge: with nothing on it and no parentId the node becomes a top-level frame, so give it position:absolute with left, top, width and height.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200
@@ -857,6 +934,18 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 8192
+        },
+        "left": {
+          "description": "Left edge in px, in its parent. Defaults to the next free spot beside the page's other top-level objects.",
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "top": {
+          "description": "Top edge in px, in its parent. Defaults to level with the page's highest top-level object.",
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
         },
         "params": {
           "description": "Shader params, for example { colors: [\"#111\",\"#f0f\"], speed: 0.5, distortion: 0.8 }. Unknown keys are dropped and numbers are clamped to range; omitted keys keep their default.",

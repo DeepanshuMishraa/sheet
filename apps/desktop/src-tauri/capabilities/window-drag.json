@@ -6,6 +6,6 @@
   "remote": {
     "urls": ["http://127.0.0.1:*"]
   },
-  "windows": ["main"],
+  "windows": ["main", "settings"],
   "permissions": ["core:window:allow-start-dragging"]
 }

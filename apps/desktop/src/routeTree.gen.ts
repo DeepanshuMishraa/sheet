@@ -11,10 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppAppearanceRouteImport } from './routes/app.appearance'
 import { Route as AppFilesRouteImport } from './routes/app.files'
-import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
 import { Route as AppNewRouteImport } from './routes/app.new'
 import { Route as DesignIdRouteImport } from './routes/design.$id'
 import { Route as DesignIdBBranchIdRouteImport } from './routes/design.$id_.b.$branchId'
@@ -29,24 +28,19 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAppearanceRoute = AppAppearanceRouteImport.update({
-  id: '/appearance',
-  path: '/appearance',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppFilesRoute = AppFilesRouteImport.update({
   id: '/files',
   path: '/files',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNewRoute = AppNewRouteImport.update({
@@ -68,9 +62,8 @@ const DesignIdBBranchIdRoute = DesignIdBBranchIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/app/appearance': typeof AppAppearanceRoute
+  '/settings': typeof SettingsRoute
   '/app/files': typeof AppFilesRoute
-  '/app/integrations': typeof AppIntegrationsRoute
   '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app/': typeof AppIndexRoute
@@ -78,9 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app/appearance': typeof AppAppearanceRoute
+  '/settings': typeof SettingsRoute
   '/app/files': typeof AppFilesRoute
-  '/app/integrations': typeof AppIntegrationsRoute
   '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app': typeof AppIndexRoute
@@ -90,9 +82,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/app/appearance': typeof AppAppearanceRoute
+  '/settings': typeof SettingsRoute
   '/app/files': typeof AppFilesRoute
-  '/app/integrations': typeof AppIntegrationsRoute
   '/app/new': typeof AppNewRoute
   '/design/$id': typeof DesignIdRoute
   '/app/': typeof AppIndexRoute
@@ -103,9 +94,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
-    | '/app/appearance'
+    | '/settings'
     | '/app/files'
-    | '/app/integrations'
     | '/app/new'
     | '/design/$id'
     | '/app/'
@@ -113,9 +103,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/app/appearance'
+    | '/settings'
     | '/app/files'
-    | '/app/integrations'
     | '/app/new'
     | '/design/$id'
     | '/app'
@@ -124,9 +113,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
-    | '/app/appearance'
+    | '/settings'
     | '/app/files'
-    | '/app/integrations'
     | '/app/new'
     | '/design/$id'
     | '/app/'
@@ -136,6 +124,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  SettingsRoute: typeof SettingsRoute
   DesignIdRoute: typeof DesignIdRoute
   DesignIdBBranchIdRoute: typeof DesignIdBBranchIdRoute
 }
@@ -156,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -163,25 +159,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/appearance': {
-      id: '/app/appearance'
-      path: '/appearance'
-      fullPath: '/app/appearance'
-      preLoaderRoute: typeof AppAppearanceRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/files': {
       id: '/app/files'
       path: '/files'
       fullPath: '/app/files'
       preLoaderRoute: typeof AppFilesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/integrations': {
-      id: '/app/integrations'
-      path: '/integrations'
-      fullPath: '/app/integrations'
-      preLoaderRoute: typeof AppIntegrationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/new': {
@@ -209,17 +191,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppAppearanceRoute: typeof AppAppearanceRoute
   AppFilesRoute: typeof AppFilesRoute
-  AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppNewRoute: typeof AppNewRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAppearanceRoute: AppAppearanceRoute,
   AppFilesRoute: AppFilesRoute,
-  AppIntegrationsRoute: AppIntegrationsRoute,
   AppNewRoute: AppNewRoute,
   AppIndexRoute: AppIndexRoute,
 }
@@ -229,6 +207,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  SettingsRoute: SettingsRoute,
   DesignIdRoute: DesignIdRoute,
   DesignIdBBranchIdRoute: DesignIdBBranchIdRoute,
 }

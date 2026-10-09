@@ -49,7 +49,8 @@ your next `applyWebTransaction`.
 
 | Tool | Use |
 |---|---|
-| `createPage` | New isolated page (its own canvas, size and layers) |
+| `listFramePresets` / `createFrame` | The editor's frame sizes (Phone, Tablet, Desktop, Presentation, Smartwatch, Paper, Social media), and a top-level frame of one of them or of any size |
+| `createPage` | New isolated page, only when the user asks for pages |
 | `applyWebTransaction` | All structural edits: nodes, stylesheets, rules, components, instances |
 | `searchIcons` / `insertIcon` / `styleIcon` | Find, place, and restyle library icons |
 | `listShaders` / `insertShader` / `styleShader` | Discover, place, and tune Paper shaders |
@@ -79,11 +80,16 @@ your next `applyWebTransaction`.
 1. Pass the capability gate.
 2. `createDesign` with a concise product-oriented name. Note the `designId`.
 3. `getWebDocument` to get the starting `revision` (an empty document).
-4. `createPage` (name, width, height, background). Keep the returned `pageId`.
-   Then one transaction with the theme stylesheet (custom properties on `:root`,
-   base typography, reusable classes) and the page's first content, inserted
-   with `parentId: pageId`. Each additional screen or variant is another
-   `createPage`; never build two screens inside one page.
+4. `createFrame` with a preset from `listFramePresets` (for example
+   `"iPhone 16"`) or a width and height. Page 1 starts empty and has no edge,
+   and the frame lands on it white, free-positioned and named, exactly as the
+   editor's Frame tool makes one. Keep the returned `nodeId`. Each additional
+   screen or variant is another `createFrame`, which sets itself about 48px to
+   the right of the last; never a child of the first and never a bigger frame.
+   Then one `applyWebTransaction` with the theme stylesheet (custom properties
+   on `:root`, base typography, reusable classes) and the frame's first
+   content, inserted with `parentId: nodeId`. Use `createPage` only when the
+   user asks for separate pages.
 5. Add sections with one transaction each: nodes first, then the rules that
    style them.
 6. Define components (`component.define`) for genuinely repeated structures, then

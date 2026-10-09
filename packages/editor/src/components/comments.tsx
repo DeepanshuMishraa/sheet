@@ -32,7 +32,6 @@ export function CommentPin({
       type="button"
       aria-label={`${count} open ${count === 1 ? 'comment' : 'comments'} on this element`}
       data-cuelume-open=""
-      data-cuelume-emphasis="subtle"
       onClick={(event) => {
         event.stopPropagation()
         onOpen()
@@ -196,7 +195,6 @@ export function CommentThread({
           aria-label="Close comments"
           onClick={onClose}
           data-cuelume-close=""
-          data-cuelume-emphasis="subtle"
           className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <XIcon className="size-3.5" />
@@ -224,7 +222,6 @@ export function CommentThread({
           placeholder="Tell the designer or an agent what to change"
           aria-label="Comment"
           data-cuelume-type=""
-          data-cuelume-emphasis="subtle"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             // Enter sends, Shift+Enter breaks the line. Skip while an input method is composing.
@@ -281,7 +278,6 @@ export function CommentsList({
             type="button"
             aria-pressed={filter === value}
             data-cuelume-select=""
-            data-cuelume-emphasis="subtle"
             onClick={() => setFilter(value)}
             className={cn(
               "relative py-2 text-xs capitalize outline-none transition-colors duration-150 ease-smooth after:absolute after:inset-x-3 after:-bottom-px after:h-px after:origin-center after:bg-cx-accent after:transition-transform after:duration-200 after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",

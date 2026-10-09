@@ -78,7 +78,7 @@ export function DialogPopup({
 }): React.ReactElement {
   return (
     <DialogPortal {...portalProps}>
-      <OpenCue emphasis="normal" />
+      <OpenCue emphasis="strong" />
       <DialogBackdrop />
       <DialogViewport
         className={cn(
@@ -94,6 +94,7 @@ export function DialogPopup({
             className,
           )}
           data-slot="dialog-popup"
+          data-cuelume-theme="bubble"
           {...props}
         >
           {children}

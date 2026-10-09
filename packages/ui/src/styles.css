@@ -84,15 +84,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  /* Radii nest: a control sits 6px, the panel that holds it 10px, the dialog
-     that holds the panel 14px — each is the inner radius plus its padding, so
-     curves stay concentric as things stack. */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.625rem;
-  --radius-xl: 0.875rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.25rem;
+  /* No rounding. Every corner in the chrome is square, so the whole scale is
+     zero and `rounded-*` utilities keep working without drawing a curve. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -366,7 +366,7 @@ body {
   height: 20px;
   max-width: 16rem;
   padding-inline: 6px 8px;
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--foreground);
   color: var(--background);
   font-size: 10px;
@@ -397,7 +397,7 @@ body {
 .cx-agent-typing i {
   width: 3px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: 0;
   background: currentColor;
   animation: cx-agent-typing 1s ease-in-out infinite;
 }
@@ -418,7 +418,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: --alpha(var(--foreground) / 4%);
   outline: 1px solid --alpha(var(--foreground) / 45%);
   box-shadow: 0 0 0 4px --alpha(var(--foreground) / 5%);
@@ -442,7 +442,7 @@ body {
   content: '';
   position: absolute;
   inset: -3px;
-  border-radius: 999px;
+  border-radius: 0;
   border: 1px solid --alpha(var(--foreground) / 35%);
   animation: cx-agent-halo 1.8s ease-out infinite;
 }
@@ -558,7 +558,7 @@ body {
     /* The border is the trick: it eats 3px of the 10px track, so the thumb
        reads as a 4px pill that keeps its radius at every length. */
     border: 3px solid transparent;
-    border-radius: 999px;
+    border-radius: 0;
     background: --alpha(var(--foreground) / 18%);
     background-clip: content-box;
   }
@@ -573,6 +573,15 @@ body {
    regardless of specificity, so a bare `.bg-surface` out here would silently
    win over `hover:bg-surface-2` and the hover state would never paint. */
 @layer utilities {
+  /* The two radii the token scale cannot reach: `rounded-full` is a literal
+     pill, `rounded` a literal 0.25rem. Squared here, with a root prefix so the
+     override wins regardless of utility order. Canvas content is unaffected;
+     designs carry their own radii in authored CSS, not in these classes. */
+  :root .rounded-full,
+  :root .rounded {
+    border-radius: 0;
+  }
+
   .bg-surface {
     background-color: var(--surface);
   }
@@ -731,6 +740,25 @@ body {
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* The brand mark: the front square settles in on mount, lifts away on hover. */
+.cx-brand-front {
+  transform-box: fill-box;
+  animation: cx-brand-in 420ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes cx-brand-in {
+  from {
+    transform: translate(6px, 6px);
+    opacity: 0;
+  }
+}
+
+:where(.group\/brand):hover .cx-brand-front,
+.cx-brand:hover .cx-brand-front {
+  transform: translate(-2px, -2px);
 }
 
 /* An orange mark that breathes once per second: "live", "working", "here". */

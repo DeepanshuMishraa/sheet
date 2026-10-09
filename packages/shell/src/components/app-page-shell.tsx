@@ -4,7 +4,6 @@ import { cn } from '@sheet/ui/utils'
 import { DocumentTabBar } from '@sheet/editor/tab-bar'
 import { ChromeSlotsContext } from '@sheet/editor/chrome-slots'
 import { AppSidebar, type AppSection } from './app-navigation'
-import { AppSettingsDialog } from './settings-dialog'
 
 const SIDEBAR_KEY = 'sheet:sidebar'
 
@@ -23,13 +22,13 @@ function readCollapsed(): boolean {
 function SidebarGlyph({ collapsed }: { collapsed: boolean }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4" fill="none">
-      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.25" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" stroke="currentColor" strokeWidth="1.25" />
       <rect
         x="2.4"
         y="3.4"
         width="3.6"
         height="9.2"
-        rx="1.6"
+       
         fill="var(--cx-accent)"
         className="origin-left transition-[transform,opacity] duration-200 ease-smooth motion-reduce:transition-none [transform-box:fill-box]"
         style={{ transform: `scaleX(${collapsed ? 0.15 : 1})`, opacity: collapsed ? 0 : 1 }}
@@ -41,8 +40,6 @@ function SidebarGlyph({ collapsed }: { collapsed: boolean }) {
 
 function activeSection(pathname: string): AppSection | null {
   if (pathname.startsWith('/design')) return null
-  if (pathname.startsWith('/app/appearance')) return 'appearance'
-  if (pathname.startsWith('/app/integrations')) return 'integrations'
   if (pathname.startsWith('/app/files')) return 'files'
   return 'recents'
 }
@@ -53,7 +50,6 @@ function activeSection(pathname: string): AppSection | null {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [leading, setLeading] = useState<HTMLElement | null>(null)
   const [trailing, setTrailing] = useState<HTMLElement | null>(null)
@@ -78,6 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           end all sit on it; the page below runs edge to edge with no inset card. */}
       <header
         data-tauri-drag-region
+        data-cuelume-theme="mech"
         className="flex h-8 shrink-0 select-none items-stretch gap-1 border-b border-line bg-frame ps-[78px] pe-3"
       >
         {isEditor ? (
@@ -91,7 +88,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             title={collapsed ? 'Show sidebar' : 'Hide sidebar'}
             onClick={() => setSidebar(!collapsed)}
             data-cuelume-select=""
-            data-cuelume-emphasis="subtle"
             className="cx-press my-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             <SidebarGlyph collapsed={collapsed} />
@@ -105,6 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 flex-1">
         <aside
           aria-label="Sidebar"
+          data-cuelume-theme="press"
           aria-hidden={sidebarHidden}
           inert={sidebarHidden}
           className={cn(
@@ -114,10 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           {/* Fixed width inside, so the contents slide away instead of reflowing. */}
           <div className="h-full w-60">
-            <AppSidebar
-              active={activeSection(pathname)}
-              onSettings={() => setSettingsOpen(true)}
-            />
+            <AppSidebar active={activeSection(pathname)} />
           </div>
         </aside>
 
@@ -128,31 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <AppSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }
 
-/** A page inside the shell: a quiet title, then the content in a reading column. */
-export function AppPageShell({
-  title,
-  description,
-  children,
-  wide = false,
-}: {
-  title: string
-  description: string
-  children: ReactNode
-  /** Data-dense pages need more than the reading measure. */
-  wide?: boolean
-}) {
-  return (
-    <main className="app-page-enter flex min-w-0 flex-1 flex-col">
-      <section className={cn('mx-auto w-full px-6 pb-16 pt-6', wide ? 'max-w-6xl' : 'max-w-2xl')}>
-        <h1 className="cx-label cx-bracket">{title}</h1>
-        <p className="mt-3 text-lg font-medium tracking-tight text-foreground">{description}</p>
-        <div className="mt-10">{children}</div>
-      </section>
-    </main>
-  )
-}

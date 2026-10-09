@@ -19,14 +19,24 @@ import {
 import {
   DEFAULT_PAGE_HEIGHT,
   DEFAULT_PAGE_WIDTH,
+  canvasParentId,
   listPages,
   nextPageName,
   nextRootOrder,
+  pageLayerIds,
   pageNode,
   pageParentId,
   pageRootSize,
   resolvePageId,
+  stageColor,
 } from '@sheet/canvas/web-pages'
+import {
+  FRAME_PRESET_GROUPS,
+  NEW_FRAME_SIZE,
+  findFramePreset,
+  frameNode,
+  freeFrameSpot,
+} from '@sheet/canvas/web-frames'
 import {
   SHADERS,
   SHADER_NAMES,
@@ -148,6 +158,24 @@ function withoutDocument<T extends { document?: unknown }>(result: T) {
 const iconLibrary = z
   .enum(ICON_LIBRARIES.map((entry) => entry.id) as [IconLibrary, ...IconLibrary[]])
   .describe('Icon set: hugeicons or lucide')
+/**
+ * Where an icon goes when the agent names no parent. On a named page that is
+ * the page root, as always. Page 1 has no root: with one top-level frame the
+ * icon goes inside it, with none it sits top level, and with several there is
+ * no right answer, so the agent is asked rather than the icon being dropped
+ * into whichever frame happens to be first.
+ */
+function defaultIconParent(document: WebDocument, pageId: string | null) {
+  if (pageId !== null) return pageParentId(document, pageId)
+  const frames = pageLayerIds(document, null).filter((id) => document.nodes[id]?.kind === 'element')
+  if (frames.length > 1) {
+    throw new Error(
+      `Page 1 has ${frames.length} top-level frames. Pass parentId to say which frame the icon goes in. Nothing was inserted.`,
+    )
+  }
+  return frames[0] ?? null
+}
+
 const iconStyleShape = {
   color: z.string().min(1).max(64).optional().describe('Any CSS color; icons draw in currentColor'),
   size: z.number().positive().max(2_048).optional().describe('Width and height in px'),
@@ -165,7 +193,7 @@ const pageIdShape = z
   .min(1)
   .max(200)
   .optional()
-  .describe('Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given.')
+  .describe('Page to insert into (the pageId from createPage or listPages); defaults to the first page. Ignored when parentId is given. The first page, Page 1, starts empty and has no edge: with nothing on it and no parentId the node becomes a top-level frame, so give it position:absolute with left, top, width and height.')
 const targetShape = {
   designId,
   draftId: draftId.optional().describe('Branch target; omit for Main'),
@@ -392,7 +420,7 @@ function createSheetRuntime(
     'applyWebTransaction',
     {
       description:
-        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. To resize a page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.',
+        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.',
       inputSchema: {
         designId,
         draftId: z
@@ -738,7 +766,7 @@ function createSheetRuntime(
     'insertIcon',
     {
       description:
-        'Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Defaults to the first root as parent.',
+        'Insert a library icon as an editable svg node (tagged data-icon-library / data-icon-name). Color sets the svg color style, size sets width and height, strokeWidth sets the outline weight. Restyle later with styleIcon. Pass parentId to put it in a frame. With no parentId on a named page it goes in the page root; on Page 1 it goes in the only top-level frame, sits top level when there is none, and is refused when there are several, so name the frame.',
       inputSchema: {
         ...targetShape,
         library: iconLibrary,
@@ -762,7 +790,7 @@ function createSheetRuntime(
       const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
       if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
       const document = found.document
-      const parentId = args.parentId ?? pageParentId(document, resolvePageId(document, args.pageId ?? null))
+      const parentId = args.parentId ?? defaultIconParent(document, resolvePageId(document, args.pageId ?? null))
       if (parentId && document.nodes[parentId]?.kind !== 'element') {
         throw new Error(`Parent "${parentId}" is not an element in this design.`)
       }
@@ -839,7 +867,7 @@ function createSheetRuntime(
     'listPages',
     {
       description:
-        'List a design\'s pages. Each page is an isolated canvas with its own layers and size. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.',
+        'List a design\'s pages. Page 1 (pageId null) is always listed first: it starts empty, has no edge, and holds top-level frames. Every other page is isolated, with its own layers. pageId is the page root node id (use it as parentId, and as rootId for getWebScreenshot or exportDesign); null is the original unnamed page.',
       inputSchema: { ...targetShape },
       annotations: { readOnlyHint: true },
     },
@@ -849,6 +877,7 @@ function createSheetRuntime(
       return listPages(found.document).map((page) => ({
         pageId: page.id,
         name: page.name,
+        stageColor: stageColor(found.document, page.id),
         ...(page.id === null
           ? { width: found.document.metadata.page?.width ?? DEFAULT_PAGE_WIDTH, height: found.document.metadata.page?.height ?? DEFAULT_PAGE_HEIGHT }
           : pageRootSize(found.document, page.id)),
@@ -860,7 +889,7 @@ function createSheetRuntime(
     'createPage',
     {
       description:
-        'Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Use one page per screen or design variant (for example light and dark, or options A, B and C); never place variants side by side inside one page or enlarge a page to hold them. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.',
+        'Add a page: a new isolated canvas with its own layers, size and background, separate from every other page. Add a page only when the user asks for separate pages. By default design on Page 1, which starts empty and has no edge, with each screen or variant as its own top-level frame set side by side (applyWebTransaction node.insert with parentId null, position absolute, left, top, width, height). A page made here is a bounded, painted artboard. Returns pageId, the page root node id. Put content in it by passing pageId to insertIcon/insertShader, or pageId as parentId in applyWebTransaction node.insert. Rename a page by node.patch on its data-sheet-page attribute; delete one with node.delete on its pageId.',
       inputSchema: {
         ...targetShape,
         name: z.string().trim().min(1).max(200).optional().describe('Page name; defaults to the next "Page N"'),
@@ -903,6 +932,90 @@ function createSheetRuntime(
   )
 
   server.registerTool(
+    'listFramePresets',
+    {
+      description:
+        'List the frame sizes the editor offers when you pick the Frame tool, grouped as Phone, Tablet, Desktop, Presentation, Smartwatch, Paper and Social media, each with width and height in px. Pass a preset name to createFrame to make a frame of exactly that size.',
+      annotations: { readOnlyHint: true },
+    },
+    tool('listFramePresets', async (_args: unknown) =>
+      FRAME_PRESET_GROUPS.map((group) => ({
+        group: group.label,
+        presets: group.presets.map((preset) => ({
+          name: preset.name,
+          width: preset.width,
+          height: preset.height,
+        })),
+      })),
+    ),
+  )
+
+  server.registerTool(
+    'createFrame',
+    {
+      description:
+        'Add a frame to a page: a white, free-positioned box the person can move, resize and rename, built exactly as the editor\'s Frame tool builds one. Give a preset name from listFramePresets (for example "iPhone 16" or "MacBook Air") or a width and height. With no left and top it goes one gap to the right of the page\'s other top-level frames, so several calls set frames side by side. Returns nodeId; build the design inside it by passing nodeId as parentId in applyWebTransaction, insertIcon or insertShader.',
+      inputSchema: {
+        ...targetShape,
+        preset: z.string().trim().min(1).max(100).optional().describe('A name from listFramePresets, matched ignoring case'),
+        width: z.number().positive().max(100_000).optional().describe('Width in px; used when there is no preset'),
+        height: z.number().positive().max(100_000).optional().describe('Height in px; used when there is no preset'),
+        name: z.string().trim().min(1).max(200).optional().describe('Layer name; defaults to the preset name, or "Frame"'),
+        pageId: pageIdShape,
+        left: z.number().min(-100_000).max(100_000).optional().describe('Left edge in px on the page'),
+        top: z.number().min(-100_000).max(100_000).optional().describe('Top edge in px on the page'),
+      },
+    },
+    tool('createFrame', async (args: {
+      designId: string
+      draftId?: string
+      preset?: string
+      width?: number
+      height?: number
+      name?: string
+      pageId?: string
+      left?: number
+      top?: number
+    }) => {
+      const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
+      if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
+      const document = found.document
+      const preset = args.preset === undefined ? null : findFramePreset(args.preset)
+      if (args.preset !== undefined && !preset) {
+        throw new Error(`No frame preset named "${args.preset}". Call listFramePresets for the names. Nothing was added.`)
+      }
+      const width = preset?.width ?? args.width ?? NEW_FRAME_SIZE.width
+      const height = preset?.height ?? args.height ?? NEW_FRAME_SIZE.height
+      const parentId = canvasParentId(resolvePageId(document, args.pageId ?? null))
+      const spot = freeFrameSpot(document, parentId)
+      const siblings = Object.values(document.nodes).filter((node) => node.parentId === parentId)
+      const node = frameNode({
+        parentId,
+        order: siblings.reduce((max, sibling) => Math.max(max, sibling.order), 0) + 1_024,
+        name: args.name ?? preset?.name ?? 'Frame',
+        width,
+        height,
+        left: args.left ?? spot.x,
+        top: args.top ?? spot.y,
+      })
+      const result = await applyWebCanvasTransactionToStore(
+        userId,
+        userId,
+        args.designId,
+        found.revision,
+        {
+          id: `frame-${crypto.randomUUID()}`,
+          label: `Add ${node.attributes['data-name']} frame`,
+          operations: [{ type: 'node.insert', node }],
+        },
+        args.draftId ?? null,
+      )
+      requireApplied(result)
+      return { nodeId: node.id, name: node.attributes['data-name'], width, height, result: withoutDocument(result) }
+    }),
+  )
+
+  server.registerTool(
     'listShaders',
     {
       description:
@@ -923,7 +1036,7 @@ function createSheetRuntime(
     'insertShader',
     {
       description:
-        'Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. Defaults to the first root as parent.',
+        'Insert a Paper shader (animated WebGL gradient or texture) as an editable box, tagged data-shader / data-shader-params. Width and height are px; params tune the shader. Restyle later with styleShader. Renders in the editor and preview only; exported HTML keeps the box and its params but does not draw the shader. With no parentId the shader is its own free-positioned object on the page, placed beside the other top-level objects, so the person can move and resize it like a frame; give left and top to place it yourself. With a parentId it goes inside that element.',
       inputSchema: {
         ...targetShape,
         shader: shaderName,
@@ -931,6 +1044,8 @@ function createSheetRuntime(
         pageId: pageIdShape,
         width: z.number().positive().max(8_192).optional().describe('Width in px, default 400'),
         height: z.number().positive().max(8_192).optional().describe('Height in px, default 300'),
+        left: z.number().min(-100_000).max(100_000).optional().describe('Left edge in px, in its parent. Defaults to the next free spot beside the page\'s other top-level objects.'),
+        top: z.number().min(-100_000).max(100_000).optional().describe('Top edge in px, in its parent. Defaults to level with the page\'s highest top-level object.'),
         params: shaderParamsShape,
       },
     },
@@ -942,15 +1057,23 @@ function createSheetRuntime(
       pageId?: string
       width?: number
       height?: number
+      left?: number
+      top?: number
       params?: Record<string, number | string | string[]>
     }) => {
       const found = await readWebCanvasStore(userId, args.designId, args.draftId ?? null)
       if (found.status !== 'ready') throw new Error('Migrate this legacy design before using MCP.')
       const document = found.document
-      const parentId = args.parentId ?? pageParentId(document, resolvePageId(document, args.pageId ?? null))
+      // With no parent a shader is its own object on the page, placed like a frame,
+      // so the person can pick it up, move it and resize it. With a parent it goes in
+      // that element, in flow, unless a position is asked for.
+      const parentId = args.parentId ?? canvasParentId(resolvePageId(document, args.pageId ?? null))
       if (parentId && document.nodes[parentId]?.kind !== 'element') {
         throw new Error(`Parent "${parentId}" is not an element in this design.`)
       }
+      const spot = args.parentId === undefined ? freeFrameSpot(document, parentId) : null
+      const left = args.left ?? spot?.x
+      const top = args.top ?? spot?.y
       const siblings = Object.values(document.nodes).filter((node) => node.parentId === parentId)
       const node = shaderNode(args.shader, {
         parentId,
@@ -958,6 +1081,7 @@ function createSheetRuntime(
         width: args.width,
         height: args.height,
         params: args.params,
+        ...(left !== undefined && top !== undefined ? { left, top } : {}),
       })
       const result = await applyWebCanvasTransactionToStore(
         userId,

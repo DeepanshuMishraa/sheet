@@ -84,10 +84,13 @@ export function Button({
     "aria-disabled": loading || undefined,
     "data-loading": loading ? "" : undefined,
     "data-slot": "button",
-    // The primary action is heard at full weight; everything quieter is subtle.
-    "data-cuelume-tap": "",
+    // Every button is heard; the primary action and the destructive one are
+    // heard at full weight, and a destructive one sounds like a warning.
+    "data-cuelume-tap": variant === "destructive" ? "warning" : "",
     "data-cuelume-emphasis":
-      variant === undefined || variant === "default" ? undefined : "subtle",
+      variant === undefined || variant === "default" || variant === "destructive"
+        ? "strong"
+        : undefined,
     disabled: isDisabled,
     type: typeValue,
   };

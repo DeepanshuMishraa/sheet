@@ -49,7 +49,7 @@ export function MenuPopup({
 }): React.ReactElement {
   return (
     <MenuPortal {...portalProps}>
-      <OpenCue emphasis="subtle" />
+      <OpenCue emphasis="normal" />
       <MenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
@@ -65,6 +65,7 @@ export function MenuPopup({
             className,
           )}
           data-slot="menu-popup"
+          data-cuelume-theme="bubble"
           {...props}
         >
           <div className="max-h-(--available-height) w-full overflow-y-auto p-1">
@@ -100,7 +101,6 @@ export function MenuItem({
       data-inset={inset}
       data-slot="menu-item"
       data-cuelume-select=""
-      data-cuelume-emphasis="subtle"
       data-variant={variant}
       {...props}
     />

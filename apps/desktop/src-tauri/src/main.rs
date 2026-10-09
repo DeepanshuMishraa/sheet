@@ -751,12 +751,97 @@ fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
+const SETTINGS_WINDOW: &str = "settings";
+const SETTINGS_MENU_ID: &str = "settings";
+
+/// The app's menu bar. Settings lives here and nowhere in the interface: it is
+/// a window of its own, opened from the application menu or with ⌘,.
+/// The Edit menu stays, because the webview takes its copy and paste from it.
+fn build_menu(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+
+    let settings = MenuItemBuilder::with_id(SETTINGS_MENU_ID, "Settings…")
+        .accelerator("CmdOrCtrl+,")
+        .build(app)?;
+    let app_menu = SubmenuBuilder::new(app, "Sheet")
+        .about(None)
+        .separator()
+        .item(&settings)
+        .separator()
+        .services()
+        .separator()
+        .hide()
+        .hide_others()
+        .show_all()
+        .separator()
+        .quit()
+        .build()?;
+    let edit_menu = SubmenuBuilder::new(app, "Edit")
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .select_all()
+        .build()?;
+    let view_menu = SubmenuBuilder::new(app, "View").fullscreen().build()?;
+    let window_menu = SubmenuBuilder::new(app, "Window")
+        .minimize()
+        .maximize()
+        .separator()
+        .close_window()
+        .build()?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&app_menu, &edit_menu, &view_menu, &window_menu])
+        .build()?;
+    app.set_menu(menu)?;
+    Ok(())
+}
+
+/// Opens the Settings window, or brings the one that is open to the front.
+fn open_settings(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window(SETTINGS_WINDOW) {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return;
+    }
+    // The menu can be used before the loopback host is up; there is nothing to open yet.
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    let Ok(url) = Url::parse(&format!(
+        "http://127.0.0.1:{}/settings?{BRIDGE_QUERY}={}",
+        state.port, state.bridge_token
+    )) else {
+        return;
+    };
+    let builder = WebviewWindowBuilder::new(app, SETTINGS_WINDOW, WebviewUrl::External(url))
+        .title("Settings")
+        .inner_size(800.0, 580.0)
+        .min_inner_size(680.0, 480.0)
+        .decorations(true);
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true);
+    if let Err(error) = builder.build() {
+        eprintln!("[desktop] could not open the settings window: {error}");
+    }
+}
+
 fn main() {
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("install rustls crypto provider");
     tauri::Builder::default()
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == SETTINGS_MENU_ID {
+                open_settings(app);
+            }
+        })
         .setup(|app| {
+            build_menu(app)?;
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
                 let listener = TcpListener::bind(("127.0.0.1", requested_port()))

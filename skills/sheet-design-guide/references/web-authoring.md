@@ -36,10 +36,12 @@ classes or conditions.
 
 ## Pages and naming
 
-Each screen or variant is a page (`createPage`): an isolated canvas with its own
-size, background, and layers. Build a mobile design as several pages, not one
-long page. Reuse a theme stylesheet across pages; rules are global, content is
-not.
+Page 1 is empty when a design is created and has no edge. Put each screen or
+variant on it as its own top-level frame (`parentId: null`, `position: absolute`,
+`left`, `top`, `width`, `height`), side by side. Build a mobile design as several
+frames, not one long one. Extra pages (`createPage`) are for when the user asks
+for separate pages; each is isolated, with its own layers. Reuse a theme
+stylesheet across frames and pages; rules are global, content is not.
 
 Name layers you will want to find again with `data-name` (`"Nav"`, `"Hero"`,
 `"Pricing card"`). Unnamed frames show as "Frame" and text shows its own copy.
@@ -141,8 +143,14 @@ Paper shaders give animated WebGL gradients and textures for backdrops and
 accents.
 
 1. `listShaders` to see names, params, ranges, and defaults.
-2. `insertShader { shader, parentId?, width?, height?, params? }`. It inserts a
-   `div` with `data-shader` and `data-shader-params`.
+2. `insertShader { shader, parentId?, left?, top?, width?, height?, params? }`.
+   It inserts a `div` with `data-shader` and `data-shader-params`. With no
+   `parentId` it is its own free-positioned object on the page, set beside the
+   other top-level objects, so the person can move and resize it like a frame;
+   pass `left` and `top` to place it yourself. With a `parentId` it goes inside
+   that element, in flow. People pick shaders in the editor from the Shaders
+   tool, which shows each one running live; the names there are the names
+   `listShaders` returns.
 3. Tune later with `styleShader`; params merge over the current ones.
 
 Guidance:

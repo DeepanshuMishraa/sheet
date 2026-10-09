@@ -65,7 +65,7 @@ export function AlertDialogPopup({
 }): React.ReactElement {
   return (
     <AlertDialogPortal {...portalProps}>
-      <OpenCue emphasis="normal" />
+      <OpenCue emphasis="strong" />
       <AlertDialogBackdrop />
       <AlertDialogViewport
         className={cn(

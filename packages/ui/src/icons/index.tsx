@@ -68,6 +68,7 @@ import HugeImageIcon from '@hugeicons/core-free-icons/Image01Icon'
 import HugeImagePlusIcon from '@hugeicons/core-free-icons/ImageAdd01Icon'
 import HugeInfoIcon from '@hugeicons/core-free-icons/InformationCircleIcon'
 import HugeLayersIcon from '@hugeicons/core-free-icons/Layers01Icon'
+import HugeColorsIcon from '@hugeicons/core-free-icons/ColorsIcon'
 import HugeLayoutGridIcon from '@hugeicons/core-free-icons/LayoutGridIcon'
 import HugePanelsTopLeftIcon from '@hugeicons/core-free-icons/LayoutLeftIcon'
 import HugeLinkIcon from '@hugeicons/core-free-icons/Link02Icon'
@@ -262,6 +263,7 @@ export const ImagePlusIcon = createIcon(HugeImagePlusIcon, 'ImagePlusIcon')
 export const ImportIcon = createIcon(HugeImportIcon, 'ImportIcon')
 export const InfoIcon = createIcon(HugeInfoIcon, 'InfoIcon')
 export const LayersIcon = createIcon(HugeLayersIcon, 'LayersIcon')
+export const ColorsIcon = createIcon(HugeColorsIcon, 'ColorsIcon')
 export const LayoutGridIcon = createIcon(HugeLayoutGridIcon, 'LayoutGridIcon')
 export const LinkIcon = createIcon(HugeLinkIcon, 'LinkIcon')
 export const Link2Icon = createIcon(HugeLinkIcon, 'Link2Icon')

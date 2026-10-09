@@ -20,11 +20,11 @@ and `styles`. Text is its own node.
 { "name": "Acme landing" }
 // -> { "id": "design_abc", "revision": 0 }
 
-// createPage { "designId": "design_abc", "name": "Landing", "width": 1440, "height": 2400 }
-// -> { "pageId": "element_...", "result": { "applied": true, "revision": 1 } }
+// A new design is empty and opens on Page 1, which has no edge. There is no
+// createPage step: the first transaction below puts a top-level frame on it.
 ```
 
-Next transaction: theme stylesheet and the page's main element.
+Next transaction: theme stylesheet and the design's top-level frame.
 
 ```json
 {
@@ -32,7 +32,7 @@ Next transaction: theme stylesheet and the page's main element.
   "expectedRevision": 1,
   "transaction": {
     "id": "setup-1",
-    "label": "Page, theme and root",
+    "label": "Theme and top-level frame",
     "operations": [
       {
         "type": "stylesheet.insert",
@@ -84,8 +84,8 @@ Next transaction: theme stylesheet and the page's main element.
         "type": "node.insert",
         "node": {
           "id": "page-main", "kind": "element", "namespace": "html", "tag": "main",
-          "parentId": "<pageId>", "order": 1024, "attributes": { "data-name": "Landing" },
-          "styles": { "display": "flex", "flex-direction": "column", "min-height": "100%" }
+          "parentId": null, "order": 1024, "attributes": { "data-name": "Landing" },
+          "styles": { "position": "absolute", "left": "80px", "top": "80px", "width": "1440px", "height": "2400px", "background": "#ffffff", "display": "flex", "flex-direction": "column" }
         }
       }
     ]
