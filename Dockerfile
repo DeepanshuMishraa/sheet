@@ -12,6 +12,7 @@ WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 COPY apps/desktop/package.json apps/desktop/
 COPY apps/mcp/package.json apps/mcp/
+COPY apps/site/package.json apps/site/
 COPY packages/db/package.json packages/db/
 COPY packages/canvas/package.json packages/canvas/
 COPY packages/platform/package.json packages/platform/

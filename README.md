@@ -34,7 +34,7 @@ the app shows ready-made snippets.
 Teaches an agent to use the canvas tools well. Add `-g` to install globally.
 
 ```bash
-npx skills add https://github.com/lassejlv/sheet/tree/main/skills/sheet-design-guide
+npx skills add https://github.com/DeepanshuMishraa/sheet/tree/main/skills/sheet-design-guide
 ```
 
 ## Layout

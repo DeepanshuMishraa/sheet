@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sheet — a canvas your agent can edit</title>
+    <meta
+      name="description"
+      content="Sheet is a local-first infinite canvas for UI design. Connect Claude, Codex or Cursor over MCP and they edit the same document you do."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preload" href="/fonts/paper-mono.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // A saved pick wins; otherwise follow the system. Set before first paint so there is no flash.
+      var dark = matchMedia('(prefers-color-scheme: dark)').matches
+      try {
+        var stored = localStorage.getItem('sheet-site:theme')
+        if (stored === 'light') dark = false
+        else if (stored === 'dark') dark = true
+      } catch (error) {}
+      document.documentElement.classList.toggle('dark', dark)
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
