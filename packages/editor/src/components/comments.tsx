@@ -40,7 +40,7 @@ export function CommentPin({
       onPointerDown={(event) => event.stopPropagation()}
       className={cn(
         'absolute z-30 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full rounded-bl-sm text-[11px] font-medium tabular-nums text-white outline-none transition-[transform,box-shadow] duration-150 ease-smooth hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring active:scale-95',
-        'bg-cx-accent shadow-[0_1px_2px_--alpha(var(--color-black)/30%),0_4px_10px_-2px_--alpha(var(--cx-accent)/50%),inset_0_1px_0_--alpha(var(--color-white)/30%)]',
+        'bg-cx-accent shadow-hairline',
         active && 'scale-110 ring-2 ring-white/70',
       )}
       style={{ left: rect.left + rect.width, top: rect.top }}
@@ -233,7 +233,7 @@ export function CommentThread({
               void submit()
             }
           }}
-          className="max-h-32 min-h-14 w-full resize-none rounded-xl bg-background px-2.5 py-2 text-xs leading-relaxed text-foreground shadow-[inset_0_1px_2px_--alpha(var(--color-black)/6%),0_0_0_1px_var(--edge)] outline-none transition-[box-shadow] duration-150 ease-smooth placeholder:text-muted-foreground/70 focus-visible:shadow-[0_0_0_1.5px_var(--cx-accent),0_0_0_4px_--alpha(var(--cx-accent)/16%)]"
+          className="max-h-32 min-h-14 w-full resize-none rounded-lg bg-transparent px-2.5 py-2 text-xs leading-relaxed text-foreground shadow-hairline outline-none transition-[box-shadow] duration-150 ease-smooth placeholder:text-muted-foreground/70 focus-visible:shadow-lift-selected"
         />
         {error ? (
           <p role="alert" className="text-2xs leading-relaxed text-destructive-foreground">
@@ -274,7 +274,7 @@ export function CommentsList({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-3 mb-2 grid shrink-0 grid-cols-2 rounded-full bg-well p-0.5 shadow-[inset_0_1px_2px_--alpha(var(--color-black)/8%),0_0_0_1px_var(--edge)]">
+      <div className="mx-3 mb-2 grid shrink-0 grid-cols-2 border-b border-line">
         {(['open', 'resolved'] as const).map((value) => (
           <button
             key={value}
@@ -284,10 +284,10 @@ export function CommentsList({
             data-cuelume-emphasis="subtle"
             onClick={() => setFilter(value)}
             className={cn(
-              'rounded-full py-1 text-xs capitalize transition-[background-color,color,box-shadow] duration-150 ease-smooth',
+              "relative py-2 text-xs capitalize outline-none transition-colors duration-150 ease-smooth after:absolute after:inset-x-3 after:-bottom-px after:h-px after:origin-center after:bg-cx-accent after:transition-transform after:duration-200 after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               filter === value
-                ? 'bg-surface text-foreground shadow-lift'
-                : 'text-muted-foreground hover:text-foreground',
+                ? 'text-foreground after:scale-x-100'
+                : 'text-muted-foreground after:scale-x-0 hover:text-foreground',
             )}
           >
             {value}

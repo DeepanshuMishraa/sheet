@@ -11,7 +11,7 @@ export function Checkbox({
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        "relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border-0 bg-surface shadow-[inset_0_1px_1px_--alpha(var(--color-black)/6%),0_0_0_1px_var(--edge)] outline-none ring-ring transition-[box-shadow,transform] duration-150 ease-smooth active:scale-90 focus-visible:ring-2 aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-3.5",
+        "relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border-0 bg-transparent shadow-hairline outline-none ring-ring transition-[box-shadow,transform] duration-150 ease-smooth active:scale-90 focus-visible:ring-2 aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-3.5",
         className,
       )}
       data-slot="checkbox"

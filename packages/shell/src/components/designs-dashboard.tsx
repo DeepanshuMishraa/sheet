@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   EllipsisIcon,
@@ -31,6 +31,7 @@ import { Input } from '@sheet/ui/input'
 import { Loader } from '@sheet/ui/loader'
 import { Skeleton } from '@sheet/ui/skeleton'
 import { Spinner } from '@sheet/ui/spinner'
+import { FreshnessMeter } from './freshness-meter'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
 import { WebDocumentPreview } from '@sheet/editor/web-preview'
@@ -170,28 +171,27 @@ function FileCard({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex flex-col rounded-xl bg-surface p-3 shadow-lift transition-[box-shadow,transform] duration-200 ease-smooth hover:-translate-y-0.5 hover:shadow-lift-hover focus-within:shadow-lift-hover">
+    <div className="group relative flex flex-col rounded-xl bg-surface p-3 shadow-lift transition-[box-shadow,transform] duration-200 ease-smooth active:scale-[0.99] hover:shadow-lift-hover focus-within:shadow-lift-selected">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
         aria-label={`Open ${design.name}`}
-        className="absolute inset-0 rounded-md focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="absolute inset-0 rounded-xl outline-none"
       />
       <div className="flex items-start justify-between min-w-0">
         <div className="min-w-0 flex-1 pe-2">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-medium text-foreground">
-              {design.name}
+          <p className="cx-label flex items-center gap-2">
+            <FreshnessMeter updatedAt={design.updatedAt} />
+            <span className="truncate">
+              {isScratchpad ? 'Your permanent draft' : `Edited ${relativeTime(design.updatedAt)}`}
             </span>
+          </p>
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="truncate text-sm text-foreground">{design.name}</span>
             {isScratchpad ? (
               <PencilIcon className="size-3.5 shrink-0 text-muted-foreground" />
             ) : null}
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {isScratchpad
-              ? 'Your permanent draft'
-              : `Edited ${relativeTime(design.updatedAt)}`}
-          </p>
         </div>
         <FileActions
           name={design.name}
@@ -201,7 +201,7 @@ function FileCard({
         />
       </div>
 
-      <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-lg bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]">
+      <div className="pointer-events-none relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-lg bg-cx-canvas shadow-hairline">
         <div className="size-full">
           <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
         </div>
@@ -222,32 +222,28 @@ function FileRow({
   const isScratchpad = design.name.trim().toLowerCase() === 'scratchpad'
 
   return (
-    <div className="group relative flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 transition-colors duration-fast ease-out hover:bg-surface-2 active:scale-[0.998] motion-reduce:transition-none">
+    <div className="cx-row group flex items-center gap-4 border-b border-line px-4 py-3 last:border-b-0 transition-colors duration-fast ease-out hover:bg-accent/50 motion-reduce:transition-none">
       <Link
         to="/design/$id"
         params={{ id: design.id }}
         aria-label={`Open ${design.name}`}
-        className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
+        className="absolute inset-0 outline-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
       />
-      <div className="pointer-events-none size-9 shrink-0 overflow-hidden rounded-md bg-cx-canvas shadow-hairline">
+      <div className="pointer-events-none size-10 shrink-0 overflow-hidden rounded-md bg-cx-canvas shadow-hairline">
         <FileCardPreview key={design.revision} designId={design.id} revision={design.revision} />
       </div>
       <div className="pointer-events-none min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-xs font-medium text-foreground">
-            {design.name}
-          </span>
+        <p className="cx-label truncate">
+          {isScratchpad ? 'Your permanent draft' : `Edited ${relativeTime(design.updatedAt)}`}
+        </p>
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <span className="truncate text-sm text-foreground">{design.name}</span>
           {isScratchpad ? (
             <PencilIcon className="size-3 shrink-0 text-muted-foreground" />
           ) : null}
         </div>
-        {isScratchpad ? (
-          <p className="text-2xs text-muted-foreground">Your permanent draft</p>
-        ) : null}
       </div>
-      <p className="pointer-events-none hidden shrink-0 text-xs text-muted-foreground sm:block">
-        Edited {relativeTime(design.updatedAt)}
-      </p>
+      <FreshnessMeter updatedAt={design.updatedAt} className="pointer-events-none hidden sm:block" />
       <FileActions
         name={design.name}
         onRename={onRename}
@@ -267,21 +263,45 @@ const GRID_CLASSES = 'grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 cx-st
  * competes with the first real card for attention.
  */
 function EmptyCanvasPlate() {
+  const draw = (delay: number): CSSProperties => ({ ['--cx-draw-delay' as string]: `${delay}ms` })
   return (
-    <div
+    <svg
       aria-hidden="true"
-      className="relative mb-6 h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-cx-canvas shadow-[inset_0_0_0_1px_var(--edge)]"
+      viewBox="0 0 176 112"
+      className="mb-6 h-28 w-44 shrink-0 text-muted-foreground"
+      fill="none"
     >
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: 'radial-gradient(circle, var(--cx-dot) 1px, transparent 1px)',
-          backgroundSize: '14px 14px',
-        }}
+      {/* The frame draws itself, then the mark inside it, then the corners. */}
+      <rect
+        className="cx-draw"
+        pathLength="1"
+        x="8.5"
+        y="8.5"
+        width="159"
+        height="95"
+        rx="6"
+        stroke="currentColor"
+        strokeOpacity="0.5"
+        style={draw(0)}
       />
-      <div className="absolute inset-x-6 top-6 h-2 w-14 rounded-full bg-cx-ink/15" />
-      <div className="absolute inset-x-6 top-11 h-10 rounded-md border border-dashed border-cx-ink/20" />
-    </div>
+      <path
+        className="cx-draw"
+        pathLength="1"
+        d="M88 42v28M74 56h28"
+        stroke="var(--cx-accent)"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        style={draw(380)}
+      />
+      <path
+        className="cx-draw"
+        pathLength="1"
+        d="M8 20V8h12M156 8h12v12M168 92v12h-12M20 104H8V92"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        style={draw(560)}
+      />
+    </svg>
   )
 }
 
@@ -424,26 +444,16 @@ export function DesignsDashboard({
   return (
     <>
       <main className="app-page-enter flex min-h-full min-w-0 flex-col">
-        <section className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 pb-12 pt-[9vh] text-center">
-          <h1 className="text-xl font-medium tracking-tight text-foreground text-balance">
-            What are you designing?
-          </h1>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Search your files, or start something new.
+        <header className="flex h-11 shrink-0 items-center justify-between border-b border-line px-8">
+          <h1 className="cx-label cx-bracket">{title}</h1>
+          <p className="cx-label tabular-nums">
+            {designs ? `${visible.length} ${visible.length === 1 ? 'file' : 'files'}` : '···'}
           </p>
+        </header>
 
-          <div className="mt-7 flex h-12 w-full items-center gap-1.5 rounded-2xl bg-surface ps-2 pe-3 shadow-lift transition-[box-shadow] duration-200 ease-smooth focus-within:shadow-[0_0_0_1.5px_var(--cx-accent),0_0_0_5px_--alpha(var(--cx-accent)/14%),0_8px_20px_-8px_--alpha(var(--color-black)/18%)]">
-            <button
-              type="button"
-              aria-label="New file"
-              title="New file"
-              onClick={() => void newFile()}
-              disabled={creating}
-              data-cuelume-tap=""
-              className="flex size-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90 disabled:opacity-50"
-            >
-              {creating ? <Spinner className="size-4" /> : <PlusIcon className="size-4" />}
-            </button>
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-8 pb-6 pt-8">
+          <label className="group/search flex h-10 min-w-0 flex-1 items-center gap-2.5 border-b border-line transition-colors duration-150 focus-within:border-cx-accent">
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-focus-within/search:text-cx-accent" />
             <input
               type="search"
               aria-label="Search files"
@@ -452,53 +462,45 @@ export function DesignsDashboard({
               onChange={(event) => setQuery(event.target.value)}
               data-cuelume-type=""
               data-cuelume-emphasis="subtle"
-              className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70 [&::-webkit-search-cancel-button]:appearance-none"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60 [&::-webkit-search-cancel-button]:appearance-none"
             />
-            <SearchIcon className="size-4 shrink-0 text-muted-foreground/70" />
-          </div>
-        </section>
-
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-8 pb-4">
-          <p className="text-2xs uppercase tracking-[0.14em] text-muted-foreground/70">
-            {title}
-            {designs ? <span className="ms-2 tabular-nums">{visible.length}</span> : null}
-          </p>
-          <div
-            role="group"
-            aria-label="Layout"
-            className="flex items-center gap-0.5 rounded-full bg-well p-0.5 shadow-[inset_0_1px_2px_--alpha(var(--color-black)/8%),0_0_0_1px_var(--edge)]"
-          >
+          </label>
+          <div role="group" aria-label="Layout" className="flex items-center gap-2">
+            {(
+              [
+                { id: 'grid', label: 'Grid view', Icon: LayoutGridIcon },
+                { id: 'list', label: 'List view', Icon: ListIcon },
+              ] as const
+            ).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-label={label}
+                title={label}
+                data-cuelume-select=""
+                data-cuelume-emphasis="subtle"
+                aria-pressed={view === id}
+                onClick={() => setView(id)}
+                className={cn(
+                  'cx-press flex size-9 items-center justify-center rounded-full outline-none transition-[color,box-shadow] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring',
+                  view === id
+                    ? 'text-foreground shadow-lift-selected'
+                    : 'text-muted-foreground shadow-hairline hover:text-foreground hover:shadow-lift-hover',
+                )}
+              >
+                <Icon className="size-4" />
+              </button>
+            ))}
             <button
               type="button"
-              aria-label="Grid view"
-              data-cuelume-select=""
-              data-cuelume-emphasis="subtle"
-              aria-pressed={view === 'grid'}
-              onClick={() => setView('grid')}
-              className={cn(
-                'flex size-6 items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
-                view === 'grid'
-                  ? 'bg-surface text-foreground shadow-lift'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
+              aria-label="New file"
+              title="New file"
+              onClick={() => void newFile()}
+              disabled={creating}
+              data-cuelume-tap=""
+              className="cx-press flex size-9 items-center justify-center rounded-full bg-cx-accent text-white outline-none transition-opacity duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
-              <LayoutGridIcon className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="List view"
-              data-cuelume-select=""
-              data-cuelume-emphasis="subtle"
-              aria-pressed={view === 'list'}
-              onClick={() => setView('list')}
-              className={cn(
-                'flex size-6 items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
-                view === 'list'
-                  ? 'bg-surface text-foreground shadow-lift'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <ListIcon className="size-3.5" />
+              {creating ? <Spinner className="size-4" /> : <PlusIcon className="size-4" />}
             </button>
           </div>
         </div>
@@ -521,7 +523,7 @@ export function DesignsDashboard({
           ) : visible.length === 0 ? (
             <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center rounded-xl bg-surface px-6 py-12 text-center shadow-panel">
               <EmptyCanvasPlate />
-              <p className="text-sm font-medium">
+              <p className="cx-label cx-bracket">
                 {designs.length === 0 ? 'No design files yet' : 'No files match that search'}
               </p>
               <p className="mt-1.5 max-w-xs text-pretty text-xs text-muted-foreground">
@@ -534,8 +536,8 @@ export function DesignsDashboard({
                   type="button"
                   onClick={() => void newFile()}
                   disabled={creating}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/18%)] transition-[transform,box-shadow] duration-150 ease-smooth hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_6px_14px_-4px_--alpha(var(--color-black)/35%),inset_0_1px_0_--alpha(var(--color-white)/22%)] active:scale-[0.97] disabled:opacity-50 motion-reduce:transition-none"
-              data-cuelume-tap=""
+                  className="cx-press mt-5 inline-flex items-center gap-1.5 rounded-full bg-cx-accent px-4 py-2 text-xs text-white outline-none transition-opacity duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 motion-reduce:transition-none"
+                  data-cuelume-tap=""
                 >
                   {creating ? <Spinner className="size-3.5" /> : <PlusIcon className="size-3.5 stroke-[2.5]" />}
                   <span>New file</span>

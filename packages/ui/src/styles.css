@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 /* Sheet's design tokens, variants, and shared utilities.
    The desktop app bundles this into the Tauri window. It keeps its own entry
    stylesheet for the parts that are its own — the Tailwind import, its fonts,
@@ -13,111 +15,6 @@
 @custom-variant dark (&:is(.dark *));
 
 
-:root {
-  /* One idea: surfaces that sit slightly above the page. The page is a quiet
-     neutral, every panel is a step lighter than it, and the step is drawn with
-     light — a hairline, a contact shadow, a soft ambient one, and a catch of
-     highlight along the top edge — never with colour or borders. Greys are true
-     neutrals; the single accent is spent on selection and focus. */
-  --cx-canvas: #f4f4f5;
-  --cx-dot: #dcdce0;
-  --cx-ink: #0b0b0c;
-  --cx-accent: #3d4cf2;
-
-  --background: #f7f7f8;
-  --foreground: var(--cx-ink);
-  --card: #ffffff;
-  --card-foreground: var(--cx-ink);
-  --popover: #ffffff;
-  --popover-foreground: var(--cx-ink);
-  --primary: #0b0b0c;
-  --primary-foreground: #fafafa;
-  --secondary: #efeff1;
-  --secondary-foreground: var(--cx-ink);
-  /* Interaction tints stay translucent. A solid one matches whichever surface
-     it lands on and the hover disappears. */
-  --muted: rgba(11, 11, 12, 0.04);
-  --muted-foreground: #6e6e76;
-  --accent: rgba(11, 11, 12, 0.055);
-  --accent-foreground: var(--cx-ink);
-  --destructive: #d92d20;
-  --destructive-foreground: #ffffff;
-  --border: #e6e6ea;
-  --input: #dcdce1;
-  --ring: rgba(61, 76, 242, 0.45);
-  --chart-1: #3d4cf2;
-  --chart-2: #bd4d83;
-  --chart-3: #d8874a;
-  --chart-4: #10b981;
-  --chart-5: #3b82f6;
-  --radius: 0.5rem;
-  --sidebar: #f7f7f8;
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--cx-accent);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(11, 11, 12, 0.055);
-  --sidebar-accent-foreground: var(--cx-ink);
-  --sidebar-border: #ececef;
-  --sidebar-ring: var(--ring);
-  --info: #3b82f6;
-  --info-foreground: #1d4ed8;
-  --success: #10b981;
-  --success-foreground: #047857;
-  --diff-added: #10b981;
-  --diff-removed: #ef4444;
-  --skill: var(--cx-accent);
-  --warning: #f59e0b;
-  --warning-foreground: #b45309;
-  --tooltip: #121214;
-  --tooltip-foreground: #f4f4f5;
-  /* The well a segmented control sits in: sunk below the page so the selected
-     option can be the lifted one. */
-  --well: #ebebee;
-
-  --surface: #ffffff;
-  --surface-2: #fbfbfc;
-   /* The frame the app sits in: the tab bar, the sidebar, and the margin around
-     the main panel. A step darker than the panel so the panel reads as lifted. */
-  --frame: #ececef;
-  /* Paper Mono is the only typeface in the chrome. Both names stay so every
-     `font-sans` / `font-mono` / `font-heading` utility lands on the same face;
-     a designer's own fonts live inside the canvas and are not touched here. */
-  --sheet-font-sans: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --sheet-font-mono: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --line: #ececef;
-  /* The lift, in four layers. A hairline defines the edge, a tight shadow says
-     the panel touches the page, a wide soft one says how far above it floats,
-     and the inset highlight is the light catching the top edge. */
-  --edge: rgba(11, 11, 12, 0.07);
-  --highlight: rgba(255, 255, 255, 0.9);
-  --panel-shadow:
-    0 0 0 1px var(--edge),
-    0 1px 1px rgba(11, 11, 12, 0.04),
-    0 2px 6px -2px rgba(11, 11, 12, 0.06),
-    inset 0 1px 0 var(--highlight);
-  --panel-shadow-lg:
-    0 0 0 1px var(--edge),
-    0 1px 1px rgba(11, 11, 12, 0.04),
-    0 4px 8px -2px rgba(11, 11, 12, 0.06),
-    0 16px 32px -8px rgba(11, 11, 12, 0.12),
-    inset 0 1px 0 var(--highlight);
-  /* Durations. Three steps, so a hover, a disclosure, and a dialog entrance
-     cannot drift apart. */
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --duration-slow: 280ms;
-  --shadow-xs: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.03);
-  --shadow-sm: 0 0 0 1px var(--edge), 0 1px 2px rgba(11, 11, 12, 0.05), 0 2px 4px -2px rgba(11, 11, 12, 0.05);
-  --shadow-md: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.04), 0 4px 10px -3px rgba(11, 11, 12, 0.09);
-  --shadow-lg: var(--panel-shadow-lg);
-  --shadow-elevated: var(--panel-shadow);
-  --shadow-elevated-hover: var(--panel-shadow-lg);
-  /* Resting, hovered, and selected lift for small controls and cards. */
-  --lift: var(--panel-shadow);
-  --lift-hover: 0 0 0 1px var(--edge), 0 1px 1px rgba(11, 11, 12, 0.04), 0 6px 14px -4px rgba(11, 11, 12, 0.1), inset 0 1px 0 var(--highlight);
-  --lift-selected: 0 0 0 1.5px var(--cx-accent), 0 1px 1px rgba(11, 11, 12, 0.04), 0 4px 10px -3px rgba(61, 76, 242, 0.22), inset 0 1px 0 var(--highlight);
-  color-scheme: light;
-}
 
 @theme inline {
   /* Everything sizes in rem so the Appearance scale (root font size) moves the
@@ -749,233 +646,7 @@ body {
   }
 }
 
-.dark {
-  /* Dark inverts which layer does the work. A shadow cannot darken a near-black
-     page, so the lift comes from light instead: each surface is a step lighter
-     than the one under it, its top edge catches a faint highlight, and the
-     ambient shadow only seats it. */
-  --cx-canvas: #0c0c0d;
-  --cx-dot: #2a2a2f;
-  --cx-ink: #ededf0;
-  --cx-accent: #6c79ff;
 
-  --background: #0f0f10;
-  --foreground: var(--cx-ink);
-  --card: #151517;
-  --card-foreground: var(--cx-ink);
-  --popover: #1b1b1e;
-  --popover-foreground: var(--cx-ink);
-  --primary: #f4f4f6;
-  --primary-foreground: #0b0b0c;
-  --secondary: #222226;
-  --secondary-foreground: var(--cx-ink);
-  --muted: --alpha(var(--color-white) / 5%);
-  --muted-foreground: #8e8e98;
-  --accent: --alpha(var(--color-white) / 8%);
-  --accent-foreground: var(--cx-ink);
-  --destructive: #e5484d;
-  --destructive-foreground: #f2827f;
-  --border: #2a2a2f;
-  --input: #3a3a41;
-  --ring: --alpha(#6c79ff / 55%);
-  --chart-1: #6c79ff;
-  --chart-2: #bd4d83;
-  --chart-3: #d8874a;
-  --chart-4: #80bd90;
-  --chart-5: #4285d4;
-  --sidebar: #0f0f10;
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--cx-accent);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #232327;
-  --sidebar-ring: var(--ring);
-  --info: #4285d4;
-  --info-foreground: #8fbdea;
-  --success: #80bd90;
-  --success-foreground: #80bd90;
-  --diff-added: #80bd90;
-  --diff-removed: #e5484d;
-  --skill: var(--cx-accent);
-  --warning: #e3b45c;
-  --warning-foreground: #e3b45c;
-  --tooltip: #ededf0;
-  --tooltip-foreground: #0b0b0c;
-  --well: #0b0b0c;
-
-  --surface: #151517;
-  --surface-2: #1b1b1e;
-  --frame: #141415;
-  --line: #232327;
-  --edge: rgba(255, 255, 255, 0.08);
-  --highlight: rgba(255, 255, 255, 0.06);
-  --panel-shadow:
-    0 0 0 1px var(--edge),
-    0 1px 2px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 var(--highlight);
-  --panel-shadow-lg:
-    0 0 0 1px var(--edge),
-    0 2px 6px -2px rgba(0, 0, 0, 0.5),
-    0 16px 32px -8px rgba(0, 0, 0, 0.6),
-    0 32px 64px -32px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 var(--highlight);
-  --shadow-xs: 0 0 0 1px var(--edge), 0 1px 1px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 0 0 1px var(--edge), 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 0 0 1px var(--edge), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 8px 16px -6px rgba(0, 0, 0, 0.5);
-  --shadow-lg: var(--panel-shadow-lg);
-  --shadow-elevated: var(--panel-shadow);
-  --shadow-elevated-hover: var(--panel-shadow-lg);
-  --lift: var(--panel-shadow);
-  --lift-hover: 0 0 0 1px var(--edge), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 12px 24px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --lift-selected: 0 0 0 1.5px var(--cx-accent), 0 2px 4px -1px rgba(0, 0, 0, 0.45), 0 6px 16px -4px rgba(108, 121, 255, 0.28), inset 0 1px 0 var(--highlight);
-  color-scheme: dark;
-}
-
-/* Named themes. Each one also carries `.dark`, so `dark:` utilities and the
-   shared dark shadows still apply; these blocks only restate the palette.
-   `html[data-theme]` outranks `.dark`, so order here does not matter. */
-html[data-theme='tokyo-night'] {
-  --cx-canvas: #16161e;
-  --cx-dot: #2f334d;
-  --cx-ink: #c0caf5;
-  --cx-accent: #7aa2f7;
-
-  --background: #1a1b26;
-  --foreground: var(--cx-ink);
-  --card: #1f2335;
-  --card-foreground: var(--cx-ink);
-  --popover: #24283b;
-  --popover-foreground: var(--cx-ink);
-  --primary: #7aa2f7;
-  --primary-foreground: #16161e;
-  --secondary: #3b4261;
-  --secondary-foreground: var(--cx-ink);
-  --muted: --alpha(#c0caf5 / 6%);
-  --muted-foreground: #7f88b3;
-  --accent: --alpha(#7aa2f7 / 14%);
-  --accent-foreground: var(--cx-ink);
-  --destructive: #f7768e;
-  --destructive-foreground: #ff9eb0;
-  --border: #292e42;
-  --input: #3b4261;
-  --ring: #7aa2f7;
-  --info: #7dcfff;
-  --info-foreground: #a4dcff;
-  --success: #9ece6a;
-  --success-foreground: #b5e08c;
-  --diff-added: #9ece6a;
-  --diff-removed: #f7768e;
-  --skill: #bb9af7;
-  --warning: #e0af68;
-  --warning-foreground: #edc78e;
-
-  --surface: #1a1b26;
-  --surface-2: #24283b;
-  --line: #292e42;
-  --well: #16161e;
-  --tooltip: #c0caf5;
-  --tooltip-foreground: #16161e;
-}
-
-html[data-theme='github-dark'] {
-  --cx-canvas: #010409;
-  --cx-dot: #30363d;
-  --cx-ink: #e6edf3;
-  --cx-accent: #58a6ff;
-
-  --background: #0d1117;
-  --foreground: var(--cx-ink);
-  --card: #161b22;
-  --card-foreground: var(--cx-ink);
-  --popover: #21262d;
-  --popover-foreground: var(--cx-ink);
-  --primary: #238636;
-  --primary-foreground: #ffffff;
-  --secondary: #30363d;
-  --secondary-foreground: var(--cx-ink);
-  --muted: --alpha(#e6edf3 / 6%);
-  --muted-foreground: #8b949e;
-  --accent: --alpha(#58a6ff / 14%);
-  --accent-foreground: var(--cx-ink);
-  --destructive: #f85149;
-  --destructive-foreground: #ff7b72;
-  --border: #30363d;
-  --input: #3d444d;
-  --ring: #58a6ff;
-  --info: #58a6ff;
-  --info-foreground: #79c0ff;
-  --success: #3fb950;
-  --success-foreground: #56d364;
-  --diff-added: #3fb950;
-  --diff-removed: #f85149;
-  --skill: #bc8cff;
-  --warning: #d29922;
-  --warning-foreground: #e3b341;
-
-  --surface: #0d1117;
-  --surface-2: #161b22;
-  --line: #30363d;
-  --well: #010409;
-  --tooltip: #e6edf3;
-  --tooltip-foreground: #0d1117;
-}
-
-html[data-theme='dracula'] {
-  --cx-canvas: #21222c;
-  --cx-dot: #44475a;
-  --cx-ink: #f8f8f2;
-  --cx-accent: #bd93f9;
-
-  --background: #282a36;
-  --foreground: var(--cx-ink);
-  --card: #2f313f;
-  --card-foreground: var(--cx-ink);
-  --popover: #343746;
-  --popover-foreground: var(--cx-ink);
-  --primary: #bd93f9;
-  --primary-foreground: #21222c;
-  --secondary: #44475a;
-  --secondary-foreground: var(--cx-ink);
-  --muted: --alpha(#f8f8f2 / 6%);
-  --muted-foreground: #9ba3c7;
-  --accent: --alpha(#bd93f9 / 16%);
-  --accent-foreground: var(--cx-ink);
-  --destructive: #ff5555;
-  --destructive-foreground: #ff7b7b;
-  --border: #44475a;
-  --input: #565a71;
-  --ring: #bd93f9;
-  --info: #8be9fd;
-  --info-foreground: #a8eeff;
-  --success: #50fa7b;
-  --success-foreground: #7bfb9b;
-  --diff-added: #50fa7b;
-  --diff-removed: #ff5555;
-  --skill: #ff79c6;
-  --warning: #ffb86c;
-  --warning-foreground: #ffcb95;
-
-  --surface: #282a36;
-  --surface-2: #343746;
-  --line: #44475a;
-  --well: #21222c;
-  --tooltip: #f8f8f2;
-  --tooltip-foreground: #282a36;
-}
-
-/* Named themes restate the palette but not the sidebar, which `.dark` would
-   otherwise pin to #181818 for the sidebar and title bar. Follow the theme. */
-html[data-theme] {
-  --sidebar: var(--cx-canvas);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--cx-accent);
-  --sidebar-primary-foreground: var(--cx-canvas);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-}
 
 /* Reduced motion, as a floor rather than a list. Every component above opts out
    where its motion carries meaning (the agent scan, the typing dots), but an
@@ -998,7 +669,9 @@ html[data-theme] {
 /* The loader: cells breathe between a faint and a full tone along a diagonal;
    letters take the foreground colour one after another. */
 .cx-loader-cell {
-  opacity: 0.16;
+  opacity: 0.2;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
   animation: cx-loader-cell 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -1010,12 +683,110 @@ html[data-theme] {
 @keyframes cx-loader-cell {
   0%,
   100% {
-    opacity: 0.16;
-    transform: scale(0.88);
+    opacity: 0.2;
+    transform: scaleY(0.55);
+    fill: currentColor;
   }
   35% {
     opacity: 1;
-    transform: scale(1);
+    transform: scaleY(1);
+    fill: var(--cx-accent);
+  }
+}
+
+/* The micro-label: the small, wide-set caps every row and section leads with.
+   One class so "label" means the same size, tracking and tone everywhere. */
+.cx-label {
+  font-size: 0.625rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Square brackets around a label, drawn by CSS so the text itself stays plain
+   for search, tests and screen readers. */
+.cx-bracket::before {
+  content: '[\00a0';
+}
+
+.cx-bracket::after {
+  content: '\00a0]';
+}
+
+/* A dashed frame, like the registration marks on a printed sheet. */
+.cx-dashed {
+  border: 1px dashed var(--line);
+}
+
+/* Stroke-draw for SVG paths drawn with `pathLength="1"`. The path writes
+   itself in once; `--cx-draw-delay` staggers a group of them. */
+.cx-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: cx-draw 520ms cubic-bezier(0.23, 1, 0.32, 1) var(--cx-draw-delay, 0ms) forwards;
+}
+
+@keyframes cx-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* An orange mark that breathes once per second: "live", "working", "here". */
+.cx-live {
+  animation: cx-live 1.6s ease-in-out infinite;
+}
+
+@keyframes cx-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Press feedback for anything round or icon-only. Fast in, a touch slower out,
+   so the release feels like it lets go rather than snaps. */
+.cx-press {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cx-press:active {
+  transform: scale(0.94);
+  transition-duration: 80ms;
+}
+
+/* The row hover: a hairline of accent grows from the left edge. */
+.cx-row {
+  position: relative;
+}
+
+.cx-row::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  background: var(--cx-accent);
+  transform: scaleY(0);
+  transform-origin: 50% 50%;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cx-row:hover::before,
+.cx-row:focus-within::before {
+  transform: scaleY(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-draw {
+    stroke-dashoffset: 0;
+  }
+  .cx-live {
+    animation: none;
   }
 }
 

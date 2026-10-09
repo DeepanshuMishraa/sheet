@@ -9,6 +9,7 @@ import { WebDocumentPreview } from '@sheet/editor/web-preview'
 import type { WebDocument } from '@sheet/canvas/web-model'
 import { cn } from '@sheet/ui/utils'
 import { subscribeCanvasChanges } from '@sheet/editor/lib/canvas-events'
+import { FreshnessMeter } from './freshness-meter'
 
 const previewCache = new Map<string, WebDocument | null>()
 
@@ -48,7 +49,7 @@ function LauncherThumbnail({ designId, revision }: { designId: string; revision:
   }, [cacheKey, designId])
 
   return (
-    <div className="relative flex aspect-[16/10] w-18 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-cx-canvas sm:w-22">
+    <div className="relative flex aspect-[16/10] w-18 shrink-0 items-center justify-center overflow-hidden rounded-md bg-cx-canvas shadow-hairline sm:w-22">
       {!loaded && showLoader ? (
         <Loader label={null} className="text-muted-foreground" />
       ) : null}
@@ -133,14 +134,14 @@ export function NewFileLauncher() {
             type="button"
             onClick={() => void handleNewFile()}
             disabled={creating}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-foreground px-5 font-medium text-background shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="cx-press flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-cx-accent px-5 text-white outline-none transition-opacity duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           >
             {creating ? (
               <Spinner className="size-4" />
             ) : (
               <>
                 <span className="text-sm">New file</span>
-                <kbd className="font-sans text-xs opacity-60">⌘N</kbd>
+                <kbd className="font-sans text-xs opacity-70">⌘N</kbd>
               </>
             )}
           </button>
@@ -148,15 +149,15 @@ export function NewFileLauncher() {
           <button
             type="button"
             onClick={handleBrowseAll}
-            className="flex h-11 flex-1 items-center justify-center rounded-xl bg-surface px-5 text-sm font-medium text-muted-foreground shadow-lift transition-[box-shadow,color] hover:shadow-lift-hover hover:text-foreground"
+            className="cx-press flex h-10 flex-1 items-center justify-center rounded-full px-5 text-sm text-muted-foreground shadow-hairline outline-none transition-[box-shadow,color] duration-150 hover:text-foreground hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring"
           >
             Browse all files
           </button>
         </div>
 
         {/* Search Input with ⌘F */}
-        <div className="relative mb-6 mt-4 w-full">
-          <SearchIcon className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <label className="group/search mb-6 mt-6 flex h-10 w-full items-center gap-2.5 border-b border-line transition-colors duration-150 focus-within:border-cx-accent">
+          <SearchIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-focus-within/search:text-cx-accent" />
           <input
             ref={searchInputRef}
             type="search"
@@ -164,12 +165,10 @@ export function NewFileLauncher() {
             placeholder="Search files"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-12 w-full rounded-2xl bg-surface shadow-lift pe-10 ps-10 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60 [&::-webkit-search-cancel-button]:appearance-none"
           />
-          <kbd className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
-            ⌘F
-          </kbd>
-        </div>
+          <kbd className="pointer-events-none text-xs text-muted-foreground">⌘F</kbd>
+        </label>
 
         {/* File List */}
         <div className="flex w-full flex-col gap-0.5">
@@ -197,7 +196,7 @@ export function NewFileLauncher() {
                 type="button"
                 onClick={() => void navigate({ to: '/design/$id', params: { id: design.id } })}
                 className={cn(
-                  'group flex w-full items-center justify-between rounded-xl p-2 text-start transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-ring',
+                  'cx-row group flex w-full items-center justify-between border-b border-line p-2.5 text-start outline-none transition-colors duration-150 last:border-b-0 hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 )}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3.5 pe-3">
@@ -210,7 +209,8 @@ export function NewFileLauncher() {
                     {design.name}
                   </span>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground transition-colors group-hover:text-foreground">
+                <span className="cx-label flex shrink-0 items-center gap-2 transition-colors group-hover:text-foreground">
+                  <FreshnessMeter updatedAt={design.updatedAt} />
                   {relativeTime(design.updatedAt).replace('about ', '')}
                 </span>
               </button>

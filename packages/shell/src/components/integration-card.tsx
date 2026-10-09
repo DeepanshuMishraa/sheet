@@ -19,7 +19,7 @@ export function IntegrationCard({
     <section className={cn('flex flex-col gap-3', className)}>
       <header className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-xs font-semibold leading-none">{title}</h3>
+          <h3 className="cx-label cx-bracket">{title}</h3>
           {status}
         </div>
         {description ? (
@@ -41,12 +41,14 @@ export function IntegrationStatus({
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center rounded-sm border border-current/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide',
-        tone === 'success' && 'bg-success/10 text-success-foreground',
-        tone === 'warning' && 'bg-warning/10 text-warning-foreground',
-        tone === 'neutral' && 'bg-muted text-muted-foreground',
+        'inline-flex max-w-full items-center gap-1.5 text-[10px] uppercase tracking-[0.12em]',
+        tone === 'success' && 'text-success-foreground',
+        tone === 'warning' && 'text-warning-foreground',
+        tone === 'neutral' && 'text-muted-foreground',
       )}
     >
+      {/* A dot carries the state; the colour on the word backs it up. */}
+      <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-current', tone === 'success' && 'cx-live')} />
       {children}
     </span>
   )

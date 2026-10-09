@@ -4,23 +4,34 @@ import { useEffect, useState } from "react";
 import type React from "react";
 import { cn } from "../lib/utils.ts";
 
-/** Diagonal order of the nine cells, so the glow travels corner to corner. */
-const CELL_DELAYS = [0, 1, 2, 1, 2, 3, 2, 3, 4] as const;
+/** Nine ruler ticks; every fourth is a long one, like a scale's major mark. */
+const TICKS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-function LoaderGrid({ className }: { className?: string }): React.ReactElement {
+/**
+ * A ruler that something slides across: ticks rise and fall in a wave, the one
+ * under the "playhead" taking the accent.
+ */
+function LoaderTicks({ className }: { className?: string }): React.ReactElement {
   return (
-    <span
+    <svg
       aria-hidden="true"
-      className={cn("grid shrink-0 grid-cols-3 gap-[2px]", className)}
+      viewBox="0 0 32 14"
+      className={cn("h-[14px] w-[32px] shrink-0 overflow-visible", className)}
     >
-      {CELL_DELAYS.map((step, index) => (
-        <i
+      {TICKS.map((index) => (
+        <rect
           key={index}
-          className="cx-loader-cell size-[6px] rounded-[1.5px] bg-current"
-          style={{ animationDelay: `${step * 110}ms` }}
+          className="cx-loader-cell"
+          x={index * 4}
+          y={index % 4 === 0 ? 0 : 5}
+          width="1.5"
+          height={index % 4 === 0 ? 14 : 9}
+          rx="0.75"
+          fill="currentColor"
+          style={{ animationDelay: `${index * 90}ms` }}
         />
       ))}
-    </span>
+    </svg>
   );
 }
 
@@ -65,11 +76,14 @@ export function Loader({
       className={cn("inline-flex items-center gap-[10px] text-foreground", className)}
       {...props}
     >
-      <LoaderGrid />
+      <LoaderTicks />
       {label === null ? null : <span className="sr-only">{label}</span>}
       {label === null ? null : (
         <>
-          <span aria-hidden="true" className="flex text-[12px] leading-none">
+          <span
+            aria-hidden="true"
+            className="flex text-[10px] uppercase leading-none tracking-[0.14em]"
+          >
             {[...label].map((letter, index) => (
               <span
                 key={index}

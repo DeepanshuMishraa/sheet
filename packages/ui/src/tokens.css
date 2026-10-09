@@ -1,0 +1,165 @@
+/* Two palettes, light and dark. Nothing else.
+
+   One idea: flat planes divided by hairlines. No gradients, no inset
+   highlights, no stacked shadows. Depth comes from a step in tone and a 1px
+   edge; the only shadow left is the one a floating menu needs to separate
+   from what is under it. One accent — a warm orange — is spent on selection,
+   focus and the live mark, so it always means "this". */
+
+:root {
+  --cx-canvas: #f2f2f0;
+  --cx-dot: #d6d6d2;
+  --cx-ink: #0d0d0d;
+  --cx-accent: #f0541a;
+
+  --background: #fafaf9;
+  --foreground: var(--cx-ink);
+  --card: #ffffff;
+  --card-foreground: var(--cx-ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--cx-ink);
+  --primary: #0d0d0d;
+  --primary-foreground: #fafaf9;
+  --secondary: #f0f0ee;
+  --secondary-foreground: var(--cx-ink);
+  /* Interaction tints stay translucent so a hover reads on any surface. */
+  --muted: rgba(13, 13, 13, 0.04);
+  --muted-foreground: #77776f;
+  --accent: rgba(13, 13, 13, 0.055);
+  --accent-foreground: var(--cx-ink);
+  --destructive: #d92d20;
+  --destructive-foreground: #b42318;
+  --border: #e4e4e0;
+  --input: #d6d6d2;
+  --ring: rgba(240, 84, 26, 0.5);
+  --chart-1: #f0541a;
+  --chart-2: #bd4d83;
+  --chart-3: #d8874a;
+  --chart-4: #10b981;
+  --chart-5: #3b82f6;
+  --radius: 0.5rem;
+  --sidebar: #efefed;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--cx-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(13, 13, 13, 0.055);
+  --sidebar-accent-foreground: var(--cx-ink);
+  --sidebar-border: #e4e4e0;
+  --sidebar-ring: var(--ring);
+  --info: #3b82f6;
+  --info-foreground: #1d4ed8;
+  --success: #10b981;
+  --success-foreground: #047857;
+  --diff-added: #10b981;
+  --diff-removed: #ef4444;
+  --skill: var(--cx-accent);
+  --warning: #f59e0b;
+  --warning-foreground: #b45309;
+  --tooltip: #0d0d0d;
+  --tooltip-foreground: #f2f2f0;
+  /* The well a segmented control sits in. */
+  --well: #ecece9;
+
+  --surface: #ffffff;
+  --surface-2: #f6f6f4;
+  /* The frame the app sits in: tab bar, sidebar, margin around the panel. */
+  --frame: #efefed;
+  --sheet-font-sans: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sheet-font-mono: 'Paper Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --line: #e4e4e0;
+  --edge: rgba(13, 13, 13, 0.1);
+  --highlight: transparent;
+  /* Panels are a hairline. Floating things get one soft shadow to lift off. */
+  --panel-shadow: 0 0 0 1px var(--edge);
+  --panel-shadow-lg:
+    0 0 0 1px var(--edge),
+    0 16px 40px -16px rgba(13, 13, 13, 0.22);
+  /* Durations: three steps, so a hover, a disclosure and a dialog cannot drift. */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --shadow-xs: 0 0 0 1px var(--edge);
+  --shadow-sm: 0 0 0 1px var(--edge);
+  --shadow-md: 0 0 0 1px var(--edge), 0 8px 24px -12px rgba(13, 13, 13, 0.2);
+  --shadow-lg: var(--panel-shadow-lg);
+  --shadow-elevated: var(--panel-shadow);
+  --shadow-elevated-hover: var(--panel-shadow-lg);
+  /* Resting, hovered and selected edge for small controls and cards. */
+  --lift: var(--panel-shadow);
+  --lift-hover: 0 0 0 1px rgba(13, 13, 13, 0.24);
+  --lift-selected: 0 0 0 1px var(--cx-accent);
+  color-scheme: light;
+}
+
+.dark {
+  --cx-canvas: #0a0a0a;
+  --cx-dot: #2a2a2a;
+  --cx-ink: #ececea;
+  --cx-accent: #ff6a2b;
+
+  --background: #121212;
+  --foreground: var(--cx-ink);
+  --card: #171717;
+  --card-foreground: var(--cx-ink);
+  --popover: #1b1b1b;
+  --popover-foreground: var(--cx-ink);
+  --primary: #f2f2f0;
+  --primary-foreground: #0d0d0d;
+  --secondary: #202020;
+  --secondary-foreground: var(--cx-ink);
+  --muted: --alpha(var(--color-white) / 5%);
+  --muted-foreground: #8a8a85;
+  --accent: --alpha(var(--color-white) / 7%);
+  --accent-foreground: var(--cx-ink);
+  --destructive: #e5484d;
+  --destructive-foreground: #f2827f;
+  --border: #262626;
+  --input: #333333;
+  --ring: --alpha(#ff6a2b / 55%);
+  --chart-1: #ff6a2b;
+  --chart-2: #bd4d83;
+  --chart-3: #d8874a;
+  --chart-4: #80bd90;
+  --chart-5: #4285d4;
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--cx-accent);
+  --sidebar-primary-foreground: #0d0d0d;
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: #202020;
+  --sidebar-ring: var(--ring);
+  --info: #4285d4;
+  --info-foreground: #8fbdea;
+  --success: #80bd90;
+  --success-foreground: #80bd90;
+  --diff-added: #80bd90;
+  --diff-removed: #e5484d;
+  --skill: var(--cx-accent);
+  --warning: #e3b45c;
+  --warning-foreground: #e3b45c;
+  --tooltip: #ececea;
+  --tooltip-foreground: #0d0d0d;
+  --well: #0a0a0a;
+
+  --surface: #171717;
+  --surface-2: #1d1d1d;
+  --frame: #0d0d0d;
+  --line: #242424;
+  --edge: rgba(255, 255, 255, 0.09);
+  --highlight: transparent;
+  --panel-shadow: 0 0 0 1px var(--edge);
+  --panel-shadow-lg:
+    0 0 0 1px var(--edge),
+    0 20px 48px -16px rgba(0, 0, 0, 0.7);
+  --shadow-xs: 0 0 0 1px var(--edge);
+  --shadow-sm: 0 0 0 1px var(--edge);
+  --shadow-md: 0 0 0 1px var(--edge), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: var(--panel-shadow-lg);
+  --shadow-elevated: var(--panel-shadow);
+  --shadow-elevated-hover: var(--panel-shadow-lg);
+  --lift: var(--panel-shadow);
+  --lift-hover: 0 0 0 1px rgba(255, 255, 255, 0.24);
+  --lift-selected: 0 0 0 1px var(--cx-accent);
+  color-scheme: dark;
+}

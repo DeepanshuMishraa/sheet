@@ -55,21 +55,20 @@ async function loadDesktopProfile(): Promise<DesktopProfile> {
   return { firstName, imageUrl }
 }
 
-/** One row of the sidebar. Selected rows lift; the rest only tint on hover. */
+/**
+ * One row of the sidebar. No fill, no lift: the current page is the only row
+ * at full ink, marked by an accent hairline on its left edge.
+ */
 const rowClassName = (selected: boolean) =>
   cn(
-    'group/row relative flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-start text-xs outline-none transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+    'cx-row group/row flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-start text-xs outline-none transition-[background-color,color,transform] duration-150 ease-smooth active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
     selected
-      ? 'bg-surface text-foreground shadow-lift'
+      ? 'bg-accent text-foreground'
       : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
   )
 
 function SectionLabel({ children }: { children: string }) {
-  return (
-    <p className="px-2.5 pb-1.5 pt-4 text-2xs uppercase tracking-[0.14em] text-muted-foreground/70">
-      {children}
-    </p>
-  )
+  return <p className="cx-label cx-bracket px-2.5 pb-2 pt-5">{children}</p>
 }
 
 export function AppSidebar({
@@ -92,7 +91,7 @@ export function AppSidebar({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1">
-        <SectionLabel>Home</SectionLabel>
+        <SectionLabel>Workspace</SectionLabel>
         <nav className="flex flex-col gap-0.5" aria-label="Main navigation">
           {NAV_ITEMS.map(({ to, section, label, Icon }) => (
             <Link
@@ -130,11 +129,11 @@ export function AppSidebar({
               aria-label={`Menu for ${firstName}`}
               className={cn(rowClassName(false), 'h-9 px-2')}
             >
-              <Avatar className="size-5 shrink-0 rounded-md text-2xs font-semibold">
+              <Avatar className="size-5 shrink-0 rounded-full text-2xs font-semibold">
                 {profile?.imageUrl ? (
                   <AvatarImage src={profile.imageUrl} alt="" />
                 ) : null}
-                <AvatarFallback className="bg-foreground text-background">
+                <AvatarFallback className="bg-cx-accent text-white">
                   {initial}
                 </AvatarFallback>
               </Avatar>

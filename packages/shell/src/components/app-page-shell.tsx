@@ -1,8 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useLocation } from '@tanstack/react-router'
-import {
-  PanelLeftIcon,
-} from '@sheet/ui/icons'
 import { cn } from '@sheet/ui/utils'
 import { DocumentTabBar } from '@sheet/editor/tab-bar'
 import { ChromeSlotsContext } from '@sheet/editor/chrome-slots'
@@ -17,6 +14,29 @@ function readCollapsed(): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * The sidebar switch, drawn so it shows the state it will leave you in: the
+ * left pane is a filled strip that folds away when the sidebar is hidden.
+ */
+function SidebarGlyph({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4" fill="none">
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.25" stroke="currentColor" strokeWidth="1.25" />
+      <rect
+        x="2.4"
+        y="3.4"
+        width="3.6"
+        height="9.2"
+        rx="1.6"
+        fill="var(--cx-accent)"
+        className="origin-left transition-[transform,opacity] duration-200 ease-smooth motion-reduce:transition-none [transform-box:fill-box]"
+        style={{ transform: `scaleX(${collapsed ? 0.15 : 1})`, opacity: collapsed ? 0 : 1 }}
+      />
+      <path d="M6.5 3v10" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  )
 }
 
 function activeSection(pathname: string): AppSection | null {
@@ -52,12 +72,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebarHidden = isEditor || collapsed
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-frame text-foreground">
-      {/* One bar for the window: controls, the sidebar switch, the open files as
-          tabs, and whatever the current screen puts at the far end. */}
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
+      {/* One bar for the window, one hairline under it. The sidebar switch, the
+          open files as tabs, and whatever the current screen puts at the far
+          end all sit on it; the page below runs edge to edge with no inset card. */}
       <header
         data-tauri-drag-region
-        className="flex h-[31px] shrink-0 select-none items-center gap-2 bg-frame ps-[78px] pe-3"
+        className="flex h-8 shrink-0 select-none items-stretch gap-1 border-b border-line bg-frame ps-[78px] pe-3"
       >
         {isEditor ? (
           // The editor fills this with its own panel switch.
@@ -71,9 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={() => setSidebar(!collapsed)}
             data-cuelume-select=""
             data-cuelume-emphasis="subtle"
-            className="flex size-[24px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,transform] duration-150 ease-smooth hover:bg-accent hover:text-foreground active:scale-90"
+            className="cx-press my-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <PanelLeftIcon className="size-4" />
+            <SidebarGlyph collapsed={collapsed} />
           </button>
         )}
         <DocumentTabBar />
@@ -87,8 +108,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-hidden={sidebarHidden}
           inert={sidebarHidden}
           className={cn(
-            'relative shrink-0 overflow-hidden bg-frame text-foreground transition-[width,opacity] duration-300 ease-smooth motion-reduce:transition-none',
-            sidebarHidden ? 'w-0 opacity-0' : 'w-60 opacity-100',
+            'relative shrink-0 overflow-hidden border-line bg-frame text-foreground transition-[width,opacity,border-color] duration-300 ease-smooth motion-reduce:transition-none',
+            sidebarHidden ? 'w-0 border-e-0 opacity-0' : 'w-60 border-e opacity-100',
           )}
         >
           {/* Fixed width inside, so the contents slide away instead of reflowing. */}
@@ -100,11 +121,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <div className={cn('min-w-0 flex-1 pb-1.5 pe-1.5 pt-1', sidebarHidden ? 'ps-1.5' : 'ps-0')}>
-          <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-background shadow-panel">
-            <div className={cn('min-h-0 flex-1', isEditor ? 'overflow-hidden' : 'overflow-y-auto')}>
-              <ChromeSlotsContext.Provider value={slots}>{children}</ChromeSlotsContext.Provider>
-            </div>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+          <div className={cn('min-h-0 flex-1', isEditor ? 'overflow-hidden' : 'overflow-y-auto')}>
+            <ChromeSlotsContext.Provider value={slots}>{children}</ChromeSlotsContext.Provider>
           </div>
         </div>
       </div>
@@ -130,9 +149,9 @@ export function AppPageShell({
   return (
     <main className="app-page-enter flex min-w-0 flex-1 flex-col">
       <section className={cn('mx-auto w-full px-6 pb-16 pt-6', wide ? 'max-w-6xl' : 'max-w-2xl')}>
-        <h1 className="text-xl font-medium tracking-tight text-foreground">{title}</h1>
-        <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
-        <div className="mt-8">{children}</div>
+        <h1 className="cx-label cx-bracket">{title}</h1>
+        <p className="mt-3 text-lg font-medium tracking-tight text-foreground">{description}</p>
+        <div className="mt-10">{children}</div>
       </section>
     </main>
   )

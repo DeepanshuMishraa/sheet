@@ -1,29 +1,6 @@
-import { useEffect, useState } from 'react'
-import { PencilIcon, PlusIcon } from '@sheet/ui/icons'
-import { Button } from '@sheet/ui/button'
-import {
-  Dialog,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-} from '@sheet/ui/dialog'
-import { Input } from '@sheet/ui/input'
+import { useEffect, useState, type ReactNode } from 'react'
 import { cn } from '@sheet/ui/utils'
 import {
-  DARK_PRESET,
-  deleteCustomTheme,
-  getCustomThemes,
-  LIGHT_PRESET,
-  makeCustomTheme,
-  saveCustomTheme,
-  type CustomTheme,
-  type CustomThemeColors,
-} from '../lib/custom-themes'
-import {
-  BUILT_IN_THEMES,
   DEFAULT_THEME,
   getThemePreference,
   setThemePreference,
@@ -43,69 +20,70 @@ import {
   type SoundPreference,
 } from '@sheet/ui/sound'
 
-type ThemeOption = {
-  value: ThemePreference
-  label: string
-  swatch: { canvas: string; surface: string; accent: string }
-  custom?: CustomTheme
-}
+const THEME_OPTIONS = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+] as const satisfies ReadonlyArray<{ value: ThemePreference; label: string }>
 
-const SYSTEM_OPTION: ThemeOption = {
-  value: 'system',
-  label: 'System',
-  swatch: {
-    canvas: 'linear-gradient(90deg,#f4f4f5 0 50%,#0f0f10 50%)',
-    surface: 'linear-gradient(90deg,#ffffff 0 50%,#1e1e21 50%)',
-    accent: 'linear-gradient(90deg,#3f3f46 0 50%,#7aa2f7 50%)',
-  },
-}
+const PLANE = {
+  light: { bg: '#fafaf9', fg: '#0d0d0d', rule: '#e4e4e0' },
+  dark: { bg: '#121212', fg: '#ececea', rule: '#2a2a2a' },
+} as const
 
-/** System, the built-in palettes, then whatever this browser has saved. */
-function themeOptions(custom: CustomTheme[]): ThemeOption[] {
-  return [
-    SYSTEM_OPTION,
-    ...BUILT_IN_THEMES.map((theme) => ({
-      value: theme.id as ThemePreference,
-      label: theme.label,
-      swatch: theme.swatch,
-    })),
-    ...custom.map((theme) => ({
-      value: theme.id as ThemePreference,
-      label: theme.name,
-      swatch: {
-        canvas: theme.colors.canvas,
-        surface: theme.colors.surface,
-        accent: theme.colors.accent,
-      },
-      custom: theme,
-    })),
-  ]
-}
-
-const COLOR_FIELDS: { key: keyof CustomThemeColors; label: string; hint: string }[] = [
-  { key: 'canvas', label: 'Canvas', hint: 'Behind the design and the app pages' },
-  { key: 'surface', label: 'Surface', hint: 'Panels, menus, and bars' },
-  { key: 'line', label: 'Line', hint: 'Hairlines and borders' },
-  { key: 'ink', label: 'Text', hint: 'Foreground text and icons' },
-  { key: 'accent', label: 'Accent', hint: 'Selection, focus, and primary buttons' },
-]
-
-/** A miniature of the chrome: canvas, a panel on it, and an accent mark. */
-function ThemeSwatch({ swatch }: { swatch: ThemeOption['swatch'] }) {
+/** One window, drawn flat: a sidebar rule, three lines of text, the accent dot. */
+function Plane({ tone }: { tone: keyof typeof PLANE }) {
+  const { bg, fg, rule } = PLANE[tone]
   return (
-    <span
-      aria-hidden="true"
-      className="relative block h-9 w-full overflow-hidden rounded border border-border"
-      style={{ background: swatch.canvas }}
-    >
-      <span
-        className="absolute inset-x-1 bottom-1 flex h-4 items-center gap-1 rounded-sm px-1"
-        style={{ background: swatch.surface }}
-      >
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: swatch.accent }} />
-        <span className="h-1 flex-1 rounded-full opacity-40" style={{ background: swatch.accent }} />
-      </span>
-    </span>
+    <g>
+      <rect width="96" height="60" fill={bg} />
+      <path d="M26 0v60" stroke={rule} strokeWidth="1" />
+      <path d="M6 10h14M6 17h10M6 24h12" stroke={fg} strokeOpacity="0.35" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M36 14h38M36 22h46M36 30h30" stroke={fg} strokeOpacity="0.7" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="84" cy="50" r="2.5" fill="#f0541a" />
+    </g>
+  )
+}
+
+/** A miniature of the app in that palette. System splits one window on the diagonal. */
+function ThemeSpecimen({ mode }: { mode: ThemePreference }) {
+  return (
+    <svg viewBox="0 0 96 60" aria-hidden="true" className="block h-auto w-full">
+      {mode === 'dark' ? <Plane tone="dark" /> : <Plane tone="light" />}
+      {mode === 'system' ? (
+        <>
+          <defs>
+            <clipPath id="cx-specimen-system">
+              <path d="M96 0v60H0z" />
+            </clipPath>
+          </defs>
+          <g clipPath="url(#cx-specimen-system)">
+            <Plane tone="dark" />
+          </g>
+        </>
+      ) : null}
+    </svg>
+  )
+}
+
+/** A check that writes itself in when its option is chosen. */
+function DrawnCheck({ visible }: { visible: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 text-cx-accent">
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1" />
+      {visible ? (
+        <path
+          className="cx-draw"
+          pathLength="1"
+          d="M5 8.4l2 2 4-4.4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
+    </svg>
   )
 }
 
@@ -117,292 +95,111 @@ const SCALE_LABELS: Record<UiScale, string> = {
   1.5: 'Largest',
 }
 
-/**
- * The custom-theme editor. Five colours and a base; everything else is derived
- * from them, so a saved theme cannot end up with an unreadable pairing between
- * tokens that are supposed to agree.
- */
-function ThemeEditor({
-  open,
-  editing,
-  onOpenChange,
-  onSaved,
-  onDeleted,
+function Section({
+  label,
+  hint,
+  children,
 }: {
-  open: boolean
-  editing: CustomTheme | null
-  onOpenChange: (open: boolean) => void
-  onSaved: (theme: CustomTheme) => void
-  onDeleted: (id: string) => void
+  label: string
+  hint: string
+  children: ReactNode
 }) {
-  const [name, setName] = useState('')
-  const [dark, setDark] = useState(true)
-  const [colors, setColors] = useState<CustomThemeColors>(DARK_PRESET)
-
-  // Reopening the dialog starts from the theme being edited, or a fresh preset.
-  useEffect(() => {
-    if (!open) return
-    setName(editing?.name ?? '')
-    setDark(editing?.dark ?? true)
-    setColors(editing?.colors ?? DARK_PRESET)
-  }, [open, editing])
-
-  const setBase = (nextDark: boolean) => {
-    setDark(nextDark)
-    // Only a fresh theme adopts the preset; an edit keeps the picked colours.
-    if (!editing) setColors(nextDark ? DARK_PRESET : LIGHT_PRESET)
-  }
-
-  const save = () => {
-    const theme = makeCustomTheme({ id: editing?.id, name, dark, colors })
-    saveCustomTheme(theme)
-    onSaved(theme)
-    onOpenChange(false)
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editing ? 'Edit theme' : 'New theme'}</DialogTitle>
-          <DialogDescription>
-            Saved in this browser only. Sheet derives the rest of the palette — tints, inputs,
-            and focus rings — from these five colours.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogPanel className="space-y-4">
-          <Input
-            autoFocus
-            aria-label="Theme name"
-            placeholder="Theme name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Base</span>
-            <div
-              role="group"
-              aria-label="Base"
-              className="flex items-center gap-0.5 rounded-sm border border-line p-0.5"
-            >
-              <Button
-                size="xs"
-                variant={dark ? 'secondary' : 'ghost'}
-                aria-pressed={dark}
-                onClick={() => setBase(true)}
-              >
-                Dark
-              </Button>
-              <Button
-                size="xs"
-                variant={dark ? 'ghost' : 'secondary'}
-                aria-pressed={!dark}
-                onClick={() => setBase(false)}
-              >
-                Light
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            {COLOR_FIELDS.map((field) => (
-              <label key={field.key} className="flex items-center gap-2.5">
-                <input
-                  type="color"
-                  aria-label={field.label}
-                  value={colors[field.key]}
-                  className="size-7 shrink-0 cursor-pointer rounded-sm border border-line bg-transparent p-0.5"
-                  onChange={(event) =>
-                    setColors((current) => ({ ...current, [field.key]: event.target.value }))
-                  }
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-medium">{field.label}</span>
-                  <span className="block text-xs text-muted-foreground">{field.hint}</span>
-                </span>
-                <span className="shrink-0 font-mono text-xs uppercase text-muted-foreground">
-                  {colors[field.key]}
-                </span>
-              </label>
-            ))}
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">Preview</p>
-            <ThemeSwatch
-              swatch={{
-                canvas: colors.canvas,
-                surface: colors.surface,
-                accent: colors.accent,
-              }}
-            />
-          </div>
-        </DialogPanel>
-        <DialogFooter className="sm:justify-between">
-          {editing ? (
-            <Button
-              variant="destructive-outline"
-              onClick={() => {
-                deleteCustomTheme(editing.id)
-                onDeleted(editing.id)
-                onOpenChange(false)
-              }}
-            >
-              Delete
-            </Button>
-          ) : (
-            <span />
-          )}
-          <span className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button disabled={!name.trim()} onClick={save}>
-              {editing ? 'Save theme' : 'Create theme'}
-            </Button>
-          </span>
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="cx-label cx-bracket">{label}</h2>
+        <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      </div>
+      {children}
+    </section>
   )
 }
 
-const optionClassName = (selected: boolean) =>
-  cn(
-    'flex min-w-0 flex-col items-center gap-1.5 rounded-lg px-2 py-2 text-xs outline-none transition-[box-shadow,color,background-color,transform] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]',
-    selected
-      ? 'bg-surface text-foreground shadow-lift-selected'
-      : 'bg-transparent text-muted-foreground shadow-hairline hover:bg-surface hover:text-foreground hover:shadow-lift',
-  )
-
 /**
- * Theme and interface scale. Shared by the Appearance page and the Settings
- * dialog so the editor and the account pages cannot drift apart.
+ * Theme, interface scale, and sound. Shared by the Appearance page and the
+ * Settings dialog so the two cannot drift apart.
  *
- * Both preferences apply the moment they are picked — the whole app is the
- * preview, which beats a swatch for a choice about size.
+ * Every choice applies the moment it is made — the whole app is the preview,
+ * which beats a swatch for a choice about size.
  */
 export function AppearanceSettings({ className }: { className?: string }) {
   const [theme, setTheme] = useState<ThemePreference>(DEFAULT_THEME)
   const [scale, setScale] = useState<UiScale>(DEFAULT_UI_SCALE)
   const [sound, setSound] = useState<SoundPreference>(DEFAULT_SOUND)
 
-  const [custom, setCustom] = useState<CustomTheme[]>([])
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editing, setEditing] = useState<CustomTheme | null>(null)
-
   useEffect(() => {
     setTheme(getThemePreference())
     setScale(getUiScale())
     setSound(getSoundPreference())
-    setCustom(getCustomThemes())
   }, [])
 
-  const options = themeOptions(custom)
+  const scaleIndex = Math.max(0, UI_SCALES.indexOf(scale))
 
   return (
-    <div className={cn('flex flex-col gap-6', className)}>
-      <section className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold">Theme</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose how Sheet’s workspace looks. System follows your device; your own themes
-              stay in this browser.
-            </p>
-          </div>
-          <Button
-            size="xs"
-            variant="outline"
-            className="shrink-0"
-            onClick={() => {
-              setEditing(null)
-              setEditorOpen(true)
-            }}
-          >
-            <PlusIcon />
-            New theme
-          </Button>
-        </div>
-        <div
-          className="grid grid-cols-2 gap-1 sm:grid-cols-3"
-          role="group"
-          aria-label="Color theme"
-        >
-          {options.map((option) => {
+    <div className={cn('flex flex-col gap-10', className)}>
+      <Section label="Theme" hint="System follows your device. Your designs are never affected.">
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Color theme">
+          {THEME_OPTIONS.map((option) => {
             const selected = theme === option.value
             return (
-              <div key={option.value} className="relative">
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  className={cn(optionClassName(selected), 'w-full')}
-                  onClick={() => {
-                    setTheme(option.value)
-                    setThemePreference(option.value)
-                  }}
-                >
-                  <ThemeSwatch swatch={option.swatch} />
-                  <span className="truncate">{option.label}</span>
-                </button>
-                {option.custom ? (
-                  <Button
-                    size="icon-xs"
-                    variant="ghost"
-                    aria-label={`Edit ${option.label}`}
-                    className="absolute end-1 top-1 bg-surface"
-                    onClick={() => {
-                      setEditing(option.custom!)
-                      setEditorOpen(true)
-                    }}
-                  >
-                    <PencilIcon />
-                  </Button>
-                ) : null}
-              </div>
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={cn(
+                  'cx-press group flex min-w-0 flex-col gap-2.5 rounded-lg p-2 text-start outline-none transition-[box-shadow,color] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring',
+                  selected
+                    ? 'text-foreground shadow-lift-selected'
+                    : 'text-muted-foreground shadow-hairline hover:text-foreground hover:shadow-lift-hover',
+                )}
+                onClick={() => {
+                  setTheme(option.value)
+                  setThemePreference(option.value)
+                }}
+              >
+                <span className="block overflow-hidden rounded-md shadow-hairline">
+                  <ThemeSpecimen mode={option.value} />
+                </span>
+                <span className="flex items-center justify-between gap-2 px-0.5 text-xs">
+                  {option.label}
+                  <DrawnCheck visible={selected} />
+                </span>
+              </button>
             )
           })}
         </div>
-      </section>
+      </Section>
 
-      <ThemeEditor
-        open={editorOpen}
-        editing={editing}
-        onOpenChange={setEditorOpen}
-        onSaved={(saved) => {
-          setCustom(getCustomThemes())
-          // Saving is also picking: the point of editing is to look at it.
-          setTheme(saved.id)
-          setThemePreference(saved.id)
-        }}
-        onDeleted={(id) => {
-          setCustom(getCustomThemes())
-          if (theme === id) {
-            const fallback = 'dark'
-            setTheme(fallback)
-            setThemePreference(fallback)
-          }
-        }}
-      />
-
-      <section className="flex flex-col gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">Interface size</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Scales menus, panels, and text across the app. Your designs keep their own size —
-            use the canvas zoom for those.
-          </p>
-        </div>
-        <div className="grid grid-cols-5 gap-1" role="group" aria-label="Interface size">
+      <Section
+        label="Interface size"
+        hint="Scales menus, panels, and text. Designs keep their own size; use canvas zoom for those."
+      >
+        <div
+          className="relative grid grid-cols-5 rounded-lg shadow-hairline"
+          role="radiogroup"
+          aria-label="Interface size"
+        >
+          {/* One marker that slides between stops, rather than five that blink. */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 start-0 w-1/5 p-0.5 transition-transform duration-200 ease-smooth motion-reduce:transition-none"
+            style={{ transform: `translateX(${scaleIndex * 100}%)` }}
+          >
+            <span className="block size-full rounded-md shadow-lift-selected" />
+          </span>
           {UI_SCALES.map((option) => {
             const selected = scale === option
             return (
               <button
                 key={option}
                 type="button"
-                aria-pressed={selected}
-                className={optionClassName(selected)}
+                role="radio"
+                aria-checked={selected}
+                className={cn(
+                  'relative flex h-14 flex-col items-center justify-center gap-1.5 rounded-lg outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring',
+                  selected ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
                 onClick={() => {
                   setScale(option)
                   setUiScale(option)
@@ -410,48 +207,49 @@ export function AppearanceSettings({ className }: { className?: string }) {
               >
                 {/* Sized in px so the sample keeps its meaning while the rest of
                     the app resizes around it. */}
-                <span
-                  aria-hidden="true"
-                  className="flex h-8 w-full items-center justify-center rounded border border-border bg-surface font-semibold"
-                  style={{ fontSize: `${Math.round(option * 11)}px` }}
-                >
+                <span aria-hidden="true" className="leading-none" style={{ fontSize: `${Math.round(option * 11)}px` }}>
                   Aa
                 </span>
-                <span className="truncate">{Math.round(option * 100)}%</span>
+                <span className="cx-label tabular-nums text-inherit">{Math.round(option * 100)}</span>
                 <span className="sr-only">{SCALE_LABELS[option]}</span>
               </button>
             )
           })}
         </div>
-        <p className="text-xs text-muted-foreground">
-          Currently {Math.round(scale * 100)}% · {SCALE_LABELS[scale]}
-        </p>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">Sound</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Soft cues for taps, menus, and finished work. Synthesized live, never loud.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-1" role="group" aria-label="Sound">
-          {(['on', 'off'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={sound === option}
-              className={optionClassName(sound === option)}
-              onClick={() => {
-                setSound(option)
-                setSoundPreference(option)
-              }}
-            >
-              {option === 'on' ? 'On' : 'Off'}
-            </button>
-          ))}
-        </div>
-      </section>
+      <Section label="Sound" hint="Soft cues for taps, menus, and finished work. Never loud.">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={sound === 'on'}
+          aria-label="Sound"
+          className="cx-press flex h-10 items-center justify-between rounded-lg px-3 text-xs shadow-hairline outline-none transition-shadow duration-150 hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => {
+            const next: SoundPreference = sound === 'on' ? 'off' : 'on'
+            setSound(next)
+            setSoundPreference(next)
+          }}
+        >
+          <span>{sound === 'on' ? 'On' : 'Off'}</span>
+          {/* A hairline track with a dot that travels it; the accent only shows
+              while it is on. */}
+          <span
+            aria-hidden="true"
+            className={cn(
+              'relative h-4 w-8 rounded-full shadow-hairline transition-colors duration-200 ease-smooth',
+              sound === 'on' && 'bg-cx-accent/15',
+            )}
+          >
+            <span
+              className={cn(
+                'absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full transition-[transform,background-color] duration-200 ease-smooth',
+                sound === 'on' ? 'translate-x-[1.1rem] bg-cx-accent' : 'translate-x-[0.2rem] bg-muted-foreground',
+              )}
+            />
+          </span>
+        </button>
+      </Section>
     </div>
   )
 }

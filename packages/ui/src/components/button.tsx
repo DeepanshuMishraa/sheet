@@ -31,18 +31,18 @@ export const buttonVariants = cva(
       },
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/18%)] hover:bg-primary/92 hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/55%),0_4px_10px_-3px_--alpha(var(--color-black)/30%),inset_0_1px_0_--alpha(var(--color-white)/22%)] active:shadow-none *:data-[slot=button-loading-indicator]:text-primary-foreground",
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/88 *:data-[slot=button-loading-indicator]:text-primary-foreground",
         destructive:
-          "border-transparent bg-destructive text-white shadow-[0_0_0_1px_--alpha(var(--color-black)/20%),0_1px_2px_--alpha(var(--color-black)/20%),inset_0_1px_0_--alpha(var(--color-white)/22%)] hover:bg-destructive/92 hover:shadow-[0_0_0_1px_--alpha(var(--color-black)/20%),0_4px_10px_-3px_--alpha(var(--destructive)/45%),inset_0_1px_0_--alpha(var(--color-white)/26%)] active:shadow-none *:data-[slot=button-loading-indicator]:text-white",
+          "border-transparent bg-destructive text-white hover:bg-destructive/88 *:data-[slot=button-loading-indicator]:text-white",
         "destructive-outline":
           "border-transparent bg-transparent text-destructive-foreground shadow-hairline hover:bg-destructive/8 hover:shadow-[0_0_0_1px_--alpha(var(--destructive)/40%)] data-pressed:bg-destructive/8 *:data-[slot=button-loading-indicator]:text-foreground",
         ghost:
           "border-transparent text-foreground hover:bg-accent data-pressed:bg-accent *:data-[slot=button-loading-indicator]:text-foreground",
         link: "border-transparent text-foreground underline-offset-4 hover:underline data-pressed:underline *:data-[slot=button-loading-indicator]:text-foreground",
         outline:
-          "border-transparent bg-surface text-foreground shadow-lift hover:shadow-lift-hover active:shadow-lift *:data-[slot=button-loading-indicator]:text-foreground",
+          "border-transparent bg-transparent text-foreground shadow-lift hover:bg-accent hover:shadow-lift-hover *:data-[slot=button-loading-indicator]:text-foreground",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground shadow-hairline hover:bg-secondary/80 hover:shadow-lift active:shadow-none *:data-[slot=button-loading-indicator]:text-secondary-foreground",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/70 *:data-[slot=button-loading-indicator]:text-secondary-foreground",
       },
     },
   },

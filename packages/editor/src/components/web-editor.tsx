@@ -854,9 +854,9 @@ function WebToolButton({
       data-cuelume-select=""
       data-cuelume-emphasis="subtle"
       className={cn(
-        'size-8 grid place-items-center rounded-xl transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth active:scale-90',
+        'relative size-8 grid place-items-center rounded-md outline-none transition-[background-color,color,transform] duration-150 ease-smooth active:scale-90 focus-visible:ring-2 focus-visible:ring-ring',
         active
-          ? 'bg-cx-accent text-white shadow-[0_1px_2px_--alpha(var(--color-black)/25%),0_4px_10px_-3px_--alpha(var(--cx-accent)/55%),inset_0_1px_0_--alpha(var(--color-white)/25%)]'
+          ? 'bg-accent text-cx-accent'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         disabled && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground',
       )}
@@ -3072,7 +3072,7 @@ export function WebCanvasEditor({
           className="z-30 flex h-12 w-full min-w-0 shrink-0 select-none items-center gap-2 overflow-hidden px-4"
         >
           {panelToggle}
-          <span className="min-w-0 truncate ps-1 text-sm font-medium text-foreground">
+          <span className="min-w-0 truncate ps-1 text-sm text-foreground">
             {document.name || name || 'Untitled'}
           </span>
           <div data-tauri-drag-region className="h-full min-w-2 flex-1" />
@@ -3110,7 +3110,7 @@ export function WebCanvasEditor({
             </div>
 
             {/* One icon per view. Names live in the tooltip, so nothing truncates. */}
-            <div role="tablist" aria-label="Panel view" className="mx-3 mb-2 flex shrink-0 items-center gap-1">
+            <div role="tablist" aria-label="Panel view" className="flex shrink-0 items-stretch border-y border-line">
               {([
                 { tab: 'design', label: 'Design', Icon: LayersIcon },
                 { tab: 'theme', label: 'Theme', Icon: SlidersHorizontalIcon },
@@ -3128,10 +3128,10 @@ export function WebCanvasEditor({
                   data-cuelume-select=""
                   data-cuelume-emphasis="subtle"
                   className={cn(
-                    'relative flex h-8 flex-1 items-center justify-center rounded-lg outline-none transition-[background-color,color,box-shadow,transform] duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring active:scale-95',
+                    "relative flex h-8 flex-1 items-center justify-center outline-none transition-colors duration-150 ease-smooth after:absolute after:inset-x-2 after:-bottom-px after:h-px after:origin-center after:bg-cx-accent after:transition-transform after:duration-200 after:ease-smooth after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:after:transition-none",
                     leftTab === tab
-                      ? 'bg-background text-foreground shadow-hairline'
-                      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                      ? 'text-foreground after:scale-x-100'
+                      : 'text-muted-foreground after:scale-x-0 hover:text-foreground',
                   )}
                   onClick={() => setLeftTab(tab)}
                 >
@@ -3142,20 +3142,18 @@ export function WebCanvasEditor({
                 </button>
               ))}
             </div>
-            <div className="mx-3 mb-1 h-px shrink-0 bg-line" />
-
             {leftTab === 'design' ? (
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
                 {/* Pages Section */}
                 <div className="border-b border-line">
-                  <div className="flex h-10 items-center justify-between px-3 text-sm font-medium text-foreground">
+                  <div className="flex h-10 items-center justify-between px-3 text-foreground">
                     <button
                       type="button"
-                      className="flex items-center gap-2 text-foreground hover:text-foreground"
+                      className="flex items-center gap-2 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={() => setPagesOpen((open) => !open)}
                     >
-                      <ChevronDownIcon className={cn('size-3 transition-transform', !pagesOpen && '-rotate-90')} />
-                      <span>Pages</span>
+                      <ChevronDownIcon className={cn('size-3 transition-transform duration-200 ease-smooth', !pagesOpen && '-rotate-90')} />
+                      <span className="cx-label cx-bracket text-inherit">Pages</span>
                     </button>
                     <button
                       type="button"
@@ -3368,7 +3366,7 @@ export function WebCanvasEditor({
           <div
             role="toolbar"
             aria-label="Tools"
-            className="absolute left-3 top-3 z-30 flex flex-col items-center gap-0.5 rounded-2xl bg-surface p-1 text-foreground shadow-panel-lg"
+            className="absolute left-3 top-3 z-30 flex flex-col items-center gap-0.5 rounded-lg bg-surface p-1 text-foreground shadow-panel"
           >
             <WebToolButton
               label={`Select (${shortcutLabel('tool.select')})`}
@@ -3441,10 +3439,8 @@ export function WebCanvasEditor({
                 <PlusCircleIcon className="size-4" />
               </WebToolButton>
               {quickInsertOpen ? (
-                <div className="absolute left-full top-0 z-40 ms-2 w-36 rounded-xl bg-surface p-1 shadow-panel-lg z-40 text-foreground">
-                  <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Insert element
-                  </div>
+                <div className="absolute left-full top-0 z-40 ms-2 w-36 rounded-lg bg-popover p-1 shadow-panel-lg text-foreground">
+                  <div className="cx-label cx-bracket px-2 py-1.5">Insert element</div>
                   <div className="max-h-[min(14rem,50vh)] space-y-0.5 overflow-y-auto">
                     {ELEMENT_TAGS.map((tag) => (
                       <button
@@ -3502,7 +3498,7 @@ export function WebCanvasEditor({
           <div
             ref={pageBoundsRef}
             data-testid="page-bounds"
-            className={cn('absolute origin-top-left shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-xs', pageSelected && 'ring-2 ring-blue-500')}
+            className={cn('absolute origin-top-left shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-xs', pageSelected && 'ring-2 ring-cx-accent')}
             style={{
               width: pageResizePreview?.width ?? canvasWidth,
               height: pageResizePreview?.height ?? canvasHeight,
@@ -3677,8 +3673,8 @@ export function WebCanvasEditor({
         {/* Right Inspector Panel: Design (Image 2 & 4) */}
         {rightPanelOpen ? (
         <aside aria-label="Design" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-s border-line bg-surface text-foreground">
-          <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 text-sm font-medium text-foreground">
-            <span>Design</span>
+          <div className="flex h-10 shrink-0 items-center justify-between border-b border-line px-4 text-foreground">
+            <span className="cx-label cx-bracket">Design</span>
             <button
               type="button"
               disabled={!selectedId || saveStatus === 'saving'}

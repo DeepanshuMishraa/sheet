@@ -3,7 +3,7 @@ import { SHADERS, SHADER_NAMES, type ShaderName } from '@sheet/canvas/web-shader
 export function ShadersList({ onInsert }: { onInsert: (name: ShaderName) => void }) {
   return (
     <section className="shrink-0 space-y-2 border-b border-line p-3">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Shaders</div>
+      <div className="cx-label cx-bracket">Shaders</div>
       <div className="grid grid-cols-2 gap-1.5">
         {SHADER_NAMES.map((name) => (
           <button

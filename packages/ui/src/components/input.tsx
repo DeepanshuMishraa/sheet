@@ -37,7 +37,7 @@ export function Input({
       className={
         cn(
           !unstyled &&
-            "relative inline-flex w-full rounded-md border border-transparent bg-surface text-sm text-foreground shadow-[inset_0_1px_2px_--alpha(var(--color-black)/6%),0_0_0_1px_var(--edge)] transition-[box-shadow,background-color] duration-150 ease-smooth hover:shadow-[inset_0_1px_2px_--alpha(var(--color-black)/6%),0_0_0_1px_--alpha(var(--foreground)/16%)] has-focus-visible:shadow-[0_0_0_1.5px_var(--cx-accent),0_0_0_4px_--alpha(var(--cx-accent)/16%)] has-focus-visible:has-aria-invalid:shadow-[0_0_0_1.5px_var(--destructive),0_0_0_4px_--alpha(var(--destructive)/16%)] has-aria-invalid:shadow-[0_0_0_1px_--alpha(var(--destructive)/50%)] has-autofill:bg-foreground/4 has-disabled:opacity-56 sm:text-xs dark:has-autofill:bg-foreground/8",
+            "relative inline-flex w-full rounded-md border border-transparent bg-transparent text-sm text-foreground shadow-[0_0_0_1px_var(--edge)] transition-[box-shadow,background-color] duration-150 ease-smooth hover:shadow-[0_0_0_1px_--alpha(var(--foreground)/24%)] has-focus-visible:shadow-[0_0_0_1px_var(--cx-accent)] has-focus-visible:has-aria-invalid:shadow-[0_0_0_1px_var(--destructive)] has-aria-invalid:shadow-[0_0_0_1px_--alpha(var(--destructive)/60%)] has-autofill:bg-foreground/4 has-disabled:opacity-56 sm:text-xs dark:has-autofill:bg-foreground/8",
           className,
         ) || undefined
       }
