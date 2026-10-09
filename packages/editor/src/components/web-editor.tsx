@@ -56,7 +56,7 @@ import {
 import { ShaderGallery } from './shader-panel'
 import { documentFonts, firstFamily, SYSTEM_FONT_STACKS, type DocumentFont } from '../lib/fonts'
 import { iconInfo, iconStyleOperation, isIconNode, type IconLibrary } from '@sheet/canvas/web-icon-style'
-import { shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
+import { prewarmShaderThumbnails, shaderInfo, shaderNode, shaderPatchOperation, type ShaderName } from '@sheet/canvas/web-shaders'
 import { Button } from '@sheet/ui/button'
 import { cn } from '@sheet/ui/utils'
 import {
@@ -1948,6 +1948,12 @@ export function WebCanvasEditor({
   const [quickInsertOpen, setQuickInsertOpen] = useState(false)
   const [connectAgentOpen, setConnectAgentOpen] = useState(false)
   const [shadersOpen, setShadersOpen] = useState(false)
+  // Draw the shader gallery's pictures in the background once the editor has settled,
+  // one at a time, so the gallery is ready by the time anyone opens it.
+  useEffect(() => {
+    const timer = window.setTimeout(prewarmShaderThumbnails, 2_500)
+    return () => window.clearTimeout(timer)
+  }, [])
   const [pagesOpen, setPagesOpen] = useState(true)
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)

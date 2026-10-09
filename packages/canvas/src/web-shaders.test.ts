@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'vitest'
 import {
+  SHADER_NAMES,
   SHADERS,
   isShaderNode,
   parseShaderParams,
   shaderInfo,
   shaderNode,
   shaderPatchOperation,
+  type ParamSpec as ParamSpecLike,
 } from './web-shaders'
 import { applyWebTransaction, createWebDocument, createWebElement } from './web-model'
 
@@ -28,6 +30,34 @@ describe('web shaders', () => {
     expect(params).not.toHaveProperty('bogus')
     expect(params.colors).toEqual(['#fff'])
     expect(params.swirl).toBe(SHADERS['mesh-gradient'].params.swirl.default)
+  })
+
+  test('every shader in the catalogue is complete and keeps its defaults', () => {
+    expect(SHADER_NAMES.length).toBeGreaterThanOrEqual(19)
+    for (const name of SHADER_NAMES) {
+      const definition = SHADERS[name]
+      expect(definition.label.length, name).toBeGreaterThan(0)
+      expect(['gradient', 'pattern', 'effect'], name).toContain(definition.group)
+      const parsed = parseShaderParams(name, undefined)
+      for (const [key, spec] of Object.entries<ParamSpecLike>(definition.params)) {
+        if (spec.kind === 'number') {
+          expect(spec.default, `${name}.${key}`).toBeGreaterThanOrEqual(spec.min)
+          expect(spec.default, `${name}.${key}`).toBeLessThanOrEqual(spec.max)
+        }
+        if (spec.kind === 'enum') expect(spec.options, `${name}.${key}`).toContain(spec.default)
+        if (spec.kind === 'colors' && spec.max !== undefined) {
+          expect(spec.default.length, `${name}.${key}`).toBeLessThanOrEqual(spec.max)
+        }
+        expect(parsed[key], `${name}.${key}`).toBeDefined()
+      }
+    }
+  })
+
+  test('a color list is cut to what the shader can hold', () => {
+    const many = Array.from({ length: 9 }, (_, index) => `#00000${index}`)
+    expect(parseShaderParams('god-rays', { colors: many }).colors).toHaveLength(5)
+    expect(parseShaderParams('metaballs', { colors: many }).colors).toHaveLength(8)
+    expect(parseShaderParams('simplex-noise', { colors: many }).colors).toHaveLength(9)
   })
 
   test('falls back to defaults for junk input', () => {

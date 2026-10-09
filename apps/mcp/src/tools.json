@@ -907,9 +907,24 @@
             "mesh-gradient",
             "static-mesh-gradient",
             "swirl",
-            "grain-gradient"
+            "grain-gradient",
+            "static-radial-gradient",
+            "simplex-noise",
+            "warp",
+            "spiral",
+            "color-panels",
+            "neuro-noise",
+            "perlin-noise",
+            "voronoi",
+            "waves",
+            "dot-grid",
+            "dot-orbit",
+            "god-rays",
+            "smoke-ring",
+            "metaballs",
+            "pulsing-border"
           ],
-          "description": "mesh-gradient: Flowing color spots moving along distinct trajectories with organic distortion. | static-mesh-gradient: Multi-point mesh gradient with two-direction warping. Renders one still frame. | swirl: Animated bands of color twisting into spirals, arcs and circular flows. | grain-gradient: Multi-color gradient with noise-textured distortion in seven abstract forms."
+          "description": "mesh-gradient: Flowing color spots moving along distinct trajectories with organic distortion. | static-mesh-gradient: Multi-point mesh gradient with two-direction warping. Renders one still frame. | swirl: Animated bands of color twisting into spirals, arcs and circular flows. | grain-gradient: Multi-color gradient with noise-textured distortion in seven abstract forms. | static-radial-gradient: A radial gradient with a movable focal point, falloff and optional grain. Renders one still frame. | simplex-noise: A soft, drifting field of color bands cut from simplex noise. | warp: Checks, stripes or an edge, bent into swirling folds of color. | spiral: A single tapering spiral stroke over a flat color. | color-panels: Overlapping translucent panels of color that fan across the box. | neuro-noise: Glowing, branching filaments like a neural net, in three colors. | perlin-noise: Two-color cloud and marble patterns from layered Perlin noise. | voronoi: Glowing cells split by thin gaps, colored in steps. | waves: Rows of wavy lines in two colors. Renders one still frame. | dot-grid: A regular grid of circles, diamonds, squares or triangles. Renders one still frame. | dot-orbit: Dots circling in rings, colored in steps along their orbit. | god-rays: Beams of light fanning out from a glowing center, with bloom. | smoke-ring: A ring of drifting smoke, one or more colors on a flat background. | metaballs: Soft blobs of color that drift and merge. | pulsing-border: A glowing, pulsing outline that runs around the edge of the box."
         },
         "parentId": {
           "description": "Element to insert into; defaults to the page root",
