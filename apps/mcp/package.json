@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun --env-file=../../.env run src/local.ts",
     "dev:stdio": "bun --env-file=../../.env run src/stdio.ts",
-    "build:server": "bun build --compile src/local.ts --outfile dist/sheet-server",
+    "build:server": "bun run --cwd ../../packages/db embed && bun build --compile src/local.ts --outfile dist/sheet-server",
     "test": "bun run --cwd ../.. test apps/mcp"
   },
   "dependencies": {

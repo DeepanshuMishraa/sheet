@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build:app": "vite build",
-    "build:server": "mkdir -p src-tauri/binaries && bun build --compile ../mcp/src/local.ts --outfile src-tauri/binaries/sheet-server",
+    "build:server": "bun run --cwd ../../packages/db embed && mkdir -p src-tauri/binaries && bun build --compile ../mcp/src/local.ts --outfile src-tauri/binaries/sheet-server",
     "build": "tauri build",
     "check": "tsc --noEmit && cargo check --manifest-path src-tauri/Cargo.toml",
     "generate-routes": "tsr generate"
