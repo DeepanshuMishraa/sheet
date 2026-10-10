@@ -75,10 +75,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header
         data-tauri-drag-region
         data-cuelume-theme="mech"
-        // The editor's panels are white (`bg-surface`); its bar matches them.
+        // No rule under the bar: it takes the colour of the panels below it
+        // (white in the editor, the page colour elsewhere) so the two read as one.
         className={cn(
-          'flex h-8 shrink-0 select-none items-stretch gap-1 border-b border-line ps-[78px] pe-3',
-          isEditor ? 'bg-surface' : 'bg-frame',
+          'flex h-9 shrink-0 select-none items-stretch gap-1 ps-[78px] pe-3',
+          isEditor ? 'bg-surface' : 'bg-background',
         )}
       >
         {isEditor ? (

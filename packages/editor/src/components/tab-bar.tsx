@@ -1,23 +1,27 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { File01Icon, LayoutGridIcon, PlusIcon, XIcon } from '@sheet/ui/icons'
+import { PlusIcon, XIcon } from '@sheet/ui/icons'
 import { cn } from '@sheet/ui/utils'
 import { useOpenTabs } from '../lib/open-tabs'
 
 import { type ReactNode } from 'react'
 
 /**
- * A tab is a square cell on the bar, divided from its neighbours by a
- * hairline. The open one takes the page's own background and covers the bar's
- * bottom rule, so it reads as the top of the page it opens; an accent bar
- * sweeps across its head from the left when it is chosen.
+ * A tab is just its name on the bar: no cell, no divider, no icon. The open
+ * one is set in full ink on a faint pill and carries a small accent square;
+ * the rest stay muted until the pointer reaches them.
  */
 const tabClassName = (active: boolean) =>
   cn(
-    "relative flex h-full shrink-0 items-center gap-2 border-e border-line px-3.5 text-xs outline-none transition-colors duration-150 ease-smooth before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:origin-left before:bg-cx-accent before:transition-transform before:duration-200 before:ease-smooth before:content-[''] after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-background after:transition-opacity after:duration-150 after:content-[''] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:before:transition-none",
+    'relative my-auto flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs outline-none transition-colors duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-ring',
     active
-      ? 'bg-background text-foreground before:scale-x-100 after:opacity-100'
-      : 'text-muted-foreground before:scale-x-0 after:opacity-0 hover:bg-accent/60 hover:text-foreground',
+      ? 'bg-foreground/6 text-foreground'
+      : 'text-muted-foreground hover:bg-foreground/4 hover:text-foreground',
   )
+
+/** The accent square beside the open tab's name. */
+function ActiveMark({ active }: { active: boolean }) {
+  return active ? <span aria-hidden="true" className="size-1.5 shrink-0 bg-cx-accent" /> : null
+}
 
 function TabLink({
   to,
@@ -87,18 +91,18 @@ export function DocumentTabBar({
   const isLauncher = pathname.startsWith('/app/new')
 
   return (
-    <div data-tauri-drag-region className="flex h-full min-w-0 items-stretch border-s border-line">
+    <div data-tauri-drag-region className="flex h-full min-w-0 items-stretch gap-0.5">
       <TabLink
         to="/app"
         hasRouter={hasRouter}
         className={tabClassName(isDashboard)}
         aria-label="Back to dashboard"
       >
-        <LayoutGridIcon className="size-3.5" />
-        <span className="max-md:sr-only">Dashboard</span>
+        <ActiveMark active={isDashboard} />
+        <span>Dashboard</span>
       </TabLink>
 
-      <div className="flex min-w-0 items-stretch">
+      <div className="flex min-w-0 items-stretch gap-0.5">
         {tabs.map((tab) => {
           const isActive = activeId === tab.id
           return (
@@ -113,9 +117,9 @@ export function DocumentTabBar({
                 to="/design/$id"
                 params={{ id: tab.id }}
                 hasRouter={hasRouter}
-                className={cn(tabClassName(isActive), 'min-w-0 pe-8')}
+                className={cn(tabClassName(isActive), 'min-w-0 pe-7')}
               >
-                <File01Icon className="size-3.5 shrink-0" />
+                <ActiveMark active={isActive} />
                 <span className="max-w-44 truncate max-md:max-w-24">{tab.name}</span>
               </TabLink>
               <button
@@ -142,7 +146,7 @@ export function DocumentTabBar({
       <TabLink
         to="/app/new"
         hasRouter={hasRouter}
-        className={cn(tabClassName(isLauncher), 'px-3')}
+        className={cn(tabClassName(isLauncher), 'px-2')}
         aria-label="New tab"
         title="New tab"
       >

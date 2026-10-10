@@ -452,6 +452,12 @@ function isFreeObject(node: WebNode | null | undefined) {
   return kind === 'image' || kind === 'svg' || isShaderNode(node)
 }
 
+/** An element that holds other layers: a pane or card, as opposed to text or a lone box. */
+function isFrameInFrame(document: WebDocument, id: string) {
+  const node = document.nodes[id]
+  return node?.kind === 'element' && orderedWebChildren(document, id).length > 0
+}
+
 function pickTarget(document: WebDocument, id: string | null) {
   for (let current = id ? document.nodes[id] : undefined; current; current = current.parentId ? document.nodes[current.parentId] : undefined) {
     if (isIconNode(current)) return current.id
@@ -2805,7 +2811,11 @@ export function WebCanvasEditor({
       pageLayerIds(documentRef.current, pageIdRef.current).includes(selectedRef.current)
     // An image, icon or shader is pinned wherever it sits, even inside a frame whose
     // layout would otherwise hold it: it is its own object, not a part of the frame.
-    const canPin = isPageLayer || isFreeObject(node)
+    // A frame inside a frame (a pane, a card, whatever holds other layers) is pinned the
+    // same way, so it can be moved and sized from every side like a top-level one.
+    const nestedFrame =
+      !isPageLayer && node !== null && !isFreeObject(node) && isFrameInFrame(documentRef.current, node.id)
+    const canPin = isPageLayer || isFreeObject(node) || nestedFrame
     let moveKind = mode === 'move' ? computedPosition : undefined
     let pinAbsolute = false
     if (mode === 'move' && moveKind === 'reorder' && canPin) {
@@ -2828,8 +2838,12 @@ export function WebCanvasEditor({
       authoredTop = (rect.top - parentRect.top) / zoom
     }
     if (mode === 'move' && moveKind === 'absolute') {
-      if (pinAbsolute) fromRect()
-      else {
+      if (pinAbsolute) {
+        fromRect()
+        // Out of its layout the box would shrink to its content, so it keeps the size it was drawn at.
+        if (authoredWidth === null) authoredWidth = rect.width / zoom
+        if (authoredHeight === null) authoredHeight = rect.height / zoom
+      } else {
         if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
         if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
       }
@@ -2843,15 +2857,19 @@ export function WebCanvasEditor({
     // Pulling a west or north side moves the box's origin, which only a
     // free-positioned element has. A top-level layer in the page's flow is pinned
     // first; one inside a layout keeps to the sides that can move.
+    // A nested frame in a layout is pinned on any resize: its width is otherwise owned by
+    // the layout (a flex share, say), which is why only its height would follow a handle.
     let resizeEdges = edges
-    if (mode === 'resize' && edges && (edges.w || edges.n)) {
+    if (mode === 'resize' && edges) {
       if (computedPosition === 'absolute') {
-        if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
-        if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
-      } else if (canPin) {
+        if (edges.w || edges.n) {
+          if (authoredLeft === null) authoredLeft = (rect.left - parentRect.left) / zoom
+          if (authoredTop === null) authoredTop = (rect.top - parentRect.top) / zoom
+        }
+      } else if (canPin && (edges.w || edges.n || nestedFrame)) {
         fromRect()
         pinAbsolute = true
-      } else {
+      } else if (edges.w || edges.n) {
         resizeEdges = { e: edges.e, s: edges.s }
       }
     }
@@ -2891,11 +2909,13 @@ export function WebCanvasEditor({
     // in the page's flow, which is pinned to a free position as it goes. A layer inside a
     // layout is left to its label handle, since a stray drag there would reorder it.
     const topLevel = pageLayerIds(documentRef.current, pageIdRef.current).includes(id)
-    // Images, icons and shaders are objects of their own and move freely wherever they are nested.
+    // Images, icons, shaders and frames inside frames are objects of their own and move
+    // freely wherever they are nested.
     if (
       dragMoveKind(getComputedStyle(element).position) !== 'absolute' &&
       !topLevel &&
-      !isFreeObject(documentRef.current.nodes[id])
+      !isFreeObject(documentRef.current.nodes[id]) &&
+      !isFrameInFrame(documentRef.current, id)
     ) return
     select(id)
     startElementDrag(event, 'move')
@@ -2909,7 +2929,11 @@ export function WebCanvasEditor({
     if (drag.mode === 'move' && drag.moveKind === 'reorder') {
       drag.element.style.transform = `translate(${dx}px, ${dy}px)`
     } else if (drag.mode === 'move') {
-      if (drag.pinAbsolute) drag.element.style.position = 'absolute'
+      if (drag.pinAbsolute) {
+        drag.element.style.position = 'absolute'
+        if (drag.authoredWidth !== null) drag.element.style.width = `${drag.authoredWidth}px`
+        if (drag.authoredHeight !== null) drag.element.style.height = `${drag.authoredHeight}px`
+      }
       if (drag.authoredLeft !== null) drag.element.style.left = `${drag.authoredLeft + dx}px`
       if (drag.authoredTop !== null) drag.element.style.top = `${drag.authoredTop + dy}px`
     } else if (drag.resizeEdges && drag.authoredWidth !== null && drag.authoredHeight !== null) {
@@ -3015,7 +3039,13 @@ export function WebCanvasEditor({
           styles: {
             left: committed.left,
             top: committed.top,
-            ...(drag.pinAbsolute ? { position: 'absolute' } : {}),
+            ...(drag.pinAbsolute
+              ? {
+                position: 'absolute',
+                ...(drag.authoredWidth !== null ? { width: `${drag.authoredWidth}px` } : {}),
+                ...(drag.authoredHeight !== null ? { height: `${drag.authoredHeight}px` } : {}),
+              }
+              : {}),
           },
         },
       }])

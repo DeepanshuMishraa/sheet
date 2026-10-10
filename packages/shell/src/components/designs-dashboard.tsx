@@ -32,7 +32,6 @@ import { Loader } from '@sheet/ui/loader'
 import { Skeleton } from '@sheet/ui/skeleton'
 import { Spinner } from '@sheet/ui/spinner'
 import { FreshnessMeter } from './freshness-meter'
-import { GridPaper } from '@sheet/ui/grid-paper'
 import { ThemeToggle } from './theme-toggle'
 import { orpc } from '@sheet/rpc/client'
 import { createDesign, relativeTime, type DesignSummary } from '@sheet/editor/lib/designs'
@@ -445,8 +444,8 @@ export function DesignsDashboard({
 
   return (
     <>
-      <GridPaper as="main" className="app-page-enter flex min-h-full min-w-0 flex-col">
-        <header className="flex h-11 shrink-0 items-center justify-between border-b border-line px-8">
+      <main className="app-page-enter flex min-h-full min-w-0 flex-col">
+        <header className="flex h-11 shrink-0 items-center justify-between px-8">
           <h1 className="cx-label cx-bracket">{title}</h1>
           <div className="flex items-center gap-8">
             <p className="cx-label tabular-nums">
@@ -577,7 +576,7 @@ export function DesignsDashboard({
             </div>
           )}
         </div>
-      </GridPaper>
+      </main>
 
       <Dialog
         open={renameTarget !== null}
