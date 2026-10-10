@@ -167,16 +167,20 @@ shared interface, built by Vite from the same packages.
   `/desktop`, `/callback`, `/realtime` back to the host) and the host serves
   the built files in a packaged app.
 - **Data** lives in one SQLite file in the OS app-data dir
-  (`SHEET_DATA_DIR` overrides). Back it up by copying the file.
+  (`SHEET_DATA_DIR` overrides). Back it up by copying the file. A debug build
+  (`bun run dev:desktop`) is a separate app, "Sheet Dev", with its own data dir,
+  identifier and host port, so it never shares state with the installed one.
 - Anything that leaves the app — a hand-off URL opened elsewhere — opens
   in a browser.
 
 - **Settings** is a window of its own, opened from the application menu
-  (Sheet › Settings…, ⌘,) and from nowhere inside the interface. The host builds
+  (Sheet › Settings…, ⌘,) and from the Settings button above the profile in the
+  sidebar, which asks the host over `POST /desktop/settings`
+  (`openSettingsWindow` in `@sheet/shell/lib/settings-window`). The host builds
   the menu in `build_menu` and opens the window at `/settings` in
   `open_settings` (`src-tauri/src/main.rs`); the route is
   `apps/desktop/src/routes/settings.tsx` and the screen is
-  `@sheet/shell/settings-window` (Appearance, Sound, Shortcuts, Agents). The
+  `@sheet/shell/settings-window` (Appearance, Sound, Shortcuts, Agents, Updates). The
   window is its own webview on the same loopback origin, so its choices reach
   the main window through `localStorage` and the `storage` event: theme
   (`sheet:theme`), accent (`sheet:accent`), interface size (`sheet:ui-scale`),

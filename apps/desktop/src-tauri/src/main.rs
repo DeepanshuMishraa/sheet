@@ -118,13 +118,17 @@ fn read_data_dir() -> PathBuf {
             return PathBuf::from(value.trim());
         }
     }
+    // A development build keeps its own database, so working on Sheet never
+    // touches the designs in the installed app (and the reverse).
+    let name = match (cfg!(target_os = "linux"), cfg!(debug_assertions)) {
+        (true, false) => "sheet",
+        (true, true) => "sheet-dev",
+        (false, false) => "Sheet",
+        (false, true) => "Sheet Dev",
+    };
     dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(if cfg!(target_os = "linux") {
-            "sheet"
-        } else {
-            "Sheet"
-        })
+        .join(name)
 }
 
 fn read_origin(name: &str, fallback: &str) -> Url {
@@ -146,11 +150,17 @@ fn read_port(name: &str, fallback: u16) -> u16 {
     fallback
 }
 
+/// The window's origin is `http://127.0.0.1:<port>`, and the webview keys
+/// everything it remembers (theme, accent, "onboarding seen") by origin. So the
+/// installed app asks for the same port every launch, and takes any free one
+/// only when that is busy. Development has its own port and its own identity.
+const PRODUCTION_PORT: u16 = 4310;
+
 fn requested_port() -> u16 {
     if cfg!(debug_assertions) {
         read_port("SHEET_DESKTOP_PORT", 4300)
     } else {
-        read_port("SHEET_DESKTOP_PORT", 0)
+        read_port("SHEET_DESKTOP_PORT", PRODUCTION_PORT)
     }
 }
 
@@ -549,6 +559,23 @@ async fn desktop_open(Json(payload): Json<OpenRequest>) -> Response {
     }
 }
 
+/// Opens (or raises) the Settings window for the sidebar's Settings button.
+/// Windows are made on the main thread, the way the menu item does it.
+async fn desktop_settings(State(state): State<AppState>) -> Response {
+    let Some(app) = state.app.clone() else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let target = app.clone();
+    match app.run_on_main_thread(move || open_settings(&target)) {
+        Ok(()) => Json(json!({ "opened": true })).into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "opened": false })),
+        )
+            .into_response(),
+    }
+}
+
 fn update_unavailable() -> Response {
     (
         StatusCode::SERVICE_UNAVAILABLE,
@@ -573,6 +600,15 @@ async fn desktop_update_check(State(state): State<AppState>) -> Response {
     let Some(app) = state.app.clone() else {
         return update_unavailable();
     };
+    // A development build is not an installed release: it must never offer to
+    // replace itself with one.
+    if cfg!(debug_assertions) {
+        return Json(json!({
+            "status": "upToDate",
+            "version": app.package_info().version.to_string(),
+        }))
+        .into_response();
+    }
     let checked = match app.updater() {
         Ok(updater) => updater.check().await,
         Err(error) => Err(error),
@@ -845,6 +881,7 @@ fn router(state: AppState) -> Router {
         .route("/desktop/profile", get(desktop_profile))
         .route("/desktop/profile-image", get(desktop_profile_image))
         .route("/desktop/open", post(desktop_open))
+        .route("/desktop/settings", post(desktop_settings))
         .route("/desktop/version", get(desktop_version))
         .route("/desktop/update/check", post(desktop_update_check))
         .route("/desktop/update/install", post(desktop_update_install))
@@ -951,9 +988,23 @@ fn main() {
             build_menu(app)?;
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
-                let listener = TcpListener::bind(("127.0.0.1", requested_port()))
-                    .await
-                    .map_err(|error| format!("could not bind desktop host: {error}"))?;
+                let requested = requested_port();
+                let listener = match TcpListener::bind(("127.0.0.1", requested)).await {
+                    Ok(listener) => listener,
+                    // The installed app's usual port is taken: run on any free one
+                    // rather than not open. Settings remembered by origin start over.
+                    Err(error)
+                        if !cfg!(debug_assertions)
+                            && requested == PRODUCTION_PORT
+                            && env::var("SHEET_DESKTOP_PORT").is_err() =>
+                    {
+                        eprintln!("[desktop] port {requested} is busy ({error}); using a free one");
+                        TcpListener::bind(("127.0.0.1", 0))
+                            .await
+                            .map_err(|error| format!("could not bind desktop host: {error}"))?
+                    }
+                    Err(error) => return Err(format!("could not bind desktop host: {error}").into()),
+                };
                 let port = listener
                     .local_addr()
                     .map_err(|error| format!("could not read desktop host port: {error}"))?

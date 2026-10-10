@@ -6,6 +6,7 @@ import { GridPaper } from '@sheet/ui/grid-paper'
 import { Sound } from '@sheet/ui/sound'
 import { cn } from '@sheet/ui/utils'
 import { fadeUp, uiTransition } from '../lib/motion'
+import { AgentSetup } from './agent-setup'
 import { AppearanceSettings, SoundSettings } from './appearance-settings'
 
 const STORAGE_KEY = 'sheet:onboarded'
@@ -28,7 +29,7 @@ function markOnboarded() {
 }
 
 type Step = {
-  id: 'welcome' | 'look' | 'sound'
+  id: 'welcome' | 'look' | 'sound' | 'agents'
   label: string
   title: ReactNode
   body: string
@@ -61,13 +62,20 @@ const STEPS: readonly Step[] = [
     body: 'Short cues for taps, menus and finished work.',
     content: <SoundSettings />,
   },
+  {
+    id: 'agents',
+    label: 'Agents',
+    title: 'Connect your agent',
+    body: 'Pick the agents you use. Sheet adds its MCP server to each and installs the design skill. You can do this later in Settings.',
+    content: <AgentSetup />,
+  },
 ]
 
 /**
- * First-run welcome: a full-window sheet of three quiet steps (hello, look,
- * sound) over the same grid paper as the rest of the app. Shown once; the
- * choices it offers are the ones Settings already owns, so nothing here is
- * stored twice.
+ * First-run welcome: a full-window sheet of four quiet steps (hello, look,
+ * sound, agents) over the same grid paper as the rest of the app. Shown once
+ * and not skippable, though every choice in it can be passed with Continue.
+ * The choices are the ones Settings already owns, so nothing is stored twice.
  */
 export function Onboarding() {
   const reduceMotion = useReducedMotion()
@@ -101,13 +109,12 @@ export function Onboarding() {
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') finish()
       // A focused control owns Enter; only a bare Enter advances.
-      else if (event.key === 'Enter' && event.target === document.body) next()
+      if (event.key === 'Enter' && event.target === document.body) next()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, finish, next])
+  }, [open, next])
 
   if (!step) return null
 
@@ -167,9 +174,7 @@ export function Onboarding() {
 
             <div className="flex items-center justify-between">
               {index === 0 ? (
-                <Button type="button" variant="ghost" onClick={finish}>
-                  Skip
-                </Button>
+                <span aria-hidden="true" />
               ) : (
                 <Button type="button" variant="ghost" onClick={back}>
                   Back

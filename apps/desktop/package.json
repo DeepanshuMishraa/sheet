@@ -6,7 +6,7 @@
     "#app/*": "./src/*"
   },
   "scripts": {
-    "dev": "tauri dev",
+    "dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
     "build:app": "vite build",
     "build:server": "bun run --cwd ../../packages/db embed && mkdir -p src-tauri/binaries && bun build --compile ../mcp/src/local.ts --outfile src-tauri/binaries/sheet-server",
     "build": "tauri build",

@@ -50,6 +50,17 @@ live in one SQLite file: the OS app-data dir (`Sheet/sheet.db`, `sheet/sheet.db`
 on Linux), overridable with `SHEET_DATA_DIR`. Back it up by copying the file.
 Handoff links are HMAC-signed with a key in `handoff.key` beside it.
 
+## Development and installed builds are separate
+
+`bun run dev:desktop` runs as **Sheet Dev** (`design.sheet.desktop.dev`, via
+`src-tauri/tauri.dev.conf.json`), and a debug build keeps its data in
+`Sheet Dev/` (`sheet-dev/` on Linux) on host port `4300`. The installed app is
+`design.sheet.desktop`, data in `Sheet/`, host port `4310` (a free port if that
+is taken). So the two never share a database, webview storage (theme, accent,
+"onboarding seen") or window state, and a development build never offers to
+update itself. They still share the local server's port `4100`, so run one at a
+time.
+
 ## What is not here
 
 Billing, admin, sharing, publishing, and the in-app agent are gone with
@@ -72,7 +83,7 @@ native drag regions.
 | `SHEET_MCP_PORT` | Port the sidecar listens on (default `4100`) |
 | `SHEET_DATA_DIR` | Where `sheet.db` + `handoff.key` live (default OS app-data dir) |
 | `SHEET_SERVER_BIN` | Local server binary override (default the bundled sidecar) |
-| `SHEET_DESKTOP_PORT` | Loopback port for the host (default: one the OS picks; `4300` in development) |
+| `SHEET_DESKTOP_PORT` | Loopback port for the host (default `4310`, any free port if busy; `4300` in development) |
 | `SHEET_DESKTOP_DEV_SERVER` | Vite dev server the window is handed to |
 | `SHEET_DESKTOP_APP_PORT` | Port for that dev server (default `1421`) |
 | `VITE_SHEET_APP_ORIGIN` | Origin for links meant for a browser (default `http://127.0.0.1:4100`) |

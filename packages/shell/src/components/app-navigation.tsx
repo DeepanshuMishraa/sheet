@@ -4,10 +4,12 @@ import {
   ClockIcon,
   LayoutGridIcon,
   PlusIcon,
+  SettingsIcon,
 } from '@sheet/ui/icons'
 import { Avatar, AvatarFallback, AvatarImage } from '@sheet/ui/avatar'
 import { BrandMark } from '@sheet/ui/brand-mark'
 import { cn } from '@sheet/ui/utils'
+import { openSettingsWindow } from '../lib/settings-window'
 
 export type AppSection = 'recents' | 'files'
 
@@ -111,8 +113,20 @@ export function AppSidebar({ active }: { active: AppSection | null }) {
 
       </div>
 
-      {/* Who is signed in. Settings is not reached from here: it opens from the
-          application menu, as its own window. */}
+      {/* Settings is its own window; this opens it, as the menu item (⌘,) does. */}
+      <div className="shrink-0 px-3 pb-2">
+        <button
+          type="button"
+          data-cuelume-tap=""
+          className={rowClassName(false)}
+          onClick={openSettingsWindow}
+        >
+          <SettingsIcon className="size-4 shrink-0" />
+          <span className="truncate">Settings</span>
+        </button>
+      </div>
+
+      {/* Who is signed in. */}
       <div className="flex h-12 shrink-0 items-center gap-2.5 border-t border-line px-5">
         <Avatar className="size-5 shrink-0 rounded-full text-2xs font-semibold">
           {profile?.imageUrl ? <AvatarImage src={profile.imageUrl} alt="" /> : null}

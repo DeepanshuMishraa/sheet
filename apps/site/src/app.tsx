@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import { play } from 'cuelume'
 import {
   AgentsDiagram,
@@ -9,6 +9,7 @@ import {
   type Platform,
 } from './diagrams'
 import { prefersReducedMotion, trackPointer, useInView } from './hooks'
+import { DownloadDialog } from './download-dialog'
 import { chooseTheme, currentTheme, followSystem } from './theme'
 
 const REPO = 'https://github.com/DeepanshuMishraa/sheet'
@@ -279,6 +280,14 @@ function Card({ className, children }: { className?: string; children: ReactNode
 export function App() {
   const detected = useMemo(detectPlatform, [])
   const [platform, setPlatform] = useState<Platform>(detected)
+  const [downloadOpen, setDownloadOpen] = useState(false)
+
+  /** Plain clicks open the dialog; a modified click (new tab, save link) keeps the real link. */
+  const openDownload = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    setDownloadOpen(true)
+  }
 
   return (
     <>
@@ -296,7 +305,7 @@ export function App() {
               GitHub
             </a>
             <ThemeToggle />
-            <a className="button button-solid button-small" href={DOWNLOAD} data-cuelume-tap>
+            <a className="button button-solid button-small" href={DOWNLOAD} onClick={openDownload} data-cuelume-tap>
               Download
             </a>
           </nav>
@@ -315,7 +324,7 @@ export function App() {
               build beside you, live, in the same file.
             </p>
             <div className="actions">
-              <a className="button button-solid button-large" href={DOWNLOAD} data-cuelume-tap>
+              <a className="button button-solid button-large" href={DOWNLOAD} onClick={openDownload} data-cuelume-tap>
                 Download for macOS
               </a>
               <a className="button button-large" href={REPO} data-cuelume-navigate>
@@ -411,7 +420,7 @@ export function App() {
                 ))}
               </div>
               <PlatformWindow platform={platform} />
-              <a className="button button-solid" href={DOWNLOAD} data-cuelume-tap>
+              <a className="button button-solid" href={DOWNLOAD} onClick={openDownload} data-cuelume-tap>
                 Download for macOS
               </a>
             </div>
@@ -421,7 +430,7 @@ export function App() {
         <section id="download" className="cta">
           <Reveal>
             <h2>Open a canvas. Invite your agent.</h2>
-            <a className="button button-solid button-large" href={DOWNLOAD} data-cuelume-tap>
+            <a className="button button-solid button-large" href={DOWNLOAD} onClick={openDownload} data-cuelume-tap>
               Download for macOS
             </a>
           </Reveal>
@@ -438,6 +447,7 @@ export function App() {
           GitHub
         </a>
       </footer>
+      <DownloadDialog open={downloadOpen} href={DOWNLOAD} onClose={() => setDownloadOpen(false)} />
     </>
   )
 }

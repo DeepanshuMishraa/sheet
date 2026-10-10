@@ -67,7 +67,7 @@ export const AGENTS: Agent[] = [
   },
 ]
 
-type InstallState =
+export type InstallState =
   | { phase: 'idle' }
   | { phase: 'installing' }
   | { phase: 'done'; path: string; already: boolean }
@@ -77,7 +77,7 @@ type InstallResponse =
   | { ok: true; path: string; status: 'installed' | 'updated' | 'already-installed' }
   | { ok: false; message: string }
 
-async function requestInstall(agent: string): Promise<InstallState> {
+export async function requestInstall(agent: string): Promise<InstallState> {
   try {
     const response = await fetch(apiUrl('/api/agent-install'), {
       method: 'POST',
@@ -175,17 +175,17 @@ function InstallButton({ agent }: { agent: Agent }) {
   )
 }
 
-type SkillEntry =
+export type SkillEntry =
   | { label: string; path: string; status: 'installed' | 'updated' }
   | { label: string; path: string; status: 'skipped' | 'failed'; message: string }
 
-type SkillState =
+export type SkillState =
   | { phase: 'idle' }
   | { phase: 'installing' }
   | { phase: 'done'; entries: SkillEntry[] }
   | { phase: 'failed'; message: string; entries: SkillEntry[] }
 
-async function requestSkillInstall(): Promise<SkillState> {
+export async function requestSkillInstall(): Promise<SkillState> {
   try {
     const response = await fetch(apiUrl('/api/skill-install'), {
       method: 'POST',
