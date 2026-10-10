@@ -12,7 +12,8 @@ import { prefersReducedMotion, trackPointer, useInView } from './hooks'
 import { chooseTheme, currentTheme, followSystem } from './theme'
 
 const REPO = 'https://github.com/DeepanshuMishraa/sheet'
-const DOWNLOAD = `${REPO}/releases/latest`
+/** A fixed name, so the link keeps working across versions: the release workflow uploads the DMG under it. */
+const DOWNLOAD = `${REPO}/releases/latest/download/Sheet-macos-arm64.dmg`
 
 /** One agent step: when it fires, what the log says. */
 const script = [
@@ -315,7 +316,7 @@ export function App() {
             </p>
             <div className="actions">
               <a className="button button-solid button-large" href={DOWNLOAD} data-cuelume-tap>
-                Download for {detected}
+                Download for macOS
               </a>
               <a className="button button-large" href={REPO} data-cuelume-navigate>
                 View on GitHub
@@ -411,7 +412,7 @@ export function App() {
               </div>
               <PlatformWindow platform={platform} />
               <a className="button button-solid" href={DOWNLOAD} data-cuelume-tap>
-                Download for {platform}
+                Download for macOS
               </a>
             </div>
           </Reveal>
@@ -421,7 +422,7 @@ export function App() {
           <Reveal>
             <h2>Open a canvas. Invite your agent.</h2>
             <a className="button button-solid button-large" href={DOWNLOAD} data-cuelume-tap>
-              Download for {detected}
+              Download for macOS
             </a>
           </Reveal>
         </section>

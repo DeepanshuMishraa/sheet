@@ -71,3 +71,13 @@ jobs:
           releaseDraft: false
           uploadUpdaterJson: true
           args: --target aarch64-apple-darwin --config '{"version":"${{ steps.version.outputs.version }}"}'
+
+      # The DMG is named after its version; the website links to a fixed name.
+      - name: Add the fixed-name download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          dmg="$(ls apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg | head -1)"
+          cp "$dmg" Sheet-macos-arm64.dmg
+          gh release upload "$TAG" Sheet-macos-arm64.dmg --clobber --repo "${{ github.repository }}"
