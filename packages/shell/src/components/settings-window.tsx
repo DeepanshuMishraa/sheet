@@ -10,8 +10,9 @@ import {
 import { cn } from '@sheet/ui/utils'
 import { AppearanceSettings, SoundSettings } from './appearance-settings'
 import { ShortcutsSettings } from './shortcuts-settings'
+import { UpdatesSettings } from './updates-settings'
 
-type SectionId = 'appearance' | 'sound' | 'shortcuts' | 'agents'
+type SectionId = 'appearance' | 'sound' | 'shortcuts' | 'agents' | 'updates'
 
 /**
  * Each section's mark, drawn on a 16px grid. The one in use draws itself in, so
@@ -37,6 +38,9 @@ function Glyph({ id, active }: { id: SectionId; active: boolean }) {
           <path className={draw} pathLength="1" d="M5 8h6" {...props} />
         </>
       ) : null}
+      {id === 'updates' ? (
+        <path className={draw} pathLength="1" d="M8 2.5v8M4.5 7.5 8 11l3.5-3.5M3 13.5h10" {...props} />
+      ) : null}
       {id === 'agents' ? (
         <>
           <rect x="2" y="2" width="5" height="5" {...props} />
@@ -53,6 +57,7 @@ const SECTIONS: ReadonlyArray<{ id: SectionId; label: string; title: string }> =
   { id: 'sound', label: 'Sound', title: 'What Sheet sounds like' },
   { id: 'shortcuts', label: 'Shortcuts', title: 'Keys, your way' },
   { id: 'agents', label: 'Agents', title: 'Connect an agent' },
+  { id: 'updates', label: 'Updates', title: 'Keep Sheet current' },
 ]
 
 /** Shortcuts, loaded from and saved to the account the same way the editor reads them. */
@@ -98,6 +103,8 @@ function Body({ section }: { section: SectionId }): ReactNode {
       return <ShortcutsSection />
     case 'agents':
       return <ConnectAgent />
+    case 'updates':
+      return <UpdatesSettings />
   }
 }
 

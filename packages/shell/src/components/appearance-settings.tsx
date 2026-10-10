@@ -104,7 +104,46 @@ const SCALE_LABELS: Record<UiScale, string> = {
   1.5: 'Largest',
 }
 
-function Section({
+/** An on/off row: its state in words, and a hairline track with a square that travels it. */
+export function SwitchRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (next: boolean) => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      className="cx-press flex h-10 items-center justify-between px-3 text-xs shadow-hairline outline-none transition-shadow duration-150 hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={() => onChange(!checked)}
+    >
+      <span>{checked ? 'On' : 'Off'}</span>
+      {/* The accent only shows while it is on. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          'relative h-4 w-8 shadow-hairline transition-colors duration-200 ease-smooth',
+          checked && 'bg-cx-accent/15',
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-1/2 size-2.5 -translate-y-1/2 transition-[inset-inline-start,background-color] duration-200 ease-smooth',
+            checked ? 'start-[1.1rem] bg-cx-accent' : 'start-[0.2rem] bg-muted-foreground',
+          )}
+        />
+      </span>
+    </button>
+  )
+}
+
+export function Section({
   label,
   hint,
   children,
@@ -281,35 +320,15 @@ export function SoundSettings({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col gap-10', className)}>
       <Section label="Sound" hint="Cues for taps, hovers, menus and finished work.">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={sound === 'on'}
-          aria-label="Sound"
-          className="cx-press flex h-10 items-center justify-between px-3 text-xs shadow-hairline outline-none transition-shadow duration-150 hover:shadow-lift-hover focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => {
-            const next: SoundPreference = sound === 'on' ? 'off' : 'on'
+        <SwitchRow
+          label="Sound"
+          checked={sound === 'on'}
+          onChange={(on) => {
+            const next: SoundPreference = on ? 'on' : 'off'
             setSound(next)
             setSoundPreference(next)
           }}
-        >
-          <span>{sound === 'on' ? 'On' : 'Off'}</span>
-          {/* A hairline track with a square that travels it; the accent only shows while it is on. */}
-          <span
-            aria-hidden="true"
-            className={cn(
-              'relative h-4 w-8 shadow-hairline transition-colors duration-200 ease-smooth',
-              sound === 'on' && 'bg-cx-accent/15',
-            )}
-          >
-            <span
-              className={cn(
-                'absolute top-1/2 size-2.5 -translate-y-1/2 transition-[inset-inline-start,background-color] duration-200 ease-smooth',
-                sound === 'on' ? 'start-[1.1rem] bg-cx-accent' : 'start-[0.2rem] bg-muted-foreground',
-              )}
-            />
-          </span>
-        </button>
+        />
       </Section>
 
       <Section label="Volume" hint="Press a bar. The sound you hear is the level you chose.">

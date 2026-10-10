@@ -5,6 +5,8 @@ import { syncThemePreference } from '@sheet/shell/lib/theme'
 import { syncAccent } from '@sheet/shell/lib/accent'
 import { syncUiScale } from '@sheet/shell/lib/ui-scale'
 import { initSound } from '@sheet/ui/sound'
+import { ToastProvider } from '@sheet/ui/toast'
+import { startAutoUpdate } from '@sheet/shell/lib/updates'
 import { AppShell } from '@sheet/shell/app-page-shell'
 import { Onboarding } from '@sheet/shell/onboarding'
 import { useCaptureResponder } from '@sheet/editor/lib/capture-client'
@@ -40,7 +42,9 @@ function SettingsRoot() {
 
   return (
     <NuqsAdapter>
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </NuqsAdapter>
   )
 }
@@ -53,6 +57,7 @@ function AppRoot({ pathname }: { pathname: string }) {
   useEffect(() => syncAccent(), [])
   useEffect(() => syncUiScale(), [])
   useEffect(() => initSound(), [])
+  useEffect(() => startAutoUpdate(), [])
   useCaptureResponder()
   useEffect(() => {
     document.getElementById('boot-splash')?.remove()
@@ -60,18 +65,20 @@ function AppRoot({ pathname }: { pathname: string }) {
 
   return (
     <NuqsAdapter>
-      <div className="flex h-dvh flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {framed ? (
-            <AppShell>
+      <ToastProvider>
+        <div className="flex h-dvh flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {framed ? (
+              <AppShell>
+                <Outlet />
+              </AppShell>
+            ) : (
               <Outlet />
-            </AppShell>
-          ) : (
-            <Outlet />
-          )}
+            )}
+          </div>
         </div>
-      </div>
-      <Onboarding />
+        <Onboarding />
+      </ToastProvider>
     </NuqsAdapter>
   )
 }

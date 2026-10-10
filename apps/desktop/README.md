@@ -76,3 +76,24 @@ native drag regions.
 | `SHEET_DESKTOP_DEV_SERVER` | Vite dev server the window is handed to |
 | `SHEET_DESKTOP_APP_PORT` | Port for that dev server (default `1421`) |
 | `VITE_SHEET_APP_ORIGIN` | Origin for links meant for a browser (default `http://127.0.0.1:4100`) |
+
+## Releases and updates
+
+Publishing a GitHub release tagged `vX.Y.Z` runs `.github/workflows/release.yml`.
+It builds the Apple Silicon app (version taken from the tag), and attaches the
+`.dmg`, the signed update bundle and `latest.json` to that release.
+
+- **One secret:** `TAURI_SIGNING_PRIVATE_KEY` (and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key has one). This is the updater's
+  minisign key, not an Apple or GitHub credential. The public half is
+  `plugins.updater.pubkey` in `tauri.conf.json`. Generate a pair with
+  `bunx tauri signer generate -w ~/.tauri/sheet-updater.key`; losing the private
+  key means installed apps can never update.
+- **Unsigned app:** it is ad-hoc signed, not notarized. First install only:
+  `sudo xattr -rd com.apple.quarantine /Applications/Sheet.app`. Updates are
+  downloaded by the app itself, so they carry no quarantine flag and need no
+  further step.
+- **In the app:** Settings › Updates checks on demand; the main window also
+  checks shortly after launch and every six hours, and offers an install toast.
+  The host exposes this at `/desktop/update/*` and `/desktop/version`, behind the
+  same bridge cookie as the other `/desktop` routes.

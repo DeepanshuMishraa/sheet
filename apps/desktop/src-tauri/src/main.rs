@@ -28,6 +28,7 @@ use serde::Deserialize;
 use serde_json::json;
 use subtle::ConstantTimeEq;
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_updater::UpdaterExt;
 use tokio::{fs, net::TcpListener, process::Child, sync::Mutex};
 use url::Url;
 
@@ -53,6 +54,10 @@ struct AppState {
     bridge_token: String,
     sidecar: Arc<Mutex<Option<Child>>>,
     profile: Arc<OnceLock<Arc<LocalProfile>>>,
+    /// Absent only in tests, which have no running app to update.
+    app: Option<tauri::AppHandle>,
+    /// The update the last check found, held until the person chooses to install it.
+    update: Arc<Mutex<Option<tauri_plugin_updater::Update>>>,
 }
 
 struct LocalProfile {
@@ -544,6 +549,104 @@ async fn desktop_open(Json(payload): Json<OpenRequest>) -> Response {
     }
 }
 
+fn update_unavailable() -> Response {
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(json!({
+            "status": "error",
+            "message": "Updates are not available in this build of Sheet.",
+        })),
+    )
+        .into_response()
+}
+
+async fn desktop_version(State(state): State<AppState>) -> Response {
+    let Some(app) = state.app.as_ref() else {
+        return update_unavailable();
+    };
+    Json(json!({ "version": app.package_info().version.to_string() })).into_response()
+}
+
+/// Asks the release feed whether a newer build exists. The update it finds is
+/// kept here so `install` can act on exactly what the person was shown.
+async fn desktop_update_check(State(state): State<AppState>) -> Response {
+    let Some(app) = state.app.clone() else {
+        return update_unavailable();
+    };
+    let checked = match app.updater() {
+        Ok(updater) => updater.check().await,
+        Err(error) => Err(error),
+    };
+    match checked {
+        Ok(Some(update)) => {
+            let body = json!({
+                "status": "available",
+                "version": &update.version,
+                "currentVersion": &update.current_version,
+                "notes": &update.body,
+            });
+            *state.update.lock().await = Some(update);
+            Json(body).into_response()
+        }
+        Ok(None) => {
+            *state.update.lock().await = None;
+            Json(json!({
+                "status": "upToDate",
+                "version": app.package_info().version.to_string(),
+            }))
+            .into_response()
+        }
+        Err(error) => (
+            StatusCode::BAD_GATEWAY,
+            Json(json!({
+                "status": "error",
+                "message": format!("Could not check for updates: {error}"),
+            })),
+        )
+            .into_response(),
+    }
+}
+
+/// Downloads and installs the update the last check found, then relaunches.
+/// The answer goes out first; the restart follows once it has been sent.
+async fn desktop_update_install(State(state): State<AppState>) -> Response {
+    let Some(app) = state.app.clone() else {
+        return update_unavailable();
+    };
+    let Some(update) = state.update.lock().await.take() else {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "error",
+                "message": "There is no update to install. Check for updates first.",
+            })),
+        )
+            .into_response();
+    };
+    if let Err(error) = update.download_and_install(|_, _| {}, || {}).await {
+        return (
+            StatusCode::BAD_GATEWAY,
+            Json(json!({
+                "status": "error",
+                "message": format!(
+                    "Could not install the update: {error}. Sheet is unchanged; try again, or download the latest release."
+                ),
+            })),
+        )
+            .into_response();
+    }
+    let sidecar = state.sidecar.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(600)).await;
+        // The new build starts its own local server on the same port and database.
+        if let Some(mut child) = sidecar.lock().await.take() {
+            let _ = child.kill().await;
+        }
+        app.restart();
+    });
+    Json(json!({ "status": "installed" })).into_response()
+}
+
 fn open_external(url: &str) -> std::io::Result<()> {
     #[cfg(target_os = "macos")]
     let mut command = std::process::Command::new("open");
@@ -742,6 +845,9 @@ fn router(state: AppState) -> Router {
         .route("/desktop/profile", get(desktop_profile))
         .route("/desktop/profile-image", get(desktop_profile_image))
         .route("/desktop/open", post(desktop_open))
+        .route("/desktop/version", get(desktop_version))
+        .route("/desktop/update/check", post(desktop_update_check))
+        .route("/desktop/update/install", post(desktop_update_install))
         .route("/api/{*path}", any(proxy_api))
         .fallback(serve_app)
         .layer(middleware::from_fn_with_state(
@@ -835,6 +941,7 @@ fn main() {
         .install_default()
         .expect("install rustls crypto provider");
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .on_menu_event(|app, event| {
             if event.id().as_ref() == SETTINGS_MENU_ID {
                 open_settings(app);
@@ -863,6 +970,8 @@ fn main() {
                     bridge_token: bridge_token.clone(),
                     sidecar: Arc::new(Mutex::new(None)),
                     profile: Arc::new(OnceLock::new()),
+                    app: Some(handle.clone()),
+                    update: Arc::new(Mutex::new(None)),
                 };
                 spawn_sidecar(&state).await;
                 handle.manage(state.clone());
@@ -931,6 +1040,8 @@ mod tests {
             bridge_token: "test-bridge-token".to_owned(),
             sidecar: Arc::new(Mutex::new(None)),
             profile: Arc::new(OnceLock::new()),
+            app: None,
+            update: Arc::new(Mutex::new(None)),
         }
     }
 

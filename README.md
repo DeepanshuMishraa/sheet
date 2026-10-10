@@ -57,8 +57,16 @@ See [AGENTS.md](./AGENTS.md) for architecture and contribution rules.
 
 **Stack:** Bun · React 19 · Tauri · Drizzle + SQLite · oRPC
 
+## Credits
+
+Sheet began as a fork of [lassejlv/loora](https://github.com/lassejlv/loora),
+the canvas design tool for agents created by [Lasse (@lassejlv)](https://github.com/lassejlv).
+It has since diverged into a local-first desktop app with its own history, but
+the original idea and foundation are theirs. Thank you.
+
 ## License
 
-[AGPL-3.0-or-later](./LICENSE) © 2026 Deepanshu Mishra. Fork, modify, and
-self-host freely; if you offer a modified version over a network, you must share
-its source under the same license.
+[AGPL-3.0-or-later](./LICENSE). Original work © Lasse ([lassejlv/loora](https://github.com/lassejlv/loora));
+modifications © 2026 Deepanshu Mishra. Fork, modify, and self-host freely; if
+you offer a modified version over a network, you must share its source under the
+same license.
