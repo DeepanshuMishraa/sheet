@@ -1,7 +1,9 @@
+import { AGENT_COLLABORATION_INSTRUCTIONS } from '@sheet/rpc/mcp-agent-identity'
+import { AgentSessions } from './agent-sessions'
 import { configFrom, type Config } from './config'
 import type { Env } from './env'
 import { envValue } from './env'
-import { directExecute, directReady, DirectMcpError } from './executor'
+import { directExecute, directFinish, directReady, DirectMcpError } from './executor'
 import { callerIdentity, RateLimiter } from './rate-limit'
 import {
   advertisedTools,
@@ -77,7 +79,25 @@ export async function handleRequest(request: Request, state: AppState) {
   return cors(json(404, { error: 'Not found' }))
 }
 
+type RpcContext = {
+  sessionId: string | null
+  userAgent: string | null
+}
+
+type RpcResult = {
+  status: number
+  body: JsonValue
+  /** Set by `initialize`: the session the client echoes on later requests. */
+  sessionId?: string
+}
+
 async function handleMcp(request: Request, state: AppState) {
+  if (request.method === 'DELETE') {
+    // A client ending its session: its avatar and cursor leave every design.
+    const agent = AgentSessions.close(request.headers.get('mcp-session-id'))
+    if (agent) await directFinish(agent)
+    return new Response(null, { status: 204 })
+  }
   if (request.method !== 'POST') {
     return json(405, rpcError('Method not allowed'))
   }
@@ -100,25 +120,38 @@ async function handleMcp(request: Request, state: AppState) {
     return json(400, rpcError('Invalid JSON body'))
   }
 
-  if (Array.isArray(payload)) {
-    const responses = []
-    for (const entry of payload) {
-      const result = await dispatchRpc(entry, state)
-      if (result) responses.push(result.body)
-    }
-    if (responses.length === 0) return new Response(null, { status: 202 })
-    return json(200, responses)
+  const context: RpcContext = {
+    sessionId: request.headers.get('mcp-session-id'),
+    userAgent: request.headers.get('user-agent'),
   }
 
-  const result = await dispatchRpc(payload, state)
+  if (Array.isArray(payload)) {
+    const responses = []
+    let sessionId: string | undefined
+    for (const entry of payload) {
+      const result = await dispatchRpc(entry, state, context)
+      if (!result) continue
+      responses.push(result.body)
+      sessionId ??= result.sessionId
+    }
+    if (responses.length === 0) return new Response(null, { status: 202 })
+    return json(200, responses, sessionHeader(sessionId))
+  }
+
+  const result = await dispatchRpc(payload, state, context)
   if (!result) return new Response(null, { status: 202 })
-  return json(result.status, result.body)
+  return json(result.status, result.body, sessionHeader(result.sessionId))
+}
+
+function sessionHeader(sessionId: string | undefined): Record<string, string> {
+  return sessionId ? { 'mcp-session-id': sessionId } : {}
 }
 
 async function dispatchRpc(
   payload: unknown,
   state: AppState,
-): Promise<{ status: number; body: JsonValue } | null> {
+  context: RpcContext,
+): Promise<RpcResult | null> {
   const request = payload as JsonRpcRequest
   const id = (request?.id ?? null) as JsonRpcId
   const isNotification = request == null || request.id === undefined
@@ -131,7 +164,13 @@ async function dispatchRpc(
     return isNotification ? null : { status: 200, body: { jsonrpc: '2.0', id, result: {} } }
   }
   try {
-    const result = await callMethod(method, request.params, state)
+    if (method === 'initialize') {
+      const session = AgentSessions.open(request.params, context.userAgent)
+      const result = initializeResult(request.params)
+      if (isNotification) return null
+      return { status: 200, body: { jsonrpc: '2.0', id, result }, sessionId: session.sessionId }
+    }
+    const result = await callMethod(method, request.params, state, context)
     if (isNotification) return null
     return { status: 200, body: { jsonrpc: '2.0', id, result } }
   } catch (error) {
@@ -158,30 +197,33 @@ class RpcMethodError extends Error {
   }
 }
 
+function initializeResult(params: unknown): JsonValue {
+  const requested =
+    params &&
+    typeof params === 'object' &&
+    !Array.isArray(params) &&
+    typeof (params as { protocolVersion?: unknown }).protocolVersion === 'string'
+      ? (params as { protocolVersion: string }).protocolVersion
+      : PROTOCOL_VERSIONS[PROTOCOL_VERSIONS.length - 1]
+  const protocolVersion = PROTOCOL_VERSIONS.includes(
+    requested as (typeof PROTOCOL_VERSIONS)[number],
+  )
+    ? requested
+    : PROTOCOL_VERSIONS[PROTOCOL_VERSIONS.length - 1]
+  return {
+    protocolVersion,
+    capabilities: { tools: { listChanged: true } },
+    serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+    instructions: AGENT_COLLABORATION_INSTRUCTIONS,
+  }
+}
+
 async function callMethod(
   method: string,
   params: unknown,
   _state: AppState,
+  context: RpcContext,
 ): Promise<JsonValue> {
-  if (method === 'initialize') {
-    const requested =
-      params &&
-      typeof params === 'object' &&
-      !Array.isArray(params) &&
-      typeof (params as { protocolVersion?: unknown }).protocolVersion === 'string'
-        ? (params as { protocolVersion: string }).protocolVersion
-        : PROTOCOL_VERSIONS[PROTOCOL_VERSIONS.length - 1]
-    const protocolVersion = PROTOCOL_VERSIONS.includes(
-      requested as (typeof PROTOCOL_VERSIONS)[number],
-    )
-      ? requested
-      : PROTOCOL_VERSIONS[PROTOCOL_VERSIONS.length - 1]
-    return {
-      protocolVersion,
-      capabilities: { tools: { listChanged: true } },
-      serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
-    }
-  }
   if (method === 'ping') return {}
   if (method === 'tools/list') {
     return { tools: advertisedTools as unknown as JsonValue }
@@ -215,7 +257,8 @@ async function callMethod(
       }
     }
     try {
-      return await directExecute('', name, args)
+      const agent = AgentSessions.resolve(context.sessionId, context.userAgent)
+      return await directExecute(agent, name, args)
     } catch (error) {
       const text =
         error instanceof DirectMcpError

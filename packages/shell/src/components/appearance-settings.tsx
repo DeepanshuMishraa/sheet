@@ -120,7 +120,7 @@ export function Mark({ on, className }: { on: boolean; className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        'grid size-4 shrink-0 place-items-center rounded-full bg-cx-accent text-white transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
+        'grid size-4 shrink-0 place-items-center rounded-full bg-cx-accent text-cx-accent-foreground transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)]',
         on ? 'scale-100 opacity-100 blur-[0px]' : 'scale-[0.25] opacity-0 blur-[4px]',
         className,
       )}
@@ -236,8 +236,8 @@ export function SwitchRow({
       >
         <span
           className={cn(
-            'inline-block h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[transform,width] duration-200 ease-smooth group-active:w-5',
-            checked ? 'translate-x-4 group-active:translate-x-3' : 'translate-x-0',
+            'inline-block h-4 w-4 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[transform,width] duration-200 ease-smooth group-active:w-5',
+            checked ? 'translate-x-4 bg-cx-accent-foreground group-active:translate-x-3' : 'translate-x-0 bg-white',
           )}
         />
       </span>
@@ -353,10 +353,10 @@ export function AppearanceSettings({
       </Section>
 
       <Section flat={flat} label="Accent" hint="The one colour spent on selection, focus and whatever is live." value={activeAccent?.label}>
-        <div className="grid grid-cols-6 gap-2 @sm:gap-2.5" role="radiogroup" aria-label="Accent colour">
+        <div className="grid grid-cols-7 gap-1.5 @sm:gap-2.5" role="radiogroup" aria-label="Accent colour">
           {ACCENTS.map((option) => {
             const selected = accent === option.id
-            const vars = { '--sw-l': option.light, '--sw-d': option.dark } as CSSProperties
+            const vars = { '--sw-l': option.light, '--sw-d': option.dark, '--sw-ink-d': option.darkInk } as CSSProperties
             return (
               <button
                 key={option.id}
@@ -372,7 +372,7 @@ export function AppearanceSettings({
                   setAccent(option.id)
                 }}
               >
-                <span className="grid size-[44%] place-items-center rounded-full bg-(--sw-l) text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.2)] transition-[scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-aria-checked:scale-110 dark:bg-(--sw-d)">
+                <span className="grid size-[44%] place-items-center rounded-full bg-(--sw-l) text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.2)] transition-[scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-aria-checked:scale-110 dark:bg-(--sw-d) dark:text-(--sw-ink-d)">
                   <svg
                     viewBox="0 0 16 16"
                     aria-hidden="true"

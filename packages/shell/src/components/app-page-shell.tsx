@@ -32,7 +32,7 @@ function BarControls() {
         className="ms-2 size-6 shrink-0 rounded-full text-[10px] font-semibold outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
       >
         {profile?.imageUrl ? <AvatarImage src={profile.imageUrl} alt="" /> : null}
-        <AvatarFallback className="bg-cx-accent text-white">{initial}</AvatarFallback>
+        <AvatarFallback className="bg-cx-accent text-cx-accent-foreground">{initial}</AvatarFallback>
       </Avatar>
     </div>
   )

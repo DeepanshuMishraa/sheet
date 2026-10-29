@@ -66,7 +66,16 @@ import {
   requireWebDocument,
   proposeDraft,
 } from './mcp-designs'
-import { trackAgentActivity } from './mcp-agent-activity'
+import {
+  AGENT_CLAIM_MS,
+  agentClashes,
+  agentPeers,
+  finishAgentActivity,
+  otherAgents,
+  trackAgentActivity,
+  type AgentPeers,
+} from './mcp-agent-activity'
+import { AGENT_COLLABORATION_INSTRUCTIONS, AgentIdentity } from './mcp-agent-identity'
 import { exportOptionsShape, exportWebDocument, type ExportOptions } from './design-export'
 
 export interface McpIncludedUsage {
@@ -266,11 +275,55 @@ function buildToolList(
   })
 }
 
+function describePeer(peer: AgentPeers['present'][number]) {
+  const nodes = peer.nodeIds.length > 0 ? ` on ${peer.nodeIds.slice(0, 8).join(', ')}` : ''
+  const state = peer.working ? `${peer.doing.toLowerCase()} now` : `last active ${peer.secondsAgo}s ago (${peer.doing.toLowerCase()})`
+  return `${peer.agent.name}: ${state}${nodes}`
+}
+
+/**
+ * What an agent is told, on every design-scoped call, about the other agents
+ * in that design: a fuller note the first time somebody shows up, a one-line
+ * reminder after that, and a warning when this write crossed their nodes. The
+ * call itself has run either way.
+ */
+function companyNote(
+  self: AgentIdentity,
+  peers: AgentPeers | null,
+  clashes: ReturnType<typeof agentClashes>,
+) {
+  if (!peers) return null
+  const lines: string[] = []
+  if (peers.joined.length > 0) {
+    lines.push(
+      `Another agent just joined this design. You are ${self.name}. ${peers.joined.map(describePeer).join('; ')}.`,
+      'Do not edit, move, delete or restyle the nodes it is touching, and never undo its changes. If your task needs those nodes or could conflict with its work, stop and ask the user how to split the work before continuing.',
+    )
+    const others = peers.present.filter((peer) => !peers.joined.includes(peer))
+    if (others.length > 0) lines.push(`Also here: ${others.map(describePeer).join('; ')}.`)
+  } else {
+    lines.push(`Also working in this design: ${peers.present.map(describePeer).join('; ')}. Stay off their nodes.`)
+  }
+  if (clashes.length > 0) {
+    const crossed = clashes.map(
+      (clash) => `${clash.agent} touched ${clash.nodeIds.join(', ')} in the last ${AGENT_CLAIM_MS / 1000}s`,
+    )
+    lines.push(
+      `This change crossed another agent's work: ${crossed.join('; ')}. It was applied. Re-read those nodes with getWebDocument, check you did not overwrite its work, and ask the user before editing them again.`,
+    )
+  }
+  return { type: 'text' as const, text: lines.join(' ') }
+}
+
 function createSheetRuntime(
   userId: string,
   usage: McpUsageController,
+  agent: AgentIdentity,
 ) {
-  const server = new McpServer({ name: 'sheet', version: '0.3.0' })
+  const server = new McpServer(
+    { name: 'sheet', version: '0.3.0' },
+    { instructions: AGENT_COLLABORATION_INSTRUCTIONS },
+  )
   const toolCatalog: Array<{ name: string; config: RegisteredToolConfig }> = []
   const toolHandlers = new Map<string, (args: unknown) => Promise<unknown>>()
   const registerToolDirect = server.registerTool.bind(server)
@@ -288,11 +341,13 @@ function createSheetRuntime(
   function tool<Args>(name: string, run: (args: Args) => Promise<unknown>) {
     return async (args: Args) => {
       let currentUsage: McpIncludedUsage | undefined
-      const activity = trackAgentActivity(userId, name, args)
+      const note = companyNote(agent, agentPeers(userId, agent, args), agentClashes(userId, agent, name, args))
+      const activity = trackAgentActivity(userId, agent, name, args)
       const startedAt = performance.now()
       try {
         currentUsage = await usage.reserve()
-        return json(await run(args), currentUsage)
+        const result = json(await run(args), currentUsage)
+        return note ? { ...result, content: [...result.content, note] } : result
       } catch (error) {
         return fail(error, currentUsage)
       } finally {
@@ -311,7 +366,8 @@ function createSheetRuntime(
   ) {
     return async (args: Args) => {
       let currentUsage: McpIncludedUsage | undefined
-      const activity = trackAgentActivity(userId, name, args)
+      const note = companyNote(agent, agentPeers(userId, agent, args), [])
+      const activity = trackAgentActivity(userId, agent, name, args)
       const startedAt = performance.now()
       try {
         currentUsage = await usage.reserve()
@@ -327,6 +383,7 @@ function createSheetRuntime(
               data: Buffer.from(result.png).toString('base64'),
               mimeType: 'image/png',
             },
+            ...(note ? [note] : []),
           ],
           ...usageMeta(currentUsage),
         }
@@ -360,13 +417,14 @@ function createSheetRuntime(
     'listDesigns',
     {
       description:
-        'Start here. List the local Sheet designs and canonical editor URLs.',
+        'Start here. List the local Sheet designs and canonical editor URLs. `agents` names any other agent working in a design right now; if the user asks you to work in one of those, stay off its nodes and ask the user how to split the work when your task overlaps.',
       annotations: { readOnlyHint: true },
     },
     tool('listDesigns', async (_args: unknown) =>
       (await listDesigns(userId)).map((design) => ({
         ...design,
         openUrl: appUrl(design.id),
+        agents: otherAgents(userId, { designId: design.id }, agent).map((peer) => peer.agent.name),
       })),
     ),
   )
@@ -420,7 +478,7 @@ function createSheetRuntime(
     'applyWebTransaction',
     {
       description:
-        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.',
+        'Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes. Other agents may be working in the same design: when one is, the result ends with a note naming it and the nodes it is touching. Never edit or undo those nodes; if your task overlaps its work, stop and ask the user how to split it.',
       inputSchema: {
         designId,
         draftId: z
@@ -1178,6 +1236,55 @@ function createSheetRuntime(
   )
 
   server.registerTool(
+    'listAgents',
+    {
+      description:
+        'Optional: the full picture of which other agents are in this design right now. You do not need to call it to find out — every design tool result already ends with a note when another agent is present. Returns who you are as the editor shows you, and for every other agent seen in the last two minutes: its name, what it is doing, whether a call is in flight, the node ids it is touching, and how many seconds ago it was last active. Stay off their nodes; if your task overlaps theirs, ask the user how to split the work.',
+      inputSchema: {
+        designId,
+        draftId: draftId.optional().describe('Look at this branch instead of Main'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    tool('listAgents', async (args: { designId: string; draftId?: string }) => {
+      const others = otherAgents(userId, { designId: args.designId, draftId: args.draftId ?? null }, agent)
+        // Session ids stay on the server; an agent only needs to know who.
+        .map(({ agent: peer, ...rest }) => ({ agent: { name: peer.name, kind: peer.kind }, ...rest }))
+      return {
+        you: { name: agent.name, kind: agent.kind },
+        others,
+        advice:
+          others.length === 0
+            ? 'You are the only agent in this design right now.'
+            : 'Stay off the nodes other agents are touching and never undo their changes. If your task overlaps theirs, stop and ask the user how to split the work.',
+      }
+    }),
+  )
+
+  server.registerTool(
+    'finishWork',
+    {
+      description:
+        'Call this once you have finished the user\'s task in a design. While you work, the person watching the editor sees your avatar and a cursor on the element you are changing; this removes them straight away instead of leaving them on screen. Call it at the end of the task, not between steps. If you forget, your presence fades on its own about 30 seconds after your last call. Does not change the design.',
+      inputSchema: {
+        designId,
+        draftId: draftId.optional().describe('The branch you worked on, if not Main'),
+      },
+    },
+    async (args: { designId: string; draftId?: string }) => {
+      try {
+        const left = finishAgentActivity(agent, {
+          userId,
+          target: { designId: args.designId, draftId: args.draftId ?? null },
+        })
+        return json({ finished: left > 0 })
+      } catch (error) {
+        return fail(error)
+      }
+    },
+  )
+
+  server.registerTool(
     'resolveComment',
     {
       description:
@@ -1220,13 +1327,15 @@ function createSheetRuntime(
 export function createSheetServer(
   userId: string,
   usage: McpUsageController,
+  agent: AgentIdentity = AgentIdentity.unknown,
 ) {
-  return createSheetRuntime(userId, usage).server
+  return createSheetRuntime(userId, usage, agent).server
 }
 
 export function createSheetToolExecutor(
   userId: string,
   usage: McpUsageController,
+  agent: AgentIdentity = AgentIdentity.unknown,
 ) {
-  return createSheetRuntime(userId, usage).execute
+  return createSheetRuntime(userId, usage, agent).execute
 }

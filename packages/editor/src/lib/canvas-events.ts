@@ -1,35 +1,82 @@
 import { apiUrl } from '@sheet/platform'
 
+export const AGENT_KINDS = ['claude', 'codex', 'cursor', 'copilot', 'opencode', 'antigravity', 'other'] as const
+
+export type AgentKind = (typeof AGENT_KINDS)[number]
+
+/** One agent session; two windows of the same app are two agents. */
+export interface AgentIdentity {
+  id: string
+  kind: AgentKind
+  name: string
+}
+
 /** An agent working in the document, as the server announces it. */
 export interface AgentActivity {
   id: string
+  agent: AgentIdentity
   label: string
+  /** "editing", for a sentence about the node: "Codex is editing Heading". */
+  verb: string | null
   nodeIds: string[]
+  /** Rules the call restyles, as `stylesheetId/ruleId`; their elements carry the cursor. */
+  ruleIds: string[]
+  /** Only a `write` in flight rings its targets; a read just moves the cursor. */
+  mode: 'read' | 'write'
   phase: 'working' | 'settled'
+  updatedAt: number
   expiresAt: number
+}
+
+function isAgentKind(value: unknown): value is AgentKind {
+  return AGENT_KINDS.some((kind) => kind === value)
+}
+
+function parseAgent(value: unknown): AgentIdentity | null {
+  if (!value || typeof value !== 'object') return null
+  const id = Reflect.get(value, 'id')
+  const kind = Reflect.get(value, 'kind')
+  const name = Reflect.get(value, 'name')
+  if (typeof id !== 'string' || !isAgentKind(kind) || typeof name !== 'string' || name.length === 0) return null
+  return { id, kind, name }
 }
 
 function parseActivity(value: unknown): AgentActivity | null {
   if (!value || typeof value !== 'object') return null
   const id = Reflect.get(value, 'id')
+  const agent = parseAgent(Reflect.get(value, 'agent'))
   const label = Reflect.get(value, 'label')
+  const verb = Reflect.get(value, 'verb')
   const nodeIds = Reflect.get(value, 'nodeIds')
+  const ruleIds = Reflect.get(value, 'ruleIds')
+  const mode = Reflect.get(value, 'mode')
   const phase = Reflect.get(value, 'phase')
+  const updatedAt = Reflect.get(value, 'updatedAt')
   const expiresAt = Reflect.get(value, 'expiresAt')
   if (
     typeof id !== 'string' ||
+    !agent ||
     typeof label !== 'string' ||
+    (verb !== null && typeof verb !== 'string') ||
     !Array.isArray(nodeIds) ||
+    !Array.isArray(ruleIds) ||
+    (mode !== 'read' && mode !== 'write') ||
     (phase !== 'working' && phase !== 'settled') ||
+    typeof updatedAt !== 'number' ||
     typeof expiresAt !== 'number'
   ) {
     return null
   }
   return {
     id,
+    agent,
     label,
+    verb,
     nodeIds: nodeIds.filter((item): item is string => typeof item === 'string'),
+    ruleIds: ruleIds.filter((item): item is string => typeof item === 'string'),
+    mode,
     phase,
+    updatedAt,
     expiresAt,
   }
 }
@@ -40,8 +87,8 @@ export function subscribeCanvasChanges(
   options: {
     draftId?: string | null
     onReady?: () => void
-    /** Called with the running or just-finished agent activity, or `null` when it clears. */
-    onAgentActivity?: (activity: AgentActivity | null) => void
+    /** Called with one agent's running or just-finished activity. */
+    onAgentActivity?: (activity: AgentActivity) => void
   } = {},
 ) {
   if (typeof EventSource === 'undefined') return () => {}
@@ -63,7 +110,8 @@ export function subscribeCanvasChanges(
       ) {
         onChange(event.revision)
       } else if (event.type === 'agent.activity' && 'activity' in event) {
-        options.onAgentActivity?.(parseActivity(event.activity))
+        const activity = parseActivity(event.activity)
+        if (activity) options.onAgentActivity?.(activity)
       }
     } catch {
       // Ignore malformed stream frames; EventSource reconnects itself.

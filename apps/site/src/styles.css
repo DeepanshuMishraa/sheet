@@ -1919,12 +1919,21 @@ h3 {
 }
 
 /* Agents diagram */
-.art-agents {
-  min-width: 40rem;
+/* Wide: agents beside the hub. A phone gets the tall version, read top to bottom. */
+.art-agents-tall {
+  display: none;
 }
 
-.diagram:has(.art-agents) {
-  overflow-x: auto;
+@media (max-width: 40rem) {
+  .art-agents-wide {
+    display: none;
+  }
+
+  .art-agents-tall {
+    display: block;
+    max-width: 26rem;
+    margin-inline: auto;
+  }
 }
 
 .wire {
@@ -1949,7 +1958,7 @@ h3 {
   outline: none;
 }
 
-.agent rect {
+.agent .agent-card {
   fill: var(--background);
   stroke: var(--line);
   stroke-width: 1.5;
@@ -1958,17 +1967,60 @@ h3 {
     fill 250ms ease;
 }
 
-.agent:hover rect {
+.agent:hover .agent-card {
   stroke: var(--input);
 }
 
-.agent:focus-visible rect,
-.agent[data-active='true'] rect {
+.agent:focus-visible .agent-card,
+.agent[data-active='true'] .agent-card {
   stroke: var(--cx-accent);
 }
 
-.agent[data-active='true'] rect {
+.agent[data-active='true'] .agent-card {
   fill: color-mix(in srgb, var(--cx-accent) 8%, var(--background));
+}
+
+/* The agent's app-icon tile: a hairline edge, a lift and glow when picked or hovered. */
+.agent-tile-art {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.3),
+    filter 0.28s ease;
+}
+
+.agent-tile-art .tile-face {
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 1;
+}
+
+.agent-tile-art .tile-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+.agent:hover .agent-tile-art {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.agent:hover .agent-tile-art .tile-mark {
+  transform: rotate(-6deg);
+}
+
+.agent[data-active='true'] .agent-tile-art {
+  filter: drop-shadow(0 4px 10px var(--tile-glow));
+  animation: tile-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes tile-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 4px 8px var(--tile-glow));
+  }
+  50% {
+    filter: drop-shadow(0 6px 16px var(--tile-glow));
+  }
 }
 
 .agent-dot {
@@ -2041,7 +2093,7 @@ h3 {
 
 .art .art-tag-text {
   font-size: 10px;
-  fill: #fff;
+  fill: var(--cx-accent-foreground);
 }
 
 .art-cursor.drift {
@@ -2161,8 +2213,14 @@ h3 {
   .branch[data-state='proposed'],
   .art .mini-frame[data-edited='true'],
   .art-cursor.drift,
-  .art .tool-call {
+  .art .tool-call,
+  .agent[data-active='true'] .agent-tile-art {
     animation: none;
+  }
+
+  .agent-tile-art,
+  .agent-tile-art .tile-mark {
+    transition: none;
   }
 
   .slash {

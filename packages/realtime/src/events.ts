@@ -13,10 +13,44 @@ export interface CanvasRealtimeTarget {
   draftId?: string | null
 }
 
+/** The agent apps Sheet recognises by name; anything else is `other`. */
+export const AGENT_KINDS = [
+  'claude',
+  'codex',
+  'cursor',
+  'copilot',
+  'opencode',
+  'antigravity',
+  'other',
+] as const
+
+export type AgentKind = (typeof AGENT_KINDS)[number]
+
+/**
+ * Which agent is at work. `id` is one MCP session, so two windows of the same
+ * app are two agents; `name` is what the editor prints beside its cursor.
+ */
+export interface CanvasRealtimeAgent {
+  id: string
+  kind: AgentKind
+  name: string
+}
+
 export interface CanvasRealtimeActivity {
   id: string
+  agent: CanvasRealtimeAgent
   label: string
+  /** How the call reads in a sentence about its node ("editing"), when it targets one. */
+  verb: string | null
   nodeIds: string[]
+  /**
+   * Stylesheet rules the call changes, as `stylesheetId/ruleId`. A restyle
+   * names no node, so the editor finds the elements those rules match and puts
+   * the agent's cursor there.
+   */
+  ruleIds: string[]
+  /** `write` calls change their targets and are ringed; `read` calls only move the cursor. */
+  mode: 'read' | 'write'
   phase: 'working' | 'settled'
   updatedAt: number
   expiresAt: number
@@ -123,6 +157,25 @@ function stringValue(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+export function isAgentKind(value: unknown): value is AgentKind {
+  return AGENT_KINDS.some((kind) => kind === value)
+}
+
+export function isCanvasRealtimeAgent(
+  value: unknown,
+): value is CanvasRealtimeAgent {
+  return (
+    record(value) &&
+    typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    value.id.length <= 200 &&
+    isAgentKind(value.kind) &&
+    typeof value.name === 'string' &&
+    value.name.length > 0 &&
+    value.name.length <= 60
+  )
+}
+
 export function isCanvasRealtimeActivity(
   value: unknown,
 ): value is CanvasRealtimeActivity {
@@ -131,9 +184,18 @@ export function isCanvasRealtimeActivity(
     typeof value.id === 'string' &&
     value.id.length > 0 &&
     value.id.length <= 200 &&
+    isCanvasRealtimeAgent(value.agent) &&
     typeof value.label === 'string' &&
     value.label.length > 0 &&
     value.label.length <= 160 &&
+    (value.verb === null ||
+      (typeof value.verb === 'string' && value.verb.length <= 60)) &&
+    (value.mode === 'read' || value.mode === 'write') &&
+    Array.isArray(value.ruleIds) &&
+    value.ruleIds.length <= 64 &&
+    value.ruleIds.every(
+      (ref) => typeof ref === 'string' && ref.length > 2 && ref.length <= 404,
+    ) &&
     nodeIds(value.nodeIds) &&
     (value.phase === 'working' || value.phase === 'settled') &&
     Number.isFinite(value.updatedAt) &&
@@ -147,8 +209,15 @@ export const MAX_PRESENCE_SELECTION = 64
 
 /** A tool call is running. Long enough to cover a slow render. */
 export const AGENT_ACTIVITY_WORKING_TTL_MS = 30_000
-/** The gap between two tool calls, so the badge does not blink per call. */
-export const AGENT_ACTIVITY_SETTLED_TTL_MS = 8_000
+/**
+ * How long a quiet agent stays on screen when it never says it is done. An
+ * agent ends its own presence with `finishWork`; this only covers one that
+ * stopped without saying so, long enough to bridge the pause between calls.
+ */
+export const AGENT_ACTIVITY_SETTLED_TTL_MS = 30_000
+
+/** The fade after an agent says it is done. */
+export const AGENT_ACTIVITY_FINISHED_TTL_MS = 800
 
 export function isCanvasPresencePeer(
   value: unknown,

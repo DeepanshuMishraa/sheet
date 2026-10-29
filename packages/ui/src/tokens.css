@@ -12,8 +12,9 @@
   --cx-canvas: #f2f2f0;
   --cx-dot: #d6d6d2;
   --cx-ink: #0d0d0d;
-  --cx-accent: #f0541a;
-  /* Text and marks drawn on an accent fill. White for every hue; Mono flips it. */
+  /* Mono by default: the accent is the ink itself. */
+  --cx-accent: #0d0d0d;
+  /* Text and marks drawn on an accent fill. White for every hue; dark Mono flips it. */
   --cx-accent-foreground: #ffffff;
 
   --background: #fafaf9;
@@ -120,7 +121,8 @@
   --cx-canvas: #272727;
   --cx-dot: #3d3d3d;
   --cx-ink: #ececea;
-  --cx-accent: #ff6a2b;
+  --cx-accent: #ececea;
+  --cx-accent-foreground: #0d0d0d;
 
   --background: #212121;
   --foreground: var(--cx-ink);
@@ -202,9 +204,13 @@
 }
 
 /* Accent variants. One hue is spent on selection, focus and the live mark; the
-   person picks which in Settings. Orange is the default and needs no attribute.
+   person picks which in Settings. Mono is the default and needs no attribute.
    Each hue has a deeper light-mode value and a brighter dark-mode one, and all
    hold white text at a readable contrast, since the accent is also a fill. */
+html[data-accent='orange'] { --cx-accent: #f0541a; }
+html.dark[data-accent='orange'] { --cx-accent: #ff6a2b; }
+/* Every hue holds white on its fill in dark mode too; only Mono's paper takes ink. */
+html.dark[data-accent] { --cx-accent-foreground: #ffffff; }
 html[data-accent='blue'] { --cx-accent: #2563eb; }
 html.dark[data-accent='blue'] { --cx-accent: #4d8dff; }
 html[data-accent='violet'] { --cx-accent: #7c3aed; }
@@ -215,6 +221,3 @@ html[data-accent='pink'] { --cx-accent: #db2777; }
 html.dark[data-accent='pink'] { --cx-accent: #f0549b; }
 html[data-accent='teal'] { --cx-accent: #0d8f86; }
 html.dark[data-accent='teal'] { --cx-accent: #14a89d; }
-/* Mono: the accent is the ink itself, so whatever sits on it takes the paper. */
-html[data-accent='mono'] { --cx-accent: #0d0d0d; --cx-accent-foreground: #ffffff; }
-html.dark[data-accent='mono'] { --cx-accent: #ececea; --cx-accent-foreground: #0d0d0d; }

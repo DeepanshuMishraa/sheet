@@ -11,7 +11,7 @@
   },
   {
     "name": "listDesigns",
-    "description": "Start here. List the local Sheet designs and canonical editor URLs.",
+    "description": "Start here. List the local Sheet designs and canonical editor URLs. `agents` names any other agent working in a design right now; if the user asks you to work in one of those, stay off its nodes and ask the user how to split the work when your task overlaps.",
     "inputSchema": {
       "type": "object"
     },
@@ -87,7 +87,7 @@
   },
   {
     "name": "applyWebTransaction",
-    "description": "Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes.",
+    "description": "Mutate a web-native document with one validated WebTransaction: the same operation vocabulary, validation, undo inverses, revision compare-and-swap, history, and realtime path the editor uses. Operations: node.insert/node.patch/node.move/node.delete, stylesheet.insert/stylesheet.patch/stylesheet.delete, rule.insert/rule.patch/rule.move/rule.delete, component.define/component.delete, instance.create/instance.delete/instance.setOverride/instance.clearOverride. Page 1 (the unnamed first page) starts empty and has no edge: create each frame as a top-level node (parentId null) with position:absolute, left, top, width and height, and set frames side by side; do not wrap a design in one page-sized root. To resize a named page, node.patch its root element width and height, for example 1440px by 2400px. Never widen or resize a page to fit several designs: every screen or variant (light and dark, option A and B, mobile and desktop) goes in its own page via createPage, then insert into it with parentId = that pageId. Rules: patching a bound instance node directly is rejected (use instance.setOverride with text, attributes, or --custom-properties); template edits propagate to instances automatically; component CSS reaches instances through the normal cascade. Stale expectedRevision returns applied:false with reason stale instead of overwriting. Returns only applied, revision and changedNodeIds; pass verbose: true for the full document. Pass dryRun: true to validate without saving: every invalid operation is reported in one pass. stylesheet.insert accepts rules without ruleOrder (derived from each rule order field); if given, ruleOrder must list every rule id once. Send a large theme stylesheet in its own transaction before the nodes. Other agents may be working in the same design: when one is, the result ends with a note naming it and the nodes it is touching. Never edit or undo those nodes; if your task overlaps its work, stop and ask the user how to split it.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1103,6 +1103,59 @@
     },
     "annotations": {
       "readOnlyHint": true
+    }
+  },
+  {
+    "name": "listAgents",
+    "description": "Optional: the full picture of which other agents are in this design right now. You do not need to call it to find out — every design tool result already ends with a note when another agent is present. Returns who you are as the editor shows you, and for every other agent seen in the last two minutes: its name, what it is doing, whether a call is in flight, the node ids it is touching, and how many seconds ago it was last active. Stay off their nodes; if your task overlaps theirs, ask the user how to split the work.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "Look at this branch instead of Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "finishWork",
+    "description": "Call this once you have finished the user's task in a design. While you work, the person watching the editor sees your avatar and a cursor on the element you are changing; this removes them straight away instead of leaving them on screen. Call it at the end of the task, not between steps. If you forget, your presence fades on its own about 30 seconds after your last call. Does not change the design.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "designId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Design id"
+        },
+        "draftId": {
+          "description": "The branch you worked on, if not Main",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "designId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
   {

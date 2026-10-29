@@ -1,37 +1,194 @@
-import { useState } from 'react'
+import { useState, type ComponentType, type CSSProperties, type SVGProps } from 'react'
 import { prefersReducedMotion } from './hooks'
+import { ClaudeMark, CodexMark, CursorMark, OpenCodeMark } from './marks'
 
 /* Every diagram draws with CSS variables, so it follows the light/dark theme. */
 
-const agents = [
-  { name: 'Claude', tool: 'insertNodes', detail: 'Pricing / 3 plans', frame: 0, x: 700, y: 130 },
-  { name: 'Codex', tool: 'patchNodes', detail: 'spacing, color tokens', frame: 1, x: 835, y: 175 },
-  { name: 'Cursor', tool: 'moveNodes', detail: 'Hero → top of page', frame: 2, x: 700, y: 285 },
-  { name: 'opencode', tool: 'animateNodes', detail: 'fade-in-up, stagger', frame: 0, x: 760, y: 120 },
-] as const
+interface Agent {
+  id: string
+  name: string
+  tool: string
+  frame: number
+  /** Where its cursor lands on the mini canvas. */
+  x: number
+  y: number
+  Mark: ComponentType<SVGProps<SVGSVGElement>>
+  /** The app-icon tile, as in the hero: gradient, ink and glow. */
+  tile: { from: string; to: string; ink: string; glow: string }
+}
 
-const AGENT_ROWS = [60, 150, 240, 330] as const
-const HUB = { x: 460, y: 195 } as const
+const agents: readonly Agent[] = [
+  {
+    id: 'claude',
+    name: 'Claude',
+    tool: 'insertNodes',
+    frame: 0,
+    x: 700,
+    y: 130,
+    Mark: ClaudeMark,
+    tile: { from: '#f0845f', to: '#c8502b', ink: '#ffffff', glow: 'rgba(217, 119, 87, 0.55)' },
+  },
+  {
+    id: 'codex',
+    name: 'Codex',
+    tool: 'patchNodes',
+    frame: 1,
+    x: 835,
+    y: 175,
+    Mark: CodexMark,
+    tile: { from: '#ffffff', to: '#d6d6d6', ink: '#111111', glow: 'rgba(160, 160, 160, 0.5)' },
+  },
+  {
+    id: 'cursor',
+    name: 'Cursor',
+    tool: 'moveNodes',
+    frame: 2,
+    x: 700,
+    y: 285,
+    Mark: CursorMark,
+    tile: { from: '#3a3930', to: '#14130e', ink: '#f2f1ea', glow: 'rgba(120, 118, 100, 0.55)' },
+  },
+  {
+    id: 'opencode',
+    name: 'opencode',
+    tool: 'animateNodes',
+    frame: 0,
+    x: 760,
+    y: 120,
+    Mark: OpenCodeMark,
+    tile: { from: '#fdfcfc', to: '#e6e5e6', ink: '#17181c', glow: 'rgba(160, 160, 165, 0.5)' },
+  },
+]
+
+interface Point {
+  x: number
+  y: number
+}
+
+/**
+ * The same picture, laid out twice: agents left of the hub and the canvas
+ * right of it on a wide screen; agents in a grid above the hub and the canvas
+ * under it on a phone, so the diagram reads top to bottom instead of
+ * scrolling sideways.
+ */
+interface Layout {
+  id: 'wide' | 'tall'
+  viewBox: string
+  /** Top-left corner of each agent's card. */
+  card: (index: number) => Point
+  cardWidth: number
+  wire: (index: number) => string
+  hub: Point
+  /** The wire from the hub into the canvas. */
+  feed: string
+  /** The canvas art is drawn at its wide position, then moved by this. */
+  canvasShift: Point
+  toolCall: Point & { anchor: 'middle' | 'start' }
+  address: Point & { anchor: 'middle' | 'start' }
+}
+
+const CARD_HEIGHT = 52
+const HUB_RADIUS = 44
+
+const WIDE: Layout = {
+  id: 'wide',
+  viewBox: '0 0 920 390',
+  card: (index) => ({ x: 1, y: 34 + index * 90 }),
+  cardWidth: 178,
+  wire: (index) => {
+    const y = 60 + index * 90
+    return `M180 ${y} C 320 ${y}, 320 195, ${460 - HUB_RADIUS} 195`
+  },
+  hub: { x: 460, y: 195 },
+  feed: `M${460 + HUB_RADIUS} 195 H 640`,
+  canvasShift: { x: 0, y: 0 },
+  toolCall: { x: 460, y: 131, anchor: 'middle' },
+  address: { x: 460, y: 273, anchor: 'middle' },
+}
+
+const TALL: Layout = {
+  id: 'tall',
+  viewBox: '0 0 400 700',
+  // Two columns with a gap down the middle; every wire leaves a card's inner
+  // edge and runs down that gap, so none crosses a card below it.
+  card: (index) => ({ x: index % 2 === 0 ? 8 : 224, y: 6 + Math.floor(index / 2) * 72 }),
+  cardWidth: 168,
+  wire: (index) => {
+    const card = TALL.card(index)
+    const x = index % 2 === 0 ? card.x + TALL.cardWidth : card.x
+    const y = card.y + CARD_HEIGHT / 2
+    return `M${x} ${y} C 200 ${y}, 200 ${y}, 200 ${y + 24} V ${250 - HUB_RADIUS}`
+  },
+  hub: { x: 200, y: 250 },
+  feed: `M200 ${250 + HUB_RADIUS} V 380`,
+  canvasShift: { x: -575, y: 335 },
+  toolCall: { x: 256, y: 244, anchor: 'start' },
+  address: { x: 256, y: 264, anchor: 'start' },
+}
 
 /** Pick an agent and watch its tool calls travel over MCP into the canvas. */
 export function AgentsDiagram() {
   const [active, setActive] = useState(0)
+  return (
+    <>
+      <AgentsArt layout={WIDE} active={active} onPick={setActive} />
+      <AgentsArt layout={TALL} active={active} onPick={setActive} />
+    </>
+  )
+}
+
+function AgentTile({ agent, layout, at, size }: { agent: Agent; layout: Layout; at: Point; size: number }) {
+  const { Mark } = agent
+  const inset = size * 0.24
+  return (
+    <g className="agent-tile-art" style={{ '--tile-glow': agent.tile.glow } as CSSProperties}>
+      <rect x={at.x} y={at.y} width={size} height={size} rx={size * 0.26} fill={`url(#${layout.id}-tile-${agent.id})`} className="tile-face" />
+      <rect x={at.x} y={at.y} width={size} height={size} rx={size * 0.26} fill={`url(#${layout.id}-tile-gloss)`} className="tile-gloss" />
+      <Mark
+        x={at.x + inset}
+        y={at.y + inset}
+        width={size - inset * 2}
+        height={size - inset * 2}
+        className="tile-mark"
+        style={{ color: agent.tile.ink }}
+      />
+    </g>
+  )
+}
+
+function AgentsArt({ layout, active, onPick }: { layout: Layout; active: number; onPick: (index: number) => void }) {
   const agent = agents[active] ?? agents[0]
   const still = prefersReducedMotion()
+  if (!agent) return null
+  const { hub } = layout
 
   return (
     <svg
-      className="art art-agents"
-      viewBox="0 0 920 390"
+      className={`art art-agents art-agents-${layout.id}`}
+      viewBox={layout.viewBox}
       role="group"
       aria-label="Four agents connect through one MCP endpoint to the same canvas"
     >
+      <defs>
+        {agents.map((entry) => (
+          <linearGradient key={entry.id} id={`${layout.id}-tile-${entry.id}`} x1="0.2" y1="0" x2="0.8" y2="1">
+            <stop offset="0" stopColor={entry.tile.from} />
+            <stop offset="1" stopColor={entry.tile.to} />
+          </linearGradient>
+        ))}
+        <linearGradient id={`${layout.id}-tile-gloss`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="0.45" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
       {agents.map((entry, index) => {
-        const y = AGENT_ROWS[index] ?? 0
+        const card = layout.card(index)
         const on = index === active
-        const path = `M180 ${y} C 320 ${y}, 320 ${HUB.y}, ${HUB.x - 44} ${HUB.y}`
+        const path = layout.wire(index)
+        const middle = card.y + CARD_HEIGHT / 2
         return (
-          <g key={entry.name}>
+          <g key={entry.id}>
             <path className="wire" data-active={on} d={path} />
             {on && !still
               ? [0, 0.9].map((begin) => (
@@ -48,17 +205,17 @@ export function AgentsDiagram() {
               aria-pressed={on}
               aria-label={`Show ${entry.name}`}
               data-cuelume-select
-              onClick={() => setActive(index)}
+              onClick={() => onPick(index)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault()
-                  setActive(index)
+                  onPick(index)
                 }
               }}
             >
-              <rect x="1" y={y - 26} width="178" height="52" rx="0" />
-              <circle cx="26" cy={y} r="5" className="agent-dot" />
-              <text x="46" y={y + 5} className="agent-name">
+              <rect className="agent-card" x={card.x} y={card.y} width={layout.cardWidth} height={CARD_HEIGHT} rx="0" />
+              <AgentTile agent={entry} layout={layout} at={{ x: card.x + 12, y: middle - 15 }} size={30} />
+              <text x={card.x + 54} y={middle + 5} className="agent-name">
                 {entry.name}
               </text>
             </g>
@@ -66,26 +223,26 @@ export function AgentsDiagram() {
         )
       })}
 
-      <path className="wire" data-active="true" d={`M${HUB.x + 44} ${HUB.y} H 640`} />
+      <path className="wire" data-active="true" d={layout.feed} />
       {!still ? (
         <circle key={active} r="4" className="packet">
-          <animateMotion dur="1.2s" repeatCount="indefinite" path={`M${HUB.x + 44} ${HUB.y} H 640`} />
+          <animateMotion dur="1.2s" repeatCount="indefinite" path={layout.feed} />
         </circle>
       ) : null}
 
-      <circle className="hub-ring" cx={HUB.x} cy={HUB.y} r="44" />
-      <circle className="hub" cx={HUB.x} cy={HUB.y} r="44" />
-      <text x={HUB.x} y={HUB.y + 5} textAnchor="middle" className="hub-text">
+      <circle className="hub-ring" cx={hub.x} cy={hub.y} r={HUB_RADIUS} />
+      <circle className="hub" cx={hub.x} cy={hub.y} r={HUB_RADIUS} />
+      <text x={hub.x} y={hub.y + 5} textAnchor="middle" className="hub-text">
         MCP
       </text>
-      <text x={HUB.x} y={HUB.y + 78} textAnchor="middle" className="label">
+      <text x={layout.address.x} y={layout.address.y} textAnchor={layout.address.anchor} className="label">
         127.0.0.1:4100/mcp
       </text>
-      <text key={agent.tool} x={HUB.x} y={HUB.y - 64} textAnchor="middle" className="tool-call">
+      <text key={agent.tool} x={layout.toolCall.x} y={layout.toolCall.y} textAnchor={layout.toolCall.anchor} className="tool-call">
         {agent.tool}
       </text>
 
-      <g className="canvas-art">
+      <g className="canvas-art" transform={`translate(${layout.canvasShift.x} ${layout.canvasShift.y})`}>
         <rect x="640" y="45" width="270" height="300" className="canvas-box" />
         <line x1="640" y1="73" x2="910" y2="73" className="stroke" />
         <circle cx="656" cy="59" r="3.5" className="agent-dot" />
@@ -108,8 +265,9 @@ export function AgentsDiagram() {
         ))}
         <g className="art-cursor" style={{ transform: `translate(${agent.x}px, ${agent.y}px)` }}>
           <path d="M0 0l11 4.5-4.6 1.6L4.8 11z" className="art-cursor-shape" />
-          <rect x="12" y="10" width={agent.name.length * 7 + 14} height="18" className="art-tag" />
-          <text x="19" y="23" className="art-tag-text">
+          <rect x="12" y="10" width={agent.name.length * 7 + 32} height="20" rx="10" className="art-tag" />
+          <AgentTile agent={agent} layout={layout} at={{ x: 15, y: 12 }} size={16} />
+          <text x="36" y="24" className="art-tag-text">
             {agent.name}
           </text>
         </g>

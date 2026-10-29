@@ -64,6 +64,38 @@ describe('MCP local HTTP contract', () => {
     expect(body.result.serverInfo.name).toBe('sheet')
   })
 
+  test('initialize opens a session per client so tool calls name their agent', async () => {
+    const state = createAppState(
+      configWith({ MCP_PUBLIC_URL: 'http://localhost:4100' }),
+    )
+    const initialize = (name: string) =>
+      mcpCall(state, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', clientInfo: { name, version: '1.0.0' } },
+      })
+    const claude = (await initialize('claude-code')).headers.get('mcp-session-id')
+    const codex = (await initialize('codex-mcp-client')).headers.get('mcp-session-id')
+    expect(claude).toMatch(/^mcp_/)
+    expect(codex).toMatch(/^mcp_/)
+    expect(claude).not.toBe(codex)
+  })
+
+  test('initialize tells every agent how to share a design with others', async () => {
+    const state = createAppState(
+      configWith({ MCP_PUBLIC_URL: 'http://localhost:4100' }),
+    )
+    const response = await mcpCall(state, {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: { protocolVersion: '2025-06-18' },
+    })
+    const body = await response.json()
+    expect(body.result.instructions).toContain('ask the user how to split the work')
+  })
+
   test('unknown paths are 404', async () => {
     const state = createAppState(
       configWith({ MCP_PUBLIC_URL: 'http://localhost:4100' }),

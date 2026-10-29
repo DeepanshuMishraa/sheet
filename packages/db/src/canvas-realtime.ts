@@ -48,6 +48,7 @@ declare const Bun:
  */
 
 export {
+  AGENT_ACTIVITY_FINISHED_TTL_MS,
   AGENT_ACTIVITY_SETTLED_TTL_MS,
   AGENT_ACTIVITY_WORKING_TTL_MS,
   canvasRealtimeChannel,
@@ -55,8 +56,10 @@ export {
   parseCanvasRealtimeEvent,
   presenceColor,
   PRESENCE_TTL_MS,
+  type AgentKind,
   type CanvasPresencePeer,
   type CanvasRealtimeActivity,
+  type CanvasRealtimeAgent,
   type CanvasRealtimeEvent,
   type CanvasRealtimeEventInput,
   type CanvasRealtimeTarget,

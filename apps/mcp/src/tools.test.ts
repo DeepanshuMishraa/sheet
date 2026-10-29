@@ -12,7 +12,8 @@ import {
 describe('MCP tool manifest', () => {
   test('embeds the complete TypeScript tool manifest', () => {
     const names = toolNames()
-    expect(names).toHaveLength(32)
+    expect(names).toHaveLength(34)
+    expect(names).toContain('listAgents')
     expect(names[0]).toBe('getUsage')
     expect(names).not.toContain('getScreenshot')
     expect(names).not.toContain('patchNodes')

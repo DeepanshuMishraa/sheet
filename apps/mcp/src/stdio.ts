@@ -4,6 +4,10 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
+import {
+  AGENT_COLLABORATION_INSTRUCTIONS,
+  AgentIdentity,
+} from '@sheet/rpc/mcp-agent-identity'
 import { directExecute } from './executor'
 import {
   advertisedTools,
@@ -16,7 +20,10 @@ console.error('[sheet-mcp] stdio ready as the local user')
 
 const server = new Server(
   { name: 'sheet', version: '0.3.0' },
-  { capabilities: { tools: { listChanged: true } } },
+  {
+    capabilities: { tools: { listChanged: true } },
+    instructions: AGENT_COLLABORATION_INSTRUCTIONS,
+  },
 )
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -39,7 +46,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
   }
   try {
-    return (await directExecute('', name, args)) as {
+    // One stdio process serves one client, so the process is the session.
+    const agent = AgentIdentity.fromClient(server.getClientVersion()?.name, `stdio:${process.pid}`)
+    return (await directExecute(agent, name, args)) as {
       content: Array<{ type: string; text?: string }>
       isError?: boolean
     }

@@ -38,7 +38,11 @@ describe('Canvas realtime events', () => {
           type: 'agent.activity',
           activity: {
             id: 'activity-1',
+            agent: { id: 'session-1', kind: 'codex', name: 'Codex' },
             label: 'Agent is working',
+            verb: null,
+            ruleIds: [],
+            mode: 'write',
             nodeIds: ['hero'],
             phase: 'working',
             updatedAt: 10,

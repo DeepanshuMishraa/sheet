@@ -132,6 +132,7 @@ import {
   type ShortcutConfig,
 } from '../lib/shortcuts'
 import { subscribeCanvasChanges, type AgentActivity } from '../lib/canvas-events'
+import { AgentAvatars, AgentCursor, agentColor, agentNames } from './agent-presence'
 
 const ELEMENT_TAGS = [
   'div',
@@ -466,6 +467,32 @@ function pickTarget(document: WebDocument, id: string | null) {
     if (isIconNode(current)) return current.id
   }
   return id
+}
+
+/**
+ * The elements a restyle reaches: the rules (`stylesheetId/ruleId`) are looked
+ * up in the document and their selectors run against the canvas, with states
+ * like `:hover` dropped so a hover rule still finds its button.
+ */
+function ruleTargets(document: WebDocument, host: HTMLElement | null, refs: readonly string[]) {
+  const ids: string[] = []
+  if (!host) return ids
+  for (const ref of refs) {
+    const slash = ref.indexOf('/')
+    const selector = document.stylesheets[ref.slice(0, slash)]?.rules[ref.slice(slash + 1)]?.selector
+    const plain = selector?.replace(/::?[a-z-]+(\([^)]*\))?/gi, '').trim()
+    if (!plain || /(^|,)\s*(,|$)/.test(plain)) continue
+    try {
+      for (const element of host.querySelectorAll(plain)) {
+        const id = element.getAttribute('data-sheet-node')
+        if (id && !ids.includes(id)) ids.push(id)
+        if (ids.length >= 8) return ids
+      }
+    } catch {
+      // A selector the browser cannot run here; the next rule may still match.
+    }
+  }
+  return ids
 }
 
 function nodeLabel(node: WebNode, document?: WebDocument) {
@@ -2020,7 +2047,11 @@ export function WebCanvasEditor({
     () => pageLayerIds(initialDocument, openingPageId(initialDocument))[0] ?? null,
   )
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [agentActivity, setAgentActivity] = useState<AgentActivity | null>(null)
+  // Every agent in the document, by session, in the order they showed up.
+  const [agentActivities, setAgentActivities] = useState<ReadonlyMap<string, AgentActivity>>(() => new Map())
+  const receiveAgentActivity = useCallback((activity: AgentActivity) => {
+    setAgentActivities((current) => new Map(current).set(activity.agent.id, activity))
+  }, [])
   useRegisterOpenTab({ id: designId, name: document.name || name || 'Untitled' })
   const [selectionRect, setSelectionRect] = useState<OverlayRect | null>(null)
   const [hoverRect, setHoverRect] = useState<OverlayRect | null>(null)
@@ -2188,7 +2219,24 @@ export function WebCanvasEditor({
     () => [...new Set(comments.filter((comment) => !comment.resolved).map((comment) => comment.nodeId))],
     [comments],
   )
-  const agentNodeIds = useMemo(() => agentActivity?.nodeIds.slice(0, 8) ?? [], [agentActivity])
+  const agents = useMemo(() => [...agentActivities.values()], [agentActivities])
+  const agentNameById = useMemo(() => agentNames(agents), [agents])
+  // The elements each agent is working on. Its first carries its cursor; all are ringed.
+  const agentTargets = useMemo(() => {
+    const targets = new Map<string, string[]>()
+    for (const activity of agents) {
+      const named = activity.nodeIds.flatMap((id) => {
+        const node = document.nodes[id]
+        // A text node has no box of its own; its element stands in for it.
+        if (node?.kind === 'text') return node.parentId ? [node.parentId] : []
+        return node ? [id] : []
+      })
+      const ids = named.length > 0 ? named : ruleTargets(document, hostRef.current, activity.ruleIds)
+      targets.set(activity.agent.id, [...new Set(ids)].slice(0, 8))
+    }
+    return targets
+  }, [agents, document])
+  const agentNodeIds = useMemo(() => [...new Set([...agentTargets.values()].flat())], [agentTargets])
   useEffect(() => {
     const ids = new Set([...openCommentNodeIds, ...agentNodeIds])
     if (threadNodeId) ids.add(threadNodeId)
@@ -2196,23 +2244,26 @@ export function WebCanvasEditor({
     scheduleMeasure()
   }, [openCommentNodeIds, agentNodeIds, threadNodeId, scheduleMeasure])
 
-  // The indicator clears itself when the server's window for it runs out, and a
-  // finished run is marked with one quiet cue.
+  // Each agent clears itself when the server's window for it runs out, and the
+  // moment the last one stops working is marked with one quiet cue.
   useEffect(() => {
-    if (!agentActivity) return
-    const wait = Math.max(0, agentActivity.expiresAt - Date.now())
-    const timer = window.setTimeout(
-      () => setAgentActivity((current) => (current?.id === agentActivity.id && current.phase === agentActivity.phase ? null : current)),
-      wait,
-    )
+    if (agents.length === 0) return
+    const soonest = Math.min(...agents.map((activity) => activity.expiresAt))
+    const timer = window.setTimeout(() => {
+      const now = Date.now()
+      setAgentActivities((current) => {
+        const kept = new Map([...current].filter(([, activity]) => activity.expiresAt > now))
+        return kept.size === current.size ? current : kept
+      })
+    }, Math.max(0, soonest - Date.now()) + 50)
     return () => window.clearTimeout(timer)
-  }, [agentActivity])
+  }, [agents])
+  const anyAgentWorking = agents.some((activity) => activity.phase === 'working')
   const agentWasWorkingRef = useRef(false)
   useEffect(() => {
-    const phase = agentActivity?.phase
-    if (agentWasWorkingRef.current && phase === 'settled') Sound.ready()
-    agentWasWorkingRef.current = phase === 'working'
-  }, [agentActivity?.phase])
+    if (agentWasWorkingRef.current && !anyAgentWorking && agents.length > 0) Sound.ready()
+    agentWasWorkingRef.current = anyAgentWorking
+  }, [anyAgentWorking, agents.length])
 
   const onMaterialize = useCallback((element: HTMLDivElement) => {
     hostRef.current = element
@@ -2255,12 +2306,13 @@ export function WebCanvasEditor({
     syncLatestRef.current = sync
     // Any announcement triggers a sync (the revision check happens on the
     // fetched result), and every (re)connect resyncs what a dropped stream missed.
-    const stop = subscribeCanvasChanges(designId, sync, { draftId, onReady: sync, onAgentActivity: setAgentActivity })
+    setAgentActivities(new Map())
+    const stop = subscribeCanvasChanges(designId, sync, { draftId, onReady: sync, onAgentActivity: receiveAgentActivity })
     return () => {
       active = false
       stop()
     }
-  }, [designId, draftId, scheduleMeasure])
+  }, [designId, draftId, scheduleMeasure, receiveAgentActivity])
 
   const select = useCallback((id: string | null) => {
     selectedRef.current = id
@@ -3758,27 +3810,14 @@ export function WebCanvasEditor({
   )
   const trailingControls = (
     <>
-      {agentActivity ? (
-        <span
-          role="status"
-          aria-live="polite"
-          className={cn(
-            'flex h-7 min-w-0 items-center gap-1.5 truncate rounded-md px-2 text-xs transition-opacity duration-300',
-            agentActivity.phase === 'working' ? 'text-foreground' : 'text-muted-foreground',
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'size-1.5 shrink-0 rounded-full bg-cx-accent',
-              agentActivity.phase === 'working' ? 'animate-pulse' : 'opacity-50',
-            )}
-          />
-          <span className="truncate">
-            {agentActivity.phase === 'working' ? agentActivity.label : 'Agent finished'}
-          </span>
-        </span>
-      ) : null}
+      <AgentAvatars
+        activities={agents}
+        names={agentNameById}
+        onFocus={(activity) => {
+          const nodeId = agentTargets.get(activity.agent.id)?.[0]
+          if (nodeId) select(nodeId)
+        }}
+      />
       {notice ? (
         <div className="flex min-w-0 max-w-[45%] shrink items-center">
           <span
@@ -4301,7 +4340,7 @@ export function WebCanvasEditor({
                 </div>
               ) : selectedId !== null && frameIds.includes(selectedId) ? null : (
                 <div
-                  className="pointer-events-auto absolute -top-5 left-0 max-w-48 cursor-move truncate rounded-sm bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity hover:opacity-100"
+                  className="pointer-events-auto absolute -top-5 left-0 max-w-48 cursor-move truncate rounded-sm bg-cx-accent px-1.5 py-0.5 font-mono text-[10px] text-cx-accent-foreground opacity-0 transition-opacity hover:opacity-100"
                   onPointerDown={(event) => startElementDrag(event, 'move')}
                   onPointerMove={onDragMove}
                   onPointerUp={finishElementDrag}
@@ -4331,28 +4370,51 @@ export function WebCanvasEditor({
               ))}
 
               {/* Dimensions badge at bottom center */}
-              <div className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cx-accent px-2 py-0.5 font-mono text-[10px] font-medium text-white shadow-md ring-1 ring-white/20">
+              <div className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cx-accent px-2 py-0.5 font-mono text-[10px] font-medium text-cx-accent-foreground shadow-md ring-1 ring-white/20">
                 {Math.round(selectionRect.width / camera.zoom)} × {Math.round(selectionRect.height / camera.zoom)}
               </div>
             </div>
           ) : null}
 
-          {/* The agent's current target, ringed while it works */}
-          {agentActivity
-            ? agentNodeIds.map((nodeId) => {
-                const rect = pinRects[nodeId]
-                if (!rect) return null
-                return (
-                  <div
-                    key={nodeId}
-                    aria-hidden="true"
-                    className="cx-agent-ring pointer-events-none z-20"
-                    data-phase={agentActivity.phase}
-                    style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
-                  />
-                )
-              })
-            : null}
+          {/* What each agent is changing right now, ringed in its colour. Only
+              while a change is in flight: a read rings nothing. The first ring
+              is keyed by the agent, so it glides from target to target. */}
+          {agents.flatMap((activity) => {
+            if (activity.mode !== 'write' || activity.phase !== 'working') return []
+            return (agentTargets.get(activity.agent.id) ?? []).map((nodeId, index) => {
+              const rect = pinRects[nodeId]
+              if (!rect) return null
+              return (
+                <div
+                  key={index === 0 ? activity.agent.id : `${activity.agent.id}:${nodeId}`}
+                  aria-hidden="true"
+                  className="cx-agent-ring pointer-events-none z-20"
+                  data-phase={activity.phase}
+                  style={{
+                    transform: `translate3d(${rect.left}px, ${rect.top}px, 0)`,
+                    width: rect.width,
+                    height: rect.height,
+                    '--agent-color': agentColor(activity.agent.kind),
+                  } as CSSProperties}
+                />
+              )
+            })
+          })}
+          {agents.map((activity) => {
+            const targets = agentTargets.get(activity.agent.id) ?? []
+            const nodeId = targets.find((id) => pinRects[id])
+            const node = nodeId ? document.nodes[nodeId] : undefined
+            const extra = targets.length - 1
+            return (
+              <AgentCursor
+                key={activity.agent.id}
+                activity={activity}
+                name={agentNameById.get(activity.agent.id) ?? activity.agent.name}
+                rect={nodeId ? (pinRects[nodeId] ?? null) : null}
+                nodeName={node ? `${nodeLabel(node, document)}${extra > 0 ? ` +${extra}` : ''}` : null}
+              />
+            )
+          })}
 
           {/* Comment pins and the open thread */}
           {openCommentNodeIds.map((nodeId) => {
@@ -4522,7 +4584,7 @@ export function WebCanvasEditor({
               className={cn(
                 'flex size-7 items-center justify-center rounded-md outline-none transition-[background-color,color,scale] duration-150 ease-smooth active:scale-[0.92] focus-visible:ring-2 focus-visible:ring-ring',
                 focusMode
-                  ? 'bg-cx-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]'
+                  ? 'bg-cx-accent text-cx-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]'
                   : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
               )}
               onClick={toggleFocusMode}
@@ -4554,7 +4616,7 @@ export function WebCanvasEditor({
                 value: 'comments',
                 label: 'Comments',
                 badge: openCommentNodeIds.length > 0 ? (
-                  <span className="min-w-4 rounded-full bg-cx-accent px-1 text-center text-[10px] font-medium tabular-nums leading-4 text-white">
+                  <span className="min-w-4 rounded-full bg-cx-accent px-1 text-center text-[10px] font-medium tabular-nums leading-4 text-cx-accent-foreground">
                     {openCommentNodeIds.length}
                   </span>
                 ) : undefined,

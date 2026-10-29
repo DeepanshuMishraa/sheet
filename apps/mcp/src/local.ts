@@ -11,6 +11,7 @@ import {
   subscribeLocalEvents,
 } from '@sheet/realtime/local-bus'
 import { completeCapture, registerCapturer, type CaptureResult } from '@sheet/rpc/capture-broker'
+import { liveAgentActivities } from '@sheet/rpc/mcp-agent-activity'
 import { installAgent, isInstallableAgent } from './agent-install'
 import { configFrom } from './config'
 import { installSkill } from './skill-install'
@@ -150,6 +151,11 @@ function serveCanvasEvents(request: Request) {
           sentAt: Date.now(),
         }),
       )
+      // A tab that opens mid-run sees the agents already at work.
+      const running = designId ? liveAgentActivities(LOCAL_USER_ID, { designId, draftId }) : []
+      for (const activity of running) {
+        send(sseEvent('canvas', { type: 'agent.activity', activity, sentAt: Date.now() }))
+      }
       const unsubscribe = subscribeLocalEvents((message) => {
         if (!messageTargetsRoom(message, designId, draftId)) return
         send(sseEvent('canvas', { ...message.event, sentAt: message.sentAt }))

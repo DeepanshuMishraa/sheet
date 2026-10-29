@@ -1,4 +1,5 @@
 import { LOCAL_USER_ID, ensureLocalUser } from '@sheet/db'
+import type { AgentIdentity } from '@sheet/rpc/mcp-agent-identity'
 import type { JsonValue } from './tools'
 
 /**
@@ -39,15 +40,22 @@ export async function directAccess(_userId: string): Promise<JsonValue> {
   return { allowed: true }
 }
 
+/** An agent's session closed: take its avatar and cursor off every design. */
+export async function directFinish(agent: AgentIdentity) {
+  const { finishAgentActivity } = await import('@sheet/rpc/mcp-agent-activity')
+  finishAgentActivity(agent, null)
+}
+
+/** `agent` is who made the call, so the editor can draw its avatar and cursor. */
 export async function directExecute(
-  _userId: string,
+  agent: AgentIdentity,
   tool: string,
   args: JsonValue,
 ): Promise<JsonValue> {
   const userId = await localUserId()
   const { createSheetToolExecutor } = await import('@sheet/rpc/mcp-server')
   const { createMcpUsageController } = await import('@sheet/rpc/mcp-usage')
-  const execute = createSheetToolExecutor(userId, createMcpUsageController())
+  const execute = createSheetToolExecutor(userId, createMcpUsageController(), agent)
   try {
     return (await execute(tool, (args ?? {}) as Record<string, unknown>)) as unknown as JsonValue
   } catch (error) {

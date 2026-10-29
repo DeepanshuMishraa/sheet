@@ -36,7 +36,7 @@ packages/realtime Realtime wire protocol plus the in-process local event bus (`@
 
 One Bun process is the whole backend, and the only backend there is. With
 `SHEET_SQLITE_PATH` set (default `./data/sheet.db`) it serves MCP
-(`POST /mcp`, all 32 tools, no auth), the oRPC API the editor talks to
+(`POST /mcp`, all 34 tools, no auth), the oRPC API the editor talks to
 (`/api/rpc/*`), assets (`/api/asset/:id`), handoffs (`/api/handoff/*`), and
 the live event stream (`/api/canvas-events`, SSE over the in-process bus).
 `GET /ready` is the health check. `bun run build:server` compiles it to a
@@ -188,10 +188,12 @@ shared interface, built by Vite from the same packages.
   `capabilities/*.json`; a new window needs its label added there.
 - **Theme and accent.** Two palettes only, light and dark, plus a System pick
   (`@sheet/shell/lib/theme`). One accent hue is spent on selection, focus and
-  whatever is live; the person picks orange (default), blue, violet, green, pink
-  or teal (`@sheet/shell/lib/accent`, applied as `data-accent` on `<html>`, with
-  matching blocks at the end of `packages/ui/src/tokens.css`). Palette tokens
-  live in `tokens.css`; every focus ring and `--chart-1` follows `--cx-accent`.
+  whatever is live; the person picks mono (default: black in light, white in
+  dark), orange, blue, violet, green, pink or teal (`@sheet/shell/lib/accent`,
+  applied as `data-accent` on `<html>`, with matching blocks at the end of
+  `packages/ui/src/tokens.css`). Palette tokens live in `tokens.css`; every
+  focus ring and `--chart-1` follows `--cx-accent`. Text on an accent fill uses
+  `text-cx-accent-foreground`, never `text-white`: on dark Mono the fill is white.
 
 See `apps/desktop/README.md`.
 
@@ -339,6 +341,23 @@ One process, one bus, no gate.
   invalidations, branch changes, and agent activity, filtered by design and
   branch. Presence posts to `/api/canvas-presence` are accepted and ignored —
   one user has no peers.
+- **Several agents at once.** Each MCP session is one agent. HTTP `initialize`
+  reads `clientInfo.name` and answers with an `Mcp-Session-Id` the client
+  echoes on every call (`apps/mcp/src/agent-sessions.ts`); stdio is one
+  process per client. `AgentIdentity` (`@sheet/rpc/mcp-agent-identity`) maps
+  the name to a kind (`claude`, `codex`, `cursor`, `copilot`, `opencode`,
+  `antigravity`, `other`). Every `agent.activity` carries that agent, and the
+  editor keeps one entry per agent: an app-icon avatar in the top bar and a
+  cursor that glides to the node it works on (`agent-presence.tsx`). The
+  server remembers the latest activity per agent per room
+  (`mcp-agent-activity.ts`), and agents learn about each other without asking:
+  `initialize` sends the rules (`AGENT_COLLABORATION_INSTRUCTIONS`),
+  `listDesigns` lists the agents in each design, and every design-scoped tool
+  result ends with a note while another agent is there ("just joined" the
+  first time, a reminder after, a warning when a write crossed its nodes).
+  Agents stay off each other's nodes and ask the user when their work
+  overlaps. `listAgents` is the optional full view; a new tab is sent the
+  agents already working.
 - Server-side publishers (oRPC, MCP tools) call the same
   `@sheet/db/canvas-realtime` functions as before. Those emit onto the local
   bus first, then try the ingest URL and Redis exactly as before; either may

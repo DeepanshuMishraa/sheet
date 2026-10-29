@@ -44,6 +44,8 @@ your next `applyWebTransaction`.
 | `listPages` | Pages: `pageId`, name, size |
 | `listVersions` | History for Main or a branch |
 | `listComments` | Comments pinned to elements: open by default, filter by `nodeId`, `status` (`open`, `resolved`, `all`); each carries the element's current tag, id, class, and text |
+| `finishWork` | Call once when the task in a design is done: removes your avatar and cursor from the editor straight away. Does not change the design |
+| `listAgents` | Optional: who you are, and every other agent present in the design (what it is doing, whether it is mid-call, the `nodeIds` it is touching). Every design tool result already ends with a note when another agent is present, and `listDesigns` lists the agents in each design |
 
 ### Authoring
 
